@@ -41,8 +41,7 @@ type Parameter struct {
 
 // Jsonnet specifies configuration and execution helpers for running Jsonnet
 type Jsonnet struct {
-	Bin         string `json:"bin,omitempty"`
-	DockerImage string `json:"image,omitempty"`
+	Bin string `json:"bin,omitempty"`
 }
 
 // Complete fills in the blank configuration values
@@ -51,48 +50,13 @@ func (jsonnet *Jsonnet) Complete() {
 
 	if jsonnet.Bin == "" {
 		if jsonnet.Bin, err = exec.LookPath("jsonnet"); err != nil {
-			// If Jsonnet is not available, we may be able to run it through Docker instead
-			if dockerName, dockerErr := exec.LookPath("docker"); dockerErr != nil {
-				// No Docker either
-				jsonnet.Bin = "jsonnet"
-			} else {
-				var cmd *exec.Cmd
-				if jsonnet.DockerImage != "" {
-					// Pull now to avoid unsuppressable noise later
-					cmd = exec.Command(dockerName, "image", "pull", jsonnet.DockerImage)
-				} else {
-					// The official Jsonnet repository Docker image does not seem to be published, instead of pulling, build the image
-					repo, tag := "google/jsonnet", "0.14.0"
-					jsonnet.DockerImage = fmt.Sprintf("x-%s:%s", repo, tag)
-					// TODO Skip the build if the image exists
-					cmd = exec.Command(dockerName, "image", "build", "--tag", jsonnet.DockerImage, fmt.Sprintf("https://github.com/%s.git#v%s", repo, tag))
-				}
-
-				if err := cmd.Run(); err != nil {
-					// Failed to get a local copy of the image
-					jsonnet.Bin = "jsonnet"
-					jsonnet.DockerImage = ""
-				} else {
-					// We can successfully use the Docker executable
-					jsonnet.Bin = dockerName
-				}
-			}
-		} else {
-			// Clear the Docker image name so we do not try to use it
-			jsonnet.DockerImage = ""
+			jsonnet.Bin = "jsonnet"
 		}
 	}
 }
 
 func (jsonnet *Jsonnet) command(jpath []string, ext, tla []Parameter, extraArgs ...string) *exec.Cmd {
 	var args []string
-
-	if jsonnet.DockerImage != "" {
-		// Modify the arguments for a Docker run
-		args = append(args, "container", "run", "--rm")
-		// TODO Mount jpath/modify the extraArg file name
-		args = append(args, jsonnet.DockerImage)
-	}
 
 	for i := range ext {
 		args = ext[i].AppendArgs(args, "--ext-")
