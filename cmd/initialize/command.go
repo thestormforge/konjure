@@ -31,7 +31,6 @@ func NewInitializeCommand() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&ic.options.Source, "source", "", "Override the path to the source executable.")
-	cmd.Flags().BoolVar(&ic.options.DryRun, "dry-run", false, "Display links instead of creating them.")
 
 	return cmd
 }

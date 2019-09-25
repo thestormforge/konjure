@@ -30,7 +30,6 @@ import (
 type InitializeOptions struct {
 	Source  string
 	Plugins []string
-	DryRun  bool
 }
 
 func NewInitializeOptions() *InitializeOptions {
@@ -85,10 +84,10 @@ func (o *InitializeOptions) Run(out io.Writer) error {
 		}
 
 		// Link the executable
-		if o.DryRun {
-			_, _ = fmt.Fprintf(out, "ln -s %s %s\n", o.Source, link)
-		} else if err := os.Symlink(o.Source, link); err != nil {
+		if err := os.Symlink(o.Source, link); err != nil {
 			return err
+		} else {
+			_, _ = fmt.Fprintf(out, "Created %s\n", link)
 		}
 	}
 
