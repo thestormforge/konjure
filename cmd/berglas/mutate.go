@@ -12,94 +12,68 @@ import (
 )
 
 type BerglasMutator struct {
-	mutateContainer func(*corev1.Container) (*corev1.Container, bool)
-	mutatePodSpec   func(*corev1.PodSpec)
-
-	client        *berglas.Client
 	resMapFactory *resmap.Factory
 	loader        ifc.Loader
+	genOpts       *types.GeneratorOptions
 	secrets       resmap.ResMap
-	lastErr       error
 }
 
-func NewBerglasMutator(c *berglas.Client, f *resmap.Factory, l ifc.Loader) *BerglasMutator {
+func NewBerglasMutator(f *resmap.Factory, l ifc.Loader, o *types.GeneratorOptions) *BerglasMutator {
 	m := &BerglasMutator{
-		client:        c,
 		resMapFactory: f,
 		loader:        l,
-		secrets:       resmap.New(),
+		genOpts:       o,
 	}
 
-	if m.client != nil {
-		m.mutateContainer = m.mutateContainerEnvironment
-		m.mutatePodSpec = m.mutatePodSpecEnvironment
-	} else {
-		m.mutateContainer = m.mutateContainerCommand
-		m.mutatePodSpec = m.mutatePodSpecCommand
+	if o != nil {
+		m.secrets = resmap.New()
 	}
 
 	return m
 }
 
-// Include secrets at build time
-func (m *BerglasMutator) mutateContainerEnvironment(c *corev1.Container) (*corev1.Container, bool) {
-	// Check for a failure from an earlier container
-	if m.lastErr != nil {
-		return c, false
+func (m *BerglasMutator) FlushSecrets(rm resmap.ResMap) error {
+	var err error
+	if m.secrets != nil {
+		err = rm.AppendAll(m.secrets)
+		m.secrets.Clear()
 	}
+	return err
+}
 
+func (m *BerglasMutator) Mutate(template *corev1.PodTemplateSpec) (bool, error) {
+	if m.genOpts != nil {
+		return m.mutateTemplateWithSecrets(template)
+	}
+	return m.mutateTemplate(template), nil
+}
+
+// Mutation with secrets does the secret lookup now instead of in the container
+
+func (m *BerglasMutator) mutateTemplateWithSecrets(template *corev1.PodTemplateSpec) (bool, error) {
 	mutated := false
-	for _, e := range c.Env {
-		if berglas.IsReference(e.Value) {
-			// Parse the environment variable value as Berglas reference
-			r, err := berglas.ParseReference(e.Value)
-			if err != nil {
-				m.lastErr = err
-				return c, mutated
-			}
 
-			// Do not allow environment variables specifications to contain sensitive information
-			if r.Filepath() == "" {
-				m.lastErr = fmt.Errorf("direct environment variable replacement is not allowed for: %s", e.Name)
-				return c, mutated
-			}
-
-			// Add a secret by creating a resource map that we can merge into the existing collection
-			args := types.SecretArgs{}
-			args.Name = r.Bucket()
-			args.FileSources = append(args.FileSources, fmt.Sprintf("%s=%s/%s", r.Filepath(), r.Bucket(), r.Object()))
-			sm, err := m.resMapFactory.FromSecretArgs(m.loader, nil, args)
-			if err != nil {
-				m.lastErr = err
-				return c, mutated
-			}
-			err = m.secrets.AbsorbAll(sm)
-			if err != nil {
-				m.lastErr = err
-				return c, mutated
-			}
-
-			// Add a mount to get the secret where it was requested
-			// TODO There is going to be a problem with "tempfile" since the OS the build runs on may have a different TMP_DIR convention
-			c.VolumeMounts = append(c.VolumeMounts, corev1.VolumeMount{
-				Name:      r.Bucket(),
-				MountPath: r.Filepath(),
-				SubPath:   path.Base(r.Filepath()),
-				ReadOnly:  true,
-			})
-
-			// Replace the environment variable value with the path
-			e.Value = r.Filepath()
+	for i, c := range template.Spec.InitContainers {
+		if c, didMutate, err := m.mutateContainerWithSecrets(&c); err != nil {
+			return mutated, err
+		} else if didMutate {
 			mutated = true
+			template.Spec.InitContainers[i] = *c
 		}
 	}
 
-	return c, mutated
-}
+	for i, c := range template.Spec.Containers {
+		if c, didMutate, err := m.mutateContainerWithSecrets(&c); err != nil {
+			return mutated, err
+		} else if didMutate {
+			mutated = true
+			template.Spec.Containers[i] = *c
+		}
+	}
 
-func (m *BerglasMutator) mutatePodSpecEnvironment(spec *corev1.PodSpec) {
 	for _, r := range m.secrets.Resources() {
-		spec.Volumes = append(spec.Volumes, corev1.Volume{
+		mutated = true
+		template.Spec.Volumes = append(template.Spec.Volumes, corev1.Volume{
 			Name: r.GetName(),
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
@@ -108,6 +82,57 @@ func (m *BerglasMutator) mutatePodSpecEnvironment(spec *corev1.PodSpec) {
 			},
 		})
 	}
+
+	return mutated, nil
+}
+
+func (m *BerglasMutator) mutateContainerWithSecrets(c *corev1.Container) (*corev1.Container, bool, error) {
+	mutated := false
+	for _, e := range c.Env {
+		if berglas.IsReference(e.Value) {
+			// Parse the environment variable value as Berglas reference
+			r, err := berglas.ParseReference(e.Value)
+			if err != nil {
+				return c, mutated, err
+			}
+
+			// Do not allow environment variables to contain sensitive information in the generated manifests
+			if r.Filepath() == "" {
+				// TODO Should this be an error?
+				continue
+			}
+
+			// Create a resource map with a secret that we can merge into the existing collection
+			args := types.SecretArgs{}
+			args.Name = r.Bucket()
+			args.FileSources = []string{fmt.Sprintf("%s=%s/%s", r.Filepath(), r.Bucket(), r.Object())}
+			sm, err := m.resMapFactory.FromSecretArgs(m.loader, m.genOpts, args)
+			if err != nil {
+				return c, mutated, err
+			}
+
+			// Merge the generated secret into the existing collection
+			err = m.secrets.AbsorbAll(sm)
+			if err != nil {
+				return c, mutated, err
+			}
+
+			// Replace the environment variable value with the path
+			mutated = true
+			e.Value = r.Filepath()
+
+			// Add a mount to get the secret where it was requested
+			// TODO There is going to be a problem with "tempfile" since the OS the build runs on may have a different TMP_DIR convention
+			c.VolumeMounts = append(c.VolumeMounts, corev1.VolumeMount{
+				Name:      r.Bucket(),
+				MountPath: e.Value,
+				SubPath:   path.Base(e.Value),
+				ReadOnly:  true,
+			})
+		}
+	}
+
+	return c, mutated, nil
 }
 
 // The rest of this is the mutating webhook from https://github.com/GoogleCloudPlatform/berglas/tree/master/examples/kubernetes
@@ -166,22 +191,19 @@ func (m *BerglasMutator) mutateTemplate(template *corev1.PodTemplateSpec) bool {
 	}
 
 	if mutated {
-		m.mutatePodSpec(&template.Spec)
+		template.Spec.Volumes = append(template.Spec.Volumes, binVolume)
+		template.Spec.InitContainers = append([]corev1.Container{binInitContainer}, template.Spec.InitContainers...)
 	}
 
 	return mutated
 }
 
-func (m *BerglasMutator) mutatePodSpecCommand(spec *corev1.PodSpec) {
-	spec.Volumes = append(spec.Volumes, binVolume)
-	spec.InitContainers = append([]corev1.Container{binInitContainer}, spec.InitContainers...)
-}
-
-func (m *BerglasMutator) mutateContainerCommand(c *corev1.Container) (*corev1.Container, bool) {
+func (m *BerglasMutator) mutateContainer(c *corev1.Container) (*corev1.Container, bool) {
 	if !m.hasBerglasReferences(c.Env) {
 		return c, false
 	}
 	if len(c.Command) == 0 {
+		// TODO Should this be an error?
 		return c, false
 	}
 	c.VolumeMounts = append(c.VolumeMounts, binVolumeMount)

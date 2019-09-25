@@ -36,6 +36,7 @@ import (
 
 // BerglasOptions is the configuration common between the generator and transformer
 type BerglasOptions struct {
+	GeneratorOptions *types.GeneratorOptions `json:"generatorOptions,omitempty"`
 }
 
 // BerglasGenerateOptions is the configuration for fetching secrets
@@ -48,6 +49,16 @@ func NewBerglasGenerateOptions() *BerglasGenerateOptions {
 	return &BerglasGenerateOptions{}
 }
 
+// BerglasTransformOptions is the configuration for modifying pod templates
+type BerglasTransformOptions struct {
+	BerglasOptions  `json:",inline"`
+	GenerateSecrets bool `json:"generateSecrets,omitempty"`
+}
+
+func NewBerglasTransformOptions() *BerglasTransformOptions {
+	return &BerglasTransformOptions{}
+}
+
 func (o *BerglasGenerateOptions) Run(name string) ([]byte, error) {
 	// This code uses the Kustomize code for secret generation along with the Berglas API to populate "literal" secret sources
 	rmf := resmap.NewFactory(resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl()), nil)
@@ -58,8 +69,6 @@ func (o *BerglasGenerateOptions) Run(name string) ([]byte, error) {
 		return nil, err
 	}
 
-	// TODO Expose additional configration options for generation
-	options := &types.GeneratorOptions{}
 	args := types.SecretArgs{}
 	args.Name = name
 
@@ -75,20 +84,11 @@ func (o *BerglasGenerateOptions) Run(name string) ([]byte, error) {
 	}
 
 	// Generate the secret resource and dump it as YAML
-	m, err := rmf.FromSecretArgs(ldr, options, args)
+	m, err := rmf.FromSecretArgs(ldr, o.GeneratorOptions, args)
 	if err != nil {
 		return nil, err
 	}
 	return m.AsYaml()
-}
-
-// BerglasTransformOptions is the configuration for modifying pod templates
-type BerglasTransformOptions struct {
-	BerglasOptions `json:",inline"`
-}
-
-func NewBerglasTransformOptions() *BerglasTransformOptions {
-	return &BerglasTransformOptions{}
 }
 
 // Selectors to find resources that have a PodTemplateSpec we can mutate
@@ -113,8 +113,13 @@ func (o *BerglasTransformOptions) Run(in []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	// TODO If we have a client, it will change when secrets are resolved
-	mutator := NewBerglasMutator(nil, rmf, ldr)
+	opts := o.GeneratorOptions
+	if !o.GenerateSecrets {
+		opts = nil
+	}
+
+	// Create a new mutator
+	mutator := NewBerglasMutator(rmf, ldr, opts)
 
 	for _, r := range m.Resources() {
 		// Mutate using the appropriate API struct
@@ -141,16 +146,9 @@ func (o *BerglasTransformOptions) Run(in []byte) ([]byte, error) {
 			}
 		}
 
-		// Check if there were any errors that occurred
-		if mutator.lastErr != nil {
-			return nil, mutator.lastErr
-		}
-
 		// Check if there were any new secrets that need to be added
-		if err := m.AppendAll(mutator.secrets); err != nil {
+		if err := mutator.FlushSecrets(m); err != nil {
 			return nil, err
-		} else {
-			mutator.secrets.Clear()
 		}
 	}
 
@@ -170,7 +168,9 @@ func mutateResourceAs(m *BerglasMutator, r *resource.Resource, v interface{}) er
 	template := reflect.ValueOf(v).Elem().FieldByName("Spec").FieldByName("Template").Interface()
 	if pts, ok := template.(corev1.PodTemplateSpec); ok {
 		// Mutate the PodTemplateSpec and if there were changes, reverse the marshalling process back into the resource
-		if m.mutateTemplate(&pts) {
+		if didMutate, err := m.Mutate(&pts); err != nil {
+			return err
+		} else if didMutate {
 			if data, err := json.Marshal(v); err != nil {
 				return err
 			} else {
