@@ -157,7 +157,7 @@ func (v *HelmValue) AppendArgs(args []string) []string {
 		} else if v.ForceString {
 			setOpt = "--set-string"
 		}
-		args = append(args, setOpt, fmt.Sprintf("%s=%s", v.Name, v.Value))
+		args = append(args, setOpt, fmt.Sprintf("%s=%v", v.Name, v.Value))
 	}
 	return args
 }
