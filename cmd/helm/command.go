@@ -40,7 +40,7 @@ func NewHelmCommand() *cobra.Command {
 	cmd.Flags().BoolVar(&hc.options.IncludeTests, "include-tests", false, "Do not remove resources labeled as test hooks.")
 
 	// These flags match what real Helm has
-	cmd.Flags().StringVarP(&hc.options.Name, "name", "n", "release-name", "Release name.")
+	cmd.Flags().StringVarP(&hc.options.ReleaseName, "name", "n", "release-name", "Release name.")
 	cmd.Flags().StringVar(&hc.options.Version, "version", "", "Fetch a specific version of a chart. If empty, the latest version of the chart will be used.")
 	cmd.Flags().StringVar(&hc.options.Helm.Home, "home", "", "Override the location of your Helm config.")
 	cmd.Flags().StringToStringVar(&hc.set, "set", nil, "Set values on the command line.")

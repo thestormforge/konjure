@@ -42,6 +42,7 @@ type BerglasOptions struct {
 // BerglasGenerateOptions is the configuration for fetching secrets
 type BerglasGenerateOptions struct {
 	BerglasOptions `json:",inline"`
+	Name           string   `json:"name"`
 	References     []string `json:"refs"`
 }
 
@@ -59,7 +60,7 @@ func NewBerglasTransformOptions() *BerglasTransformOptions {
 	return &BerglasTransformOptions{}
 }
 
-func (o *BerglasGenerateOptions) Run(name string) ([]byte, error) {
+func (o *BerglasGenerateOptions) Run() ([]byte, error) {
 	// This code uses the Kustomize code for secret generation along with the Berglas API to populate "literal" secret sources
 	rmf := resmap.NewFactory(resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl()), nil)
 
@@ -70,7 +71,7 @@ func (o *BerglasGenerateOptions) Run(name string) ([]byte, error) {
 	}
 
 	args := types.SecretArgs{}
-	args.Name = name
+	args.Name = o.Name
 
 	// Add a file source for each of the configured references
 	for _, ref := range o.References {

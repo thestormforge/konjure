@@ -19,9 +19,9 @@ package util
 import (
 	"fmt"
 	"io/ioutil"
-	"strings"
 
 	"github.com/spf13/cobra"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -29,12 +29,18 @@ const (
 	group = "konjure.carbonrelay.com"
 )
 
+// ConfigMetadata is the Kubernetes metadata associated with the configuration
+type ConfigMetadata struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+}
+
 // ExecPlugin implementations can be made into commands
 // TODO Is this really GeneratorExecPlugin? Or is ExecPlugin one thing and Generator/Transformer another (e.g. Run accepts a resmap/reader)
 type ExecPlugin interface {
-	Unmarshal(y []byte, version string) error
+	Unmarshal(y []byte, metadata ConfigMetadata) error
 	PreRun() error
-	Run(cmd *cobra.Command, name string) error
+	Run(cmd *cobra.Command) error
 }
 
 // TODO Do we need a version of this that takes a Kustomize Transformer?
@@ -53,45 +59,38 @@ func NewExecPluginCommand(kind string, p ExecPlugin) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			ver, name, err := checkConfig(cfg, kind)
+
+			md, err := checkConfig(cfg, kind)
 			if err != nil {
 				return err
 			}
-			err = p.Unmarshal(cfg, ver)
+
+			err = p.Unmarshal(cfg, md)
 			if err != nil {
 				return err
 			}
-			return p.Run(cmd, name)
+
+			return p.Run(cmd)
 		},
 	}
 }
 
 // Checks the supplied plugin configuration, returning the extracted API version (not group) and metadata name
-func checkConfig(b []byte, kind string) (string, string, error) {
-	type Metadata struct {
-		Name string `json:"name"`
-	}
-	type Config struct {
-		APIVersion string   `json:"apiVersion"`
-		Kind       string   `json:"kind"`
-		Metadata   Metadata `json:"metadata"`
+func checkConfig(b []byte, kind string) (ConfigMetadata, error) {
+	cfg := ConfigMetadata{}
+	if err := yaml.Unmarshal(b, &cfg); err != nil {
+		return cfg, err
 	}
 
-	cfg := &Config{}
-	if err := yaml.Unmarshal(b, cfg); err != nil {
-		return "", "", err
-	}
-
-	// Verify the API group and extract the version (so ExecPlugin implementations can convert if necessary)
-	p := strings.Split(cfg.APIVersion, "/")
-	if len(p) != 2 || p[0] != group {
-		return "", "", fmt.Errorf("apiVersion should be %s", group)
+	// Verify the API group independent of the version (so ExecPlugin implementations can convert if necessary)
+	if cfg.GroupVersionKind().Group != group {
+		return cfg, fmt.Errorf("group should be %s", group)
 	}
 
 	// Verify the kind matches what was expected for this exec plugin
 	if cfg.Kind != "" && cfg.Kind != kind {
-		return "", "", fmt.Errorf("kind should be %s", kind)
+		return cfg, fmt.Errorf("kind should be %s", kind)
 	}
 
-	return p[1], cfg.Metadata.Name, nil
+	return cfg, nil
 }

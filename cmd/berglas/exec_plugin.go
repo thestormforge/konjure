@@ -38,7 +38,8 @@ type berglasGenerator struct {
 	options *BerglasGenerateOptions
 }
 
-func (bg *berglasGenerator) Unmarshal(y []byte, version string) error {
+func (bg *berglasGenerator) Unmarshal(y []byte, metadata util.ConfigMetadata) error {
+	bg.options.Name = metadata.Name
 	return yaml.Unmarshal(y, bg.options)
 }
 
@@ -46,8 +47,8 @@ func (bg *berglasGenerator) PreRun() error {
 	return nil
 }
 
-func (bg *berglasGenerator) Run(cmd *cobra.Command, name string) error {
-	b, err := bg.options.Run(name)
+func (bg *berglasGenerator) Run(cmd *cobra.Command) error {
+	b, err := bg.options.Run()
 	if err != nil {
 		return err
 	}
@@ -72,7 +73,7 @@ type berglasTransformer struct {
 	options *BerglasTransformOptions
 }
 
-func (bt *berglasTransformer) Unmarshal(y []byte, version string) error {
+func (bt *berglasTransformer) Unmarshal(y []byte, metadata util.ConfigMetadata) error {
 	return yaml.Unmarshal(y, bt.options)
 }
 
@@ -80,7 +81,7 @@ func (bt *berglasTransformer) PreRun() error {
 	return nil
 }
 
-func (bt *berglasTransformer) Run(cmd *cobra.Command, name string) error {
+func (bt *berglasTransformer) Run(cmd *cobra.Command) error {
 	in, err := ioutil.ReadAll(cmd.InOrStdin())
 	if err != nil {
 		return err

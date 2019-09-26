@@ -37,7 +37,7 @@ type jsonnetGenerator struct {
 	options *JsonnetOptions
 }
 
-func (jg *jsonnetGenerator) Unmarshal(y []byte, version string) error {
+func (jg *jsonnetGenerator) Unmarshal(y []byte, metadata util.ConfigMetadata) error {
 	return yaml.Unmarshal(y, jg.options)
 }
 
@@ -46,7 +46,7 @@ func (jg *jsonnetGenerator) PreRun() error {
 	return nil
 }
 
-func (jg *jsonnetGenerator) Run(cmd *cobra.Command, name string) error {
+func (jg *jsonnetGenerator) Run(cmd *cobra.Command) error {
 	b, err := jg.options.Run(cmd.ErrOrStderr())
 	if err != nil {
 		return err

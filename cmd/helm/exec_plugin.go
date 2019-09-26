@@ -37,7 +37,8 @@ type helmGenerator struct {
 	options *HelmOptions
 }
 
-func (hg *helmGenerator) Unmarshal(y []byte, version string) error {
+func (hg *helmGenerator) Unmarshal(y []byte, metadata util.ConfigMetadata) error {
+	hg.options.ReleaseName = metadata.Name
 	return yaml.Unmarshal(y, hg.options)
 }
 
@@ -46,7 +47,7 @@ func (hg *helmGenerator) PreRun() error {
 	return nil
 }
 
-func (hg *helmGenerator) Run(cmd *cobra.Command, name string) error {
+func (hg *helmGenerator) Run(cmd *cobra.Command) error {
 	b, err := hg.options.Run()
 	if err != nil {
 		return err

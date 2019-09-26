@@ -23,7 +23,7 @@ import (
 // HelmOptions is the configuration for expanding Helm charts
 type HelmOptions struct {
 	Helm         Helm        `json:"helm"`
-	Name         string      `json:"releaseName"`
+	ReleaseName  string      `json:"releaseName"`
 	Chart        string      `json:"chart"`
 	Version      string      `json:"version"`
 	Values       []HelmValue `json:"values"`
@@ -49,7 +49,7 @@ func (o *HelmOptions) Run() ([]byte, error) {
 	}
 
 	// Render the chart
-	m, err := o.Helm.Template(c, o.Name, o.Values)
+	m, err := o.Helm.Template(c, o.ReleaseName, o.Values)
 	if err != nil {
 		return nil, err
 	}

@@ -43,7 +43,7 @@ func newGenerateCommand() *cobra.Command {
 		RunE: bc.run,
 	}
 
-	cmd.Flags().StringVar(&bc.name, "name", "", "Name of the secret to generate.")
+	cmd.Flags().StringVar(&bc.options.Name, "name", "", "Name of the secret to generate.")
 	cmd.Flags().StringArrayVarP(&bc.options.References, "ref", "R", nil, "Berglas references to include in the secret")
 
 	return cmd
@@ -51,11 +51,10 @@ func newGenerateCommand() *cobra.Command {
 
 type berglasGenerateCommand struct {
 	options *BerglasGenerateOptions
-	name    string
 }
 
 func (bc *berglasGenerateCommand) run(cmd *cobra.Command, args []string) error {
-	b, err := bc.options.Run(bc.name)
+	b, err := bc.options.Run()
 	if err != nil {
 		return err
 	}
