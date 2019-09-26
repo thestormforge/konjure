@@ -33,7 +33,7 @@ type HelmOptions struct {
 // TODO Instead of "include tests" should we have a generic "exclude hooks" that defaults to the test hooks?
 
 func NewHelmOptions() *HelmOptions {
-	return &HelmOptions{IncludeTests: true}
+	return &HelmOptions{}
 }
 
 func (o *HelmOptions) Run() ([]byte, error) {
