@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/kustomize/v3/pkg/resmap"
 	"sigs.k8s.io/kustomize/v3/pkg/resource"
 	"sigs.k8s.io/kustomize/v3/pkg/types"
+	"sigs.k8s.io/kustomize/v3/plugin/builtin"
 )
 
 // BerglasOptions is the configuration common between the generator and transformer
@@ -62,7 +63,7 @@ func NewBerglasTransformOptions() *BerglasTransformOptions {
 
 func (o *BerglasGenerateOptions) Run() ([]byte, error) {
 	// This code uses the Kustomize code for secret generation along with the Berglas API to populate "literal" secret sources
-	rmf := resmap.NewFactory(resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl()), nil)
+	rf := resmap.NewFactory(resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl()), nil)
 
 	// TODO Expose additional configuration options for the client
 	ldr, err := NewBerglasLoader(context.Background())
@@ -84,11 +85,21 @@ func (o *BerglasGenerateOptions) Run() ([]byte, error) {
 		args.FileSources = append(args.FileSources, strings.TrimLeft(fileSource, "="))
 	}
 
-	// Generate the secret resource and dump it as YAML
-	m, err := rmf.FromSecretArgs(ldr, o.GeneratorOptions, args)
+	// Generate the secret resource
+	m, err := rf.FromSecretArgs(ldr, o.GeneratorOptions, args)
 	if err != nil {
 		return nil, err
 	}
+
+	// Add hash names (there is only one resource in the map, no need to fix references)
+	p := builtin.NewHashTransformerPlugin()
+	if err := p.Config(ldr, rf, nil); err != nil {
+		return nil, err
+	}
+	if err := p.Transform(m); err != nil {
+		return nil, err
+	}
+
 	return m.AsYaml()
 }
 
