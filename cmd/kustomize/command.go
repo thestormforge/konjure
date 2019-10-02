@@ -29,14 +29,34 @@ import (
 
 func NewKustomizeCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:    "kustomize",
-		Hidden: true,
+		Use: "kustomize",
 	}
+
+	cmd.AddCommand(newInitializeCommand())
 
 	cmd.AddCommand(berglas.NewBerglasGenerator())
 	cmd.AddCommand(berglas.NewBerglasTransformer())
 	cmd.AddCommand(helm.NewHelmGenerator())
 	cmd.AddCommand(jsonnet.NewJsonnetGenerator())
+
+	return cmd
+}
+
+func newInitializeCommand() *cobra.Command {
+	opts := NewInitializeOptions()
+
+	cmd := &cobra.Command{
+		Use:   "init",
+		Short: "Configure Kustomize",
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return opts.Complete()
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return opts.Run(cmd.OutOrStdout())
+		},
+	}
+
+	cmd.Flags().StringVar(&opts.Source, "source", "", "Override the path to the source executable.")
 
 	return cmd
 }

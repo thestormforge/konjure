@@ -22,7 +22,6 @@ import (
 
 	"github.com/carbonrelay/konjure/cmd/berglas"
 	"github.com/carbonrelay/konjure/cmd/helm"
-	"github.com/carbonrelay/konjure/cmd/initialize"
 	"github.com/carbonrelay/konjure/cmd/jsonnet"
 	"github.com/carbonrelay/konjure/cmd/kustomize"
 	"github.com/spf13/cobra"
@@ -39,9 +38,9 @@ func main() {
 }
 
 func NewRootCommand(arg0 string) *cobra.Command {
-	// Check to see if we should use one of the Kustomize sub-commands directly
+	// Check to see if we should use one of the hidden Kustomize sub-commands directly
 	kustomizeCommand := kustomize.NewKustomizeCommand()
-	if c, _, err := kustomizeCommand.Find([]string{filepath.Base(arg0)}); err == nil {
+	if c, _, err := kustomizeCommand.Find([]string{filepath.Base(arg0)}); err == nil && c.Hidden {
 		kustomizeCommand.RemoveCommand(c)
 		return c
 	}
@@ -54,7 +53,6 @@ func NewRootCommand(arg0 string) *cobra.Command {
 	}
 
 	rootCmd.AddCommand(kustomizeCommand)
-	rootCmd.AddCommand(initialize.NewInitializeCommand())
 
 	rootCmd.AddCommand(berglas.NewBerglasCommand())
 	rootCmd.AddCommand(helm.NewHelmCommand())

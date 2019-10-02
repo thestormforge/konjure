@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package initialize
+package kustomize
 
 import (
 	"fmt"
@@ -23,8 +23,6 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-
-	"github.com/carbonrelay/konjure/cmd/kustomize"
 )
 
 type InitializeOptions struct {
@@ -45,7 +43,7 @@ func (o *InitializeOptions) Complete() error {
 		}
 	}
 
-	for _, c := range kustomize.NewKustomizeCommand().Commands() {
+	for _, c := range NewKustomizeCommand().Commands() {
 		o.Plugins = append(o.Plugins, c.Name())
 	}
 

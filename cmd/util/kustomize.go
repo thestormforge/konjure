@@ -49,8 +49,9 @@ type ExecPlugin interface {
 func NewExecPluginCommand(kind string, p ExecPlugin) *cobra.Command {
 	// TODO Any generic short/long/example text?
 	return &cobra.Command{
-		Use:  kind + " FILE",
-		Args: cobra.ExactArgs(1),
+		Use:    kind + " FILE",
+		Args:   cobra.ExactArgs(1),
+		Hidden: true,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return p.PreRun()
 		},
