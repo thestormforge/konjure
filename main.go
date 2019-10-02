@@ -28,6 +28,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Version is the current version for the root command
+var Version = "unspecified"
+
 func main() {
 	rootCmd := NewRootCommand(os.Args[0])
 	if err := rootCmd.Execute(); err != nil {
@@ -45,8 +48,9 @@ func NewRootCommand(arg0 string) *cobra.Command {
 
 	// Build the real root command
 	rootCmd := &cobra.Command{
-		Use:   "konjure",
-		Short: "Manifest, appear!",
+		Use:     "konjure",
+		Short:   "Manifest, appear!",
+		Version: Version,
 	}
 
 	rootCmd.AddCommand(kustomizeCommand)
