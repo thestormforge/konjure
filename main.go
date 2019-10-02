@@ -24,6 +24,7 @@ import (
 	"github.com/carbonrelay/konjure/cmd/helm"
 	"github.com/carbonrelay/konjure/cmd/jsonnet"
 	"github.com/carbonrelay/konjure/cmd/kustomize"
+	"github.com/carbonrelay/konjure/cmd/util"
 	"github.com/spf13/cobra"
 )
 
@@ -40,7 +41,7 @@ func main() {
 func NewRootCommand(arg0 string) *cobra.Command {
 	// Check to see if we should use one of the hidden Kustomize sub-commands directly
 	kustomizeCommand := kustomize.NewKustomizeCommand()
-	if c, _, err := kustomizeCommand.Find([]string{filepath.Base(arg0)}); err == nil && c.Annotations["group"] != "" {
+	if c, _, err := kustomizeCommand.Find([]string{filepath.Base(arg0)}); err == nil && util.ExecPluginGVK(c) != nil {
 		kustomizeCommand.RemoveCommand(c)
 		return c
 	}

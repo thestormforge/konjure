@@ -23,12 +23,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	"github.com/carbonrelay/konjure/cmd/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type InitializeOptions struct {
 	Source  string
-	plugins []schema.GroupVersionKind
+	plugins []metav1.GroupVersionKind
 }
 
 func NewInitializeOptions() *InitializeOptions {
@@ -45,11 +46,10 @@ func (o *InitializeOptions) Complete() error {
 	}
 
 	for _, c := range NewKustomizeCommand().Commands() {
-		o.plugins = append(o.plugins, schema.GroupVersionKind{
-			Group:   c.Annotations["group"],
-			Version: c.Version,
-			Kind:    c.Name(),
-		})
+		gvk := util.ExecPluginGVK(c)
+		if gvk != nil {
+			o.plugins = append(o.plugins, *gvk)
+		}
 	}
 
 	return nil

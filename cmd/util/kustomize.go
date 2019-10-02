@@ -25,6 +25,11 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+const (
+	// annotationGroup is the name of the annotation used to store the API group
+	annotationGroup = "group"
+)
+
 // ConfigMetadata is the Kubernetes metadata associated with the configuration
 type ConfigMetadata struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -40,13 +45,25 @@ type ExecPlugin interface {
 	Run(cmd *cobra.Command) error
 }
 
+// ExecPluginGVK returns the GVK for the supplied executable plugin command; returns nil if the command is not an executable plugin
+func ExecPluginGVK(cmd *cobra.Command) *metav1.GroupVersionKind {
+	if cmd.Annotations[annotationGroup] == "" || cmd.Version == "" {
+		return nil
+	}
+	return &metav1.GroupVersionKind{
+		Group:   cmd.Annotations[annotationGroup],
+		Version: cmd.Version,
+		Kind:    cmd.Name(),
+	}
+}
+
 // NewExecPluginCommand returns a command for the supplied executable plugin
 func NewExecPluginCommand(group, version, kind string, p ExecPlugin) *cobra.Command {
 	// TODO Any generic short/long/example text?
 	return &cobra.Command{
 		Use:         kind + " FILE",
 		Version:     version,
-		Annotations: map[string]string{"group": group},
+		Annotations: map[string]string{annotationGroup: group},
 		Args:        cobra.ExactArgs(1),
 		Hidden:      true,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
@@ -84,8 +101,8 @@ func checkConfig(cmd *cobra.Command, b []byte) (ConfigMetadata, error) {
 	gvk := cfg.GroupVersionKind()
 
 	// Verify the API group independent of the version (so ExecPlugin implementations can convert if necessary)
-	if gvk.Group != "" && gvk.Group != cmd.Annotations["group"] {
-		return cfg, fmt.Errorf("group should be %s", cmd.Annotations["group"])
+	if gvk.Group != "" && gvk.Group != cmd.Annotations[annotationGroup] {
+		return cfg, fmt.Errorf("group should be %s", cmd.Annotations[annotationGroup])
 	}
 
 	// TODO Verify the version? Support some type of conversion?
