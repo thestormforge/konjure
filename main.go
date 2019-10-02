@@ -40,7 +40,7 @@ func main() {
 func NewRootCommand(arg0 string) *cobra.Command {
 	// Check to see if we should use one of the hidden Kustomize sub-commands directly
 	kustomizeCommand := kustomize.NewKustomizeCommand()
-	if c, _, err := kustomizeCommand.Find([]string{filepath.Base(arg0)}); err == nil && c.Hidden {
+	if c, _, err := kustomizeCommand.Find([]string{filepath.Base(arg0)}); err == nil && c.Annotations["group"] != "" {
 		kustomizeCommand.RemoveCommand(c)
 		return c
 	}

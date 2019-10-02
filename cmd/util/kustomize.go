@@ -25,33 +25,30 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-const (
-	group = "konjure.carbonrelay.com"
-)
-
 // ConfigMetadata is the Kubernetes metadata associated with the configuration
 type ConfigMetadata struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 }
 
+// TODO Should we leverage the Kustomize APIs instead of our own ExecPlugin interface?
+
 // ExecPlugin implementations can be made into commands
-// TODO Is this really GeneratorExecPlugin? Or is ExecPlugin one thing and Generator/Transformer another (e.g. Run accepts a resmap/reader)
 type ExecPlugin interface {
 	Unmarshal(y []byte, metadata ConfigMetadata) error
 	PreRun() error
 	Run(cmd *cobra.Command) error
 }
 
-// TODO Do we need a version of this that takes a Kustomize Transformer?
-// TODO Or Should we have NewGeneratorCommand and NewTransformerCommand
-
-func NewExecPluginCommand(kind string, p ExecPlugin) *cobra.Command {
+// NewExecPluginCommand returns a command for the supplied executable plugin
+func NewExecPluginCommand(group, version, kind string, p ExecPlugin) *cobra.Command {
 	// TODO Any generic short/long/example text?
 	return &cobra.Command{
-		Use:    kind + " FILE",
-		Args:   cobra.ExactArgs(1),
-		Hidden: true,
+		Use:         kind + " FILE",
+		Version:     version,
+		Annotations: map[string]string{"group": group},
+		Args:        cobra.ExactArgs(1),
+		Hidden:      true,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return p.PreRun()
 		},
@@ -61,7 +58,7 @@ func NewExecPluginCommand(kind string, p ExecPlugin) *cobra.Command {
 				return err
 			}
 
-			md, err := checkConfig(cfg, kind)
+			md, err := checkConfig(cmd, cfg)
 			if err != nil {
 				return err
 			}
@@ -76,21 +73,26 @@ func NewExecPluginCommand(kind string, p ExecPlugin) *cobra.Command {
 	}
 }
 
-// Checks the supplied plugin configuration, returning the extracted API version (not group) and metadata name
-func checkConfig(b []byte, kind string) (ConfigMetadata, error) {
+// Returns the metadata extracted from the supplied configuration after verifying it against the supplied command
+func checkConfig(cmd *cobra.Command, b []byte) (ConfigMetadata, error) {
 	cfg := ConfigMetadata{}
 	if err := yaml.Unmarshal(b, &cfg); err != nil {
 		return cfg, err
 	}
 
+	// Get the GVK of the object we just unmarshalled, it should match the command
+	gvk := cfg.GroupVersionKind()
+
 	// Verify the API group independent of the version (so ExecPlugin implementations can convert if necessary)
-	if cfg.GroupVersionKind().Group != group {
-		return cfg, fmt.Errorf("group should be %s", group)
+	if gvk.Group != "" && gvk.Group != cmd.Annotations["group"] {
+		return cfg, fmt.Errorf("group should be %s", cmd.Annotations["group"])
 	}
 
+	// TODO Verify the version? Support some type of conversion?
+
 	// Verify the kind matches what was expected for this exec plugin
-	if cfg.Kind != "" && cfg.Kind != kind {
-		return cfg, fmt.Errorf("kind should be %s", kind)
+	if gvk.Kind != "" && gvk.Kind != cmd.Name() {
+		return cfg, fmt.Errorf("kind should be %s", cmd.Name())
 	}
 
 	return cfg, nil

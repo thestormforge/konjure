@@ -30,7 +30,7 @@ func NewHelmGenerator() *cobra.Command {
 		options: NewHelmOptions(),
 	}
 
-	return util.NewExecPluginCommand("HelmGenerator", hep)
+	return util.NewExecPluginCommand("konjure.carbonrelay.com", "v1beta1", "HelmGenerator", hep)
 }
 
 type helmGenerator struct {

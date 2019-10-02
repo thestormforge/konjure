@@ -30,7 +30,7 @@ func NewJsonnetGenerator() *cobra.Command {
 		options: NewJsonnetOptions(),
 	}
 
-	return util.NewExecPluginCommand("JsonnetGenerator", jg)
+	return util.NewExecPluginCommand("konjure.carbonrelay.com", "v1beta1", "JsonnetGenerator", jg)
 }
 
 type jsonnetGenerator struct {

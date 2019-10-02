@@ -20,14 +20,15 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 type InitializeOptions struct {
 	Source  string
-	Plugins []string
+	plugins []schema.GroupVersionKind
 }
 
 func NewInitializeOptions() *InitializeOptions {
@@ -44,7 +45,11 @@ func (o *InitializeOptions) Complete() error {
 	}
 
 	for _, c := range NewKustomizeCommand().Commands() {
-		o.Plugins = append(o.Plugins, c.Name())
+		o.plugins = append(o.plugins, schema.GroupVersionKind{
+			Group:   c.Annotations["group"],
+			Version: c.Version,
+			Kind:    c.Name(),
+		})
 	}
 
 	return nil
@@ -52,7 +57,7 @@ func (o *InitializeOptions) Complete() error {
 
 func (o *InitializeOptions) Run(out io.Writer) error {
 	// Early dismissal
-	if len(o.Plugins) == 0 {
+	if len(o.plugins) == 0 {
 		return nil
 	}
 
@@ -63,18 +68,18 @@ func (o *InitializeOptions) Run(out io.Writer) error {
 		// NOTE: This can produce just ".config" if the environment variable isn't set
 		configDir = filepath.Join(os.Getenv("HOME"), ".config")
 	}
-	pluginDir := filepath.Join(configDir, "kustomize", "plugin", path.Join("konjure.carbonrelay.com", "v1"))
+	pluginDir := filepath.Join(configDir, "kustomize", "plugin")
 
-	// Create a symlink for each
-	for _, kind := range o.Plugins {
+	// Create a symlink for each plugin
+	for _, gvk := range o.plugins {
 		// Ensure the directory exists
-		dir := filepath.Join(pluginDir, strings.ToLower(kind))
+		dir := filepath.Join(pluginDir, gvk.Group, gvk.Version, strings.ToLower(gvk.Kind))
 		if err := os.MkdirAll(dir, 0700); err != nil {
 			return err
 		}
 
 		// Remove the existing link
-		link := filepath.Join(dir, kind)
+		link := filepath.Join(dir, gvk.Kind)
 		if _, err := os.Lstat(link); err == nil {
 			if err = os.Remove(link); err != nil {
 				return err

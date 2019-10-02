@@ -31,7 +31,7 @@ func NewBerglasGenerator() *cobra.Command {
 		options: NewBerglasGenerateOptions(),
 	}
 
-	return util.NewExecPluginCommand("BerglasGenerator", bg)
+	return util.NewExecPluginCommand("konjure.carbonrelay.com", "v1beta1", "BerglasGenerator", bg)
 }
 
 type berglasGenerator struct {
@@ -66,7 +66,7 @@ func NewBerglasTransformer() *cobra.Command {
 		options: NewBerglasTransformOptions(),
 	}
 
-	return util.NewExecPluginCommand("BerglasTransformer", bt)
+	return util.NewExecPluginCommand("konjure.carbonrelay.com", "v1beta1", "BerglasTransformer", bt)
 }
 
 type berglasTransformer struct {
