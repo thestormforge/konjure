@@ -41,13 +41,13 @@ func NewHelmCommand() *cobra.Command {
 	cmd.Flags().BoolVar(&hc.options.IncludeTests, "include-tests", false, "do not remove resources labeled as test hooks")
 
 	// These flags match what real Helm has
-	cmd.Flags().StringVarP(&hc.options.ReleaseName, "name", "n", "release-name", "release name")
-	cmd.Flags().StringVar(&hc.options.Version, "version", "", "fetch a specific version of a chart; if empty, the latest version of the chart will be used")
-	cmd.Flags().StringVar(&hc.options.Helm.Home, "home", "", "override the location of your Helm config")
-	cmd.Flags().StringToStringVar(&hc.set, "set", nil, "set values on the command line")
-	cmd.Flags().StringToStringVar(&hc.setFile, "set-file", nil, "set values from files on the command line")
-	cmd.Flags().StringToStringVar(&hc.setString, "set-string", nil, "set string values on the command line")
-	cmd.Flags().StringArrayVarP(&hc.values, "values", "f", nil, "specify values in a YAML file")
+	cmd.Flags().StringVarP(&hc.options.ReleaseName, "name", "n", "release-name", "release `name`")
+	cmd.Flags().StringVar(&hc.options.Version, "version", "", "fetch a specific `version` of a chart; if empty, the latest version of the chart will be used")
+	cmd.Flags().StringVar(&hc.options.Helm.Home, "home", "", "override the location of your Helm config `directory`")
+	cmd.Flags().StringToStringVar(&hc.set, "set", nil, "set `value`s on the command line")
+	cmd.Flags().StringToStringVar(&hc.setFile, "set-file", nil, "set values from `file`s on the command line")
+	cmd.Flags().StringToStringVar(&hc.setString, "set-string", nil, "set string `value`s on the command line")
+	cmd.Flags().StringArrayVarP(&hc.values, "values", "f", nil, "specify values in a YAML `file`")
 
 	return cmd
 }

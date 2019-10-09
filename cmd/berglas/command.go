@@ -80,7 +80,7 @@ func newTransformCommand() *cobra.Command {
 		RunE:  bc.run,
 	}
 
-	cmd.Flags().StringVarP(&bc.filename, "filename", "f", "", "file that contains the configuration to transform")
+	cmd.Flags().StringVarP(&bc.filename, "filename", "f", "", "`file` that contains the configuration to transform")
 	cmd.Flags().BoolVar(&bc.options.GenerateSecrets, "secrets", false, "perform transformation using secrets")
 
 	return cmd
