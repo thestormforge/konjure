@@ -37,8 +37,6 @@ func NewJsonnetOptions() *JsonnetOptions {
 }
 
 func (o *JsonnetOptions) Run(stderr io.Writer) ([]byte, error) {
-	// TODO Jsonnet Bundler integration? At least autodetect vendor?
-
 	var m resmap.ResMap
 	var err error
 	if o.Filename != "" {
