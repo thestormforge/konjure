@@ -36,16 +36,16 @@ func NewJsonnetCommand() *cobra.Command {
 		RunE:   jc.run,
 	}
 
-	cmd.Flags().BoolVarP(&jc.execute, "exec", "e", false, "Treat argument as code")
-	cmd.Flags().StringArrayVarP(&jc.options.JsonnetPath, "jpath", "J", nil, "Specify an additional library search directory")
-	cmd.Flags().StringToStringVarP(&jc.externalStringVariables, "ext-str", "V", nil, "Provide external variable as a string")
-	cmd.Flags().StringToStringVar(&jc.externalStringFileVariables, "ext-str-file", nil, "Provide external variable as a string from the file")
-	cmd.Flags().StringToStringVar(&jc.externalCodeVariables, "ext-code", nil, "Provide external variable as Jsonnet code")
-	cmd.Flags().StringToStringVar(&jc.externalCodeFileVariables, "ext-code-file", nil, "Provide external variable as Jsonnet code from the file")
-	cmd.Flags().StringToStringVarP(&jc.topLevelStringArguments, "tla-str", "A", nil, "Provide top-level argument as a string")
-	cmd.Flags().StringToStringVar(&jc.topLevelStringFileArguments, "tla-str-file", nil, "Provide top-level argument as a string from the file")
-	cmd.Flags().StringToStringVar(&jc.topLevelCodeArguments, "tla-code", nil, "Provide top-level argument as Jsonnet code")
-	cmd.Flags().StringToStringVar(&jc.topLevelCodeFileArguments, "tla-code-file", nil, "Provide top-level argument as Jsonnet code from the file")
+	cmd.Flags().BoolVarP(&jc.execute, "exec", "e", false, "treat argument as code")
+	cmd.Flags().StringArrayVarP(&jc.options.JsonnetPath, "jpath", "J", nil, "specify an additional library search directory")
+	cmd.Flags().StringToStringVarP(&jc.externalStringVariables, "ext-str", "V", nil, "provide external variable as a string")
+	cmd.Flags().StringToStringVar(&jc.externalStringFileVariables, "ext-str-file", nil, "provide external variable as a string from the file")
+	cmd.Flags().StringToStringVar(&jc.externalCodeVariables, "ext-code", nil, "provide external variable as Jsonnet code")
+	cmd.Flags().StringToStringVar(&jc.externalCodeFileVariables, "ext-code-file", nil, "provide external variable as Jsonnet code from the file")
+	cmd.Flags().StringToStringVarP(&jc.topLevelStringArguments, "tla-str", "A", nil, "provide top-level argument as a string")
+	cmd.Flags().StringToStringVar(&jc.topLevelStringFileArguments, "tla-str-file", nil, "provide top-level argument as a string from the file")
+	cmd.Flags().StringToStringVar(&jc.topLevelCodeArguments, "tla-code", nil, "provide top-level argument as Jsonnet code")
+	cmd.Flags().StringToStringVar(&jc.topLevelCodeFileArguments, "tla-code-file", nil, "provide top-level argument as Jsonnet code from the file")
 
 	return cmd
 }

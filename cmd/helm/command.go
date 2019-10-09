@@ -38,16 +38,16 @@ func NewHelmCommand() *cobra.Command {
 		RunE:   hc.run,
 	}
 
-	cmd.Flags().BoolVar(&hc.options.IncludeTests, "include-tests", false, "Do not remove resources labeled as test hooks.")
+	cmd.Flags().BoolVar(&hc.options.IncludeTests, "include-tests", false, "do not remove resources labeled as test hooks")
 
 	// These flags match what real Helm has
-	cmd.Flags().StringVarP(&hc.options.ReleaseName, "name", "n", "release-name", "Release name.")
-	cmd.Flags().StringVar(&hc.options.Version, "version", "", "Fetch a specific version of a chart. If empty, the latest version of the chart will be used.")
-	cmd.Flags().StringVar(&hc.options.Helm.Home, "home", "", "Override the location of your Helm config.")
-	cmd.Flags().StringToStringVar(&hc.set, "set", nil, "Set values on the command line.")
-	cmd.Flags().StringToStringVar(&hc.setFile, "set-file", nil, "Set values from files on the command line.")
-	cmd.Flags().StringToStringVar(&hc.setString, "set-string", nil, "Set string values on the command line.")
-	cmd.Flags().StringArrayVarP(&hc.values, "values", "f", nil, "Specify values in a YAML file.")
+	cmd.Flags().StringVarP(&hc.options.ReleaseName, "name", "n", "release-name", "release name")
+	cmd.Flags().StringVar(&hc.options.Version, "version", "", "fetch a specific version of a chart; if empty, the latest version of the chart will be used")
+	cmd.Flags().StringVar(&hc.options.Helm.Home, "home", "", "override the location of your Helm config")
+	cmd.Flags().StringToStringVar(&hc.set, "set", nil, "set values on the command line")
+	cmd.Flags().StringToStringVar(&hc.setFile, "set-file", nil, "set values from files on the command line")
+	cmd.Flags().StringToStringVar(&hc.setString, "set-string", nil, "set string values on the command line")
+	cmd.Flags().StringArrayVarP(&hc.values, "values", "f", nil, "specify values in a YAML file")
 
 	return cmd
 }

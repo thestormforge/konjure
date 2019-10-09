@@ -45,7 +45,7 @@ func newGenerateCommand() *cobra.Command {
 		RunE:  bc.run,
 	}
 
-	cmd.Flags().StringVar(&bc.options.Name, "name", "", "Name of the secret to generate.")
+	cmd.Flags().StringVar(&bc.options.Name, "name", "", "name of the secret to generate")
 	cmd.Flags().StringArrayVarP(&bc.options.References, "ref", "R", nil, "Berglas references to include in the secret")
 
 	return cmd
@@ -80,8 +80,8 @@ func newTransformCommand() *cobra.Command {
 		RunE:  bc.run,
 	}
 
-	cmd.Flags().StringVarP(&bc.filename, "filename", "f", "", "File that contains the configuration to transform.")
-	cmd.Flags().BoolVar(&bc.options.GenerateSecrets, "secrets", false, "Perform transformation using secrets.")
+	cmd.Flags().StringVarP(&bc.filename, "filename", "f", "", "file that contains the configuration to transform")
+	cmd.Flags().BoolVar(&bc.options.GenerateSecrets, "secrets", false, "perform transformation using secrets")
 
 	return cmd
 }

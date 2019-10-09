@@ -35,8 +35,8 @@ func NewLabelCommand() *cobra.Command {
 		RunE:  lc.run,
 	}
 
-	cmd.Flags().StringVarP(&lc.filename, "filename", "f", "", "File that contains the configuration to transform.")
-	cmd.Flags().StringToStringVarP(&lc.options.Labels, "label", "l", nil, "Common labels to add.")
+	cmd.Flags().StringVarP(&lc.filename, "filename", "f", "", "file that contains the configuration to transform")
+	cmd.Flags().StringToStringVarP(&lc.options.Labels, "label", "l", nil, "common labels to add")
 
 	return cmd
 }

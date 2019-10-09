@@ -59,7 +59,7 @@ func newInitializeCommand() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&opts.Source, "source", "", "Override the path to the source executable.")
+	cmd.Flags().StringVar(&opts.Source, "source", "", "override the path to the source executable")
 
 	return cmd
 }
