@@ -30,8 +30,9 @@ func NewLabelCommand() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:  "label",
-		RunE: lc.run,
+		Use:   "label",
+		Short: "Alternate to the Kustomize built-in LabelTransformer",
+		RunE:  lc.run,
 	}
 
 	cmd.Flags().StringVarP(&lc.filename, "filename", "f", "", "File that contains the configuration to transform.")

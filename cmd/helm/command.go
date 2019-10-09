@@ -32,6 +32,7 @@ func NewHelmCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:    "helm CHART",
+		Short:  "Inflate a Helm chart",
 		Args:   cobra.ExactArgs(1),
 		PreRun: hc.preRun,
 		RunE:   hc.run,

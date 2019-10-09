@@ -26,7 +26,8 @@ import (
 
 func NewBerglasCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use: "berglas",
+		Use:   "berglas",
+		Short: "Generate secrets using Berglas",
 	}
 	cmd.AddCommand(newGenerateCommand())
 	cmd.AddCommand(newTransformCommand())
@@ -39,8 +40,9 @@ func newGenerateCommand() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:  "generate",
-		RunE: bc.run,
+		Use:   "generate",
+		Short: "Generate secrets from Berglas references",
+		RunE:  bc.run,
 	}
 
 	cmd.Flags().StringVar(&bc.options.Name, "name", "", "Name of the secret to generate.")
@@ -73,8 +75,9 @@ func newTransformCommand() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:  "transform",
-		RunE: bc.run,
+		Use:   "transform",
+		Short: "Transform an application leveraging Berglas references",
+		RunE:  bc.run,
 	}
 
 	cmd.Flags().StringVarP(&bc.filename, "filename", "f", "", "File that contains the configuration to transform.")

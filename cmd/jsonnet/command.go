@@ -30,6 +30,7 @@ func NewJsonnetCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:    "jsonnet",
+		Short:  "Evaluate a Jsonnet program",
 		Args:   cobra.ExactArgs(1),
 		PreRun: jc.preRun,
 		RunE:   jc.run,

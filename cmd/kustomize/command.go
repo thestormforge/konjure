@@ -30,7 +30,8 @@ import (
 
 func NewKustomizeCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use: "kustomize",
+		Use:   "kustomize",
+		Short: "Extensions for Kustomize",
 	}
 
 	cmd.AddCommand(newInitializeCommand())
@@ -49,7 +50,7 @@ func newInitializeCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "init",
-		Short: "Configure Kustomize",
+		Short: "Configure Kustomize plugins",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return opts.Complete()
 		},
