@@ -24,6 +24,7 @@ import (
 	"github.com/carbonrelay/konjure/cmd/helm"
 	"github.com/carbonrelay/konjure/cmd/jsonnet"
 	"github.com/carbonrelay/konjure/cmd/kustomize"
+	"github.com/carbonrelay/konjure/cmd/label"
 	"github.com/carbonrelay/konjure/cmd/util"
 	"github.com/spf13/cobra"
 )
@@ -58,6 +59,7 @@ func NewRootCommand(arg0 string) *cobra.Command {
 	rootCmd.AddCommand(berglas.NewBerglasCommand())
 	rootCmd.AddCommand(helm.NewHelmCommand())
 	rootCmd.AddCommand(jsonnet.NewJsonnetCommand())
+	rootCmd.AddCommand(label.NewLabelCommand())
 
 	return rootCmd
 }
