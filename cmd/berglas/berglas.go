@@ -55,7 +55,7 @@ func NewBerglasGenerateOptions() *BerglasGenerateOptions {
 // BerglasTransformOptions is the configuration for modifying pod templates
 type BerglasTransformOptions struct {
 	BerglasOptions  `json:",inline"`
-	GenerateSecrets bool `json:"generateSecrets,omitempty"`
+	GenerateSecrets bool `json:"-"` // TODO Change back to "generateSecrets,omitempty
 }
 
 func NewBerglasTransformOptions() *BerglasTransformOptions {
