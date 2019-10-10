@@ -1,0 +1,26 @@
+on: push
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v1
+      - name: Check out code
+        uses: actions/checkout@v1
+      - name: Get dependencies
+        run: go mod download
+      - name: Build
+        run: |
+          GOOS=linux GOARCH=amd64 go build -o konjure-linux-amd64 -ldflags '-X main.Version=1.0.0' .
+          GOOS=darwin GOARCH=amd64 go build -o konjure-darwin-amd64 -ldflags '-X main.Version=1.0.0' .
+      - name: Upload linux-amd64
+        uses: actions/upload-artifact@master
+        with:
+          name: konjure-linux-amd64
+          path: .
+      - name: Upload darwin-amd64
+          uses: actions/upload-artifact@master
+          with:
+            name: konjure-darwin-amd64
+            path: .
