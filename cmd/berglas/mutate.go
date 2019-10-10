@@ -2,7 +2,9 @@ package berglas
 
 import (
 	"fmt"
+	"net/url"
 	"path"
+	"strings"
 
 	"github.com/GoogleCloudPlatform/berglas/pkg/berglas"
 	corev1 "k8s.io/api/core/v1"
@@ -71,6 +73,7 @@ func (m *BerglasMutator) mutateTemplateWithSecrets(template *corev1.PodTemplateS
 		}
 	}
 
+	// TODO We need to create itemized secret volumes to rename object identifiers to destination file names
 	for _, r := range m.secrets.Resources() {
 		mutated = true
 		template.Spec.Volumes = append(template.Spec.Volumes, corev1.Volume{
@@ -91,21 +94,25 @@ func (m *BerglasMutator) mutateContainerWithSecrets(c *corev1.Container) (*corev
 	for _, e := range c.Env {
 		if berglas.IsReference(e.Value) {
 			// Parse the environment variable value as Berglas reference
-			r, err := berglas.ParseReference(e.Value)
+			r, err := parseReference(e.Value)
 			if err != nil {
 				return c, mutated, err
 			}
 
-			// Do not allow environment variables to contain sensitive information in the generated manifests
-			if r.Filepath() == "" {
-				// TODO Should this be an error?
+			// Replace the environment variable value with the path
+			if r.Filepath() != "" {
+				mutated = true
+				e.Value = r.Filepath()
+			} else {
+				// Do not allow environment variables to contain sensitive information in the generated manifests
+				// TODO Should this be an error? Or do we just silently ignore it like when len(command) == 0...
 				continue
 			}
 
 			// Create a resource map with a secret that we can merge into the existing collection
 			args := types.SecretArgs{}
 			args.Name = r.Bucket()
-			args.FileSources = []string{fmt.Sprintf("%s=%s/%s", r.Filepath(), r.Bucket(), r.Object())}
+			args.FileSources = []string{fmt.Sprintf("%s=%s/%s", r.Object(), r.Bucket(), r.Object())}
 			sm, err := m.resMapFactory.FromSecretArgs(m.loader, m.genOpts, args)
 			if err != nil {
 				return c, mutated, err
@@ -117,22 +124,29 @@ func (m *BerglasMutator) mutateContainerWithSecrets(c *corev1.Container) (*corev
 				return c, mutated, err
 			}
 
-			// Replace the environment variable value with the path
-			mutated = true
-			e.Value = r.Filepath()
-
 			// Add a mount to get the secret where it was requested
-			// TODO There is going to be a problem with "tempfile" since the OS the build runs on may have a different TMP_DIR convention
+			// TODO If this volume mount is using the secret name, we need to ensure we aren't adding it multiple times
 			c.VolumeMounts = append(c.VolumeMounts, corev1.VolumeMount{
-				Name:      r.Bucket(),
-				MountPath: e.Value,
-				SubPath:   path.Base(e.Value),
+				Name:      args.Name,
 				ReadOnly:  true,
+				MountPath: e.Value,            // TODO How should we be mounting secrets
+				SubPath:   path.Base(e.Value), // TODO "
 			})
 		}
 	}
 
 	return c, mutated, nil
+}
+
+func parseReference(s string) (*berglas.Reference, error) {
+	if u, err := url.Parse(s); err == nil {
+		q := u.Query()
+		if d := q.Get("destination"); d == "tempfile" || d == "tmpfile" {
+			// TODO This needs to be a viable non-conflicting random value within the context of this transformation
+			s = strings.Replace(s, d, "/tmp/berglas-XXXXXX", 1)
+		}
+	}
+	return berglas.ParseReference(s)
 }
 
 // The rest of this is the mutating webhook from https://github.com/GoogleCloudPlatform/berglas/tree/master/examples/kubernetes

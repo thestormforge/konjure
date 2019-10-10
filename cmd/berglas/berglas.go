@@ -23,10 +23,11 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/berglas/pkg/berglas"
-	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/json"
+	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/kustomize/v3/k8sdeps/kunstruct"
 	"sigs.k8s.io/kustomize/v3/pkg/gvk"
 	"sigs.k8s.io/kustomize/v3/pkg/resmap"
@@ -103,59 +104,35 @@ func (o *BerglasGenerateOptions) Run() ([]byte, error) {
 	return m.AsYaml()
 }
 
-// Selectors to find resources that have a PodTemplateSpec we can mutate
-var (
-	ByDaemonSet   = &gvk.Gvk{Group: "apps", Kind: "DaemonSet"}
-	ByDeployment  = &gvk.Gvk{Group: "apps", Kind: "Deployment"}
-	ByReplicaSet  = &gvk.Gvk{Group: "apps", Kind: "ReplicaSet"}
-	ByStatefulSet = &gvk.Gvk{Group: "apps", Kind: "StatefulSet"}
-	ByJob         = &gvk.Gvk{Group: "batch", Kind: "Job"}
-)
-
 func (o *BerglasTransformOptions) Run(in []byte) ([]byte, error) {
 	// This code uses Kustomize code to parse and manipulate the resources
-	rmf := resmap.NewFactory(resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl()), nil)
-	m, err := rmf.NewResMapFromBytes(in)
-	if err != nil {
-		return nil, err
-	}
+	rf := resmap.NewFactory(resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl()), nil)
 
+	// TODO Expose additional configuration options for the client
 	ldr, err := NewBerglasLoader(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
 	opts := o.GeneratorOptions
-	if !o.GenerateSecrets {
+	if opts == nil && o.GenerateSecrets {
+		opts = &types.GeneratorOptions{}
+	} else if !o.GenerateSecrets {
 		opts = nil
 	}
 
 	// Create a new mutator
-	mutator := NewBerglasMutator(rmf, ldr, opts)
+	mutator := NewBerglasMutator(rf, ldr, opts)
+
+	m, err := rf.NewResMapFromBytes(in)
+	if err != nil {
+		return nil, err
+	}
 
 	for _, r := range m.Resources() {
 		// Mutate using the appropriate API struct
-		switch {
-		case r.GetGvk().IsSelected(ByDaemonSet):
-			if err := mutateResourceAs(mutator, r, &appsv1.DaemonSet{}); err != nil {
-				return nil, err
-			}
-		case r.GetGvk().IsSelected(ByDeployment):
-			if err := mutateResourceAs(mutator, r, &appsv1.Deployment{}); err != nil {
-				return nil, err
-			}
-		case r.GetGvk().IsSelected(ByReplicaSet):
-			if err := mutateResourceAs(mutator, r, &appsv1.ReplicaSet{}); err != nil {
-				return nil, err
-			}
-		case r.GetGvk().IsSelected(ByStatefulSet):
-			if err := mutateResourceAs(mutator, r, &appsv1.StatefulSet{}); err != nil {
-				return nil, err
-			}
-		case r.GetGvk().IsSelected(ByJob):
-			if err := mutateResourceAs(mutator, r, &batchv1.Job{}); err != nil {
-				return nil, err
-			}
+		if err := mutateResourceAs(mutator, r); err != nil {
+			return nil, err
 		}
 
 		// Check if there were any new secrets that need to be added
@@ -164,31 +141,81 @@ func (o *BerglasTransformOptions) Run(in []byte) ([]byte, error) {
 		}
 	}
 
+	// TODO What about hash names? We would need to fix name references
+
 	return m.AsYaml()
 }
 
-// Performs the Berglas mutation on a Kustomize resource using the supplied API binding
-func mutateResourceAs(m *BerglasMutator, r *resource.Resource, v interface{}) error {
-	// First marshal the resource to JSON and unmarshal it into the typed structure
+// Performs the Berglas mutation on a Kustomize resource
+func mutateResourceAs(m *BerglasMutator, r *resource.Resource) error {
+	// Create a new typed object
+	obj, err := scheme.Scheme.New(toSchemaGvk(r.GetGvk()))
+	if err != nil {
+		return nil // This is ignorable
+	}
+
+	// Marshal the unstructured resource to JSON and unmarshal it back into the typed structure
 	if data, err := r.MarshalJSON(); err != nil {
 		return err
-	} else if err := json.Unmarshal(data, v); err != nil {
+	} else if err := json.Unmarshal(data, obj); err != nil {
 		return err
 	}
 
-	// Things that have PodTemplateSpec always have them at `.spec.template`, so access that reflectively
-	template := reflect.ValueOf(v).Elem().FieldByName("Spec").FieldByName("Template").Interface()
-	if pts, ok := template.(corev1.PodTemplateSpec); ok {
-		// Mutate the PodTemplateSpec and if there were changes, reverse the marshalling process back into the resource
-		if didMutate, err := m.Mutate(&pts); err != nil {
+	// Reflectively get a pointer to the PodTemplateSpec
+	template := podTemplate(obj)
+	if template == nil {
+		return nil
+	}
+
+	// Mutate the PodTemplateSpec and if there were changes, reverse the marshalling process back into the resource
+	if didMutate, err := m.Mutate(template); err != nil {
+		return err
+	} else if didMutate {
+		if data, err := json.Marshal(obj); err != nil {
 			return err
-		} else if didMutate {
-			if data, err := json.Marshal(v); err != nil {
-				return err
-			} else {
-				return r.UnmarshalJSON(data)
-			}
+		} else {
+			return r.UnmarshalJSON(data)
 		}
+	}
+	return nil
+}
+
+func toSchemaGvk(x gvk.Gvk) schema.GroupVersionKind {
+	return schema.GroupVersionKind{
+		Group:   x.Group,
+		Version: x.Version,
+		Kind:    x.Kind,
+	}
+}
+
+func podTemplate(obj runtime.Object) *corev1.PodTemplateSpec {
+	v := reflect.ValueOf(obj)
+	if !v.CanInterface() {
+		return nil
+	}
+
+	v = v.Elem()
+	if v.Kind() != reflect.Struct {
+		return nil
+	}
+
+	v = v.FieldByName("Spec")
+	if v.Kind() != reflect.Struct {
+		return nil
+	}
+
+	v = v.FieldByName("Template")
+	if !v.CanAddr() {
+		return nil
+	}
+
+	v = v.Addr()
+	if !v.CanInterface() {
+		return nil
+	}
+
+	if t, ok := v.Interface().(*corev1.PodTemplateSpec); ok {
+		return t
 	}
 
 	return nil
