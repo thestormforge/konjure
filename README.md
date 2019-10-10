@@ -18,7 +18,7 @@ sudo mv konjure /usr/local/bin/
 For Kustomization integration, you can run:
 
 ```sh
-konjure init
+konjure kustomize init
 ```
 
 ## Usage
