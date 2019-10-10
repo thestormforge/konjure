@@ -19,6 +19,8 @@ package util
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,6 +57,18 @@ func ExecPluginGVK(cmd *cobra.Command) *metav1.GroupVersionKind {
 		Version: cmd.Version,
 		Kind:    cmd.Name(),
 	}
+}
+
+// PluginDirectory returns the file path to the Kustomize plugin directory
+func PluginDirectory() string {
+	// This is not a full XDG Base Directory implementation, just enough for Kustomize
+	// https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
+	configDir := os.Getenv("XDG_CONFIG_HOME")
+	if configDir == "" {
+		// NOTE: This can produce just ".config" if the environment variable isn't set
+		configDir = filepath.Join(os.Getenv("HOME"), ".config")
+	}
+	return filepath.Join(configDir, "kustomize", "plugin")
 }
 
 // NewExecPluginCommand returns a command for the supplied executable plugin

@@ -61,16 +61,8 @@ func (o *InitializeOptions) Run(out io.Writer) error {
 		return nil
 	}
 
-	// This is not a full XDG Base Directory implementation, just enough for Kustomize
-	// https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
-	configDir := os.Getenv("XDG_CONFIG_HOME")
-	if configDir == "" {
-		// NOTE: This can produce just ".config" if the environment variable isn't set
-		configDir = filepath.Join(os.Getenv("HOME"), ".config")
-	}
-	pluginDir := filepath.Join(configDir, "kustomize", "plugin")
-
 	// Create a symlink for each plugin
+	pluginDir := util.PluginDirectory()
 	for _, gvk := range o.plugins {
 		// Ensure the directory exists
 		dir := filepath.Join(pluginDir, gvk.Group, gvk.Version, strings.ToLower(gvk.Kind))
