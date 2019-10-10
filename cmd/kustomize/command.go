@@ -60,6 +60,7 @@ func newInitializeCommand() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&opts.Source, "source", "", "override the `path` to the source executable")
+	cmd.Flags().BoolVar(&opts.DryRun, "dry-run", false, "check existing plugins")
 
 	return cmd
 }
