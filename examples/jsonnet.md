@@ -10,7 +10,7 @@ For this example, you will need Konjure, Kustomize, and Jsonnet installed on you
 which konjure
 which kustomize
 which jsonnet
-konjure kustomize init
+konjure kustomize init JsonnetGenerator
 
 DEMO_HOME=$(mktemp -d)
 mkdir -p "$DEMO_HOME"

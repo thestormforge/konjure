@@ -49,9 +49,10 @@ func newInitializeCommand() *cobra.Command {
 	opts := NewInitializeOptions()
 
 	cmd := &cobra.Command{
-		Use:   "init",
+		Use:   "init [PLUGIN...]",
 		Short: "Configure Kustomize plugins",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
+			opts.Kinds = args
 			return opts.Complete()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {

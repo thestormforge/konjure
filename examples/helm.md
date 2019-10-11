@@ -10,7 +10,7 @@ For this example, you will need Konjure, Kustomize, and Helm installed on your `
 which konjure
 which kustomize
 which helm
-konjure kustomize init
+konjure kustomize init HelmGenerator
 
 DEMO_HOME=$(mktemp -d)
 mkdir -p "$DEMO_HOME"

@@ -29,6 +29,7 @@ import (
 
 type InitializeOptions struct {
 	Source string
+	Kinds  []string
 	DryRun bool
 
 	groups  []string
@@ -50,8 +51,7 @@ func (o *InitializeOptions) Complete() error {
 	}
 
 	for _, c := range NewKustomizeCommand().Commands() {
-		gvk := util.ExecPluginGVK(c)
-		if gvk != nil {
+		if gvk := util.ExecPluginGVK(c); o.keepPlugin(gvk) {
 			o.plugins = append(o.plugins, *gvk)
 			g[gvk.Group] = true
 		}
@@ -62,6 +62,18 @@ func (o *InitializeOptions) Complete() error {
 	}
 
 	return nil
+}
+
+// Filter out plugins to work with
+func (o *InitializeOptions) keepPlugin(gvk *metav1.GroupVersionKind) bool {
+	if gvk != nil {
+		for _, k := range o.Kinds {
+			if ok, err := filepath.Match(k, gvk.Kind); err == nil && ok {
+				return true
+			}
+		}
+	}
+	return gvk != nil && len(o.Kinds) == 0
 }
 
 func (o *InitializeOptions) Run(out io.Writer) error {
