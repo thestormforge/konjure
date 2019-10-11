@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -57,6 +58,11 @@ func ExecPluginGVK(cmd *cobra.Command) *metav1.GroupVersionKind {
 		Version: cmd.Version,
 		Kind:    cmd.Name(),
 	}
+}
+
+// ExecPluginPath returns the path to an executable plugin
+func ExecPluginPath(pluginDir string, gvk *metav1.GroupVersionKind) string {
+	return filepath.Join(pluginDir, gvk.Group, gvk.Version, strings.ToLower(gvk.Kind), gvk.Kind)
 }
 
 // PluginDirectory returns the file path to the Kustomize plugin directory

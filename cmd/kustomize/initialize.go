@@ -27,13 +27,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type InitializeOptions struct {
-	Source string
-	Kinds  []string
-	DryRun bool
+type Plugin struct {
+	metav1.GroupVersionKind
+	Supported         bool
+	InstalledVersions []string
+}
 
-	groups  []string
-	plugins []metav1.GroupVersionKind
+type InitializeOptions struct {
+	PluginDir string
+	Source    string
+	Kinds     []string
+	DryRun    bool
 }
 
 func NewInitializeOptions() *InitializeOptions {
@@ -41,116 +45,186 @@ func NewInitializeOptions() *InitializeOptions {
 }
 
 func (o *InitializeOptions) Complete() error {
-	var err error
-	g := make(map[string]bool, len(o.plugins))
+	// Determine the directory where plugins are located
+	if o.PluginDir == "" {
+		o.PluginDir = util.PluginDirectory()
+	}
 
+	// Determine the source to use for the symlinks
 	if o.Source == "" {
+		var err error
 		if o.Source, err = os.Executable(); err != nil {
 			return err
 		}
 	}
 
-	for _, c := range NewKustomizeCommand().Commands() {
-		if gvk := util.ExecPluginGVK(c); o.keepPlugin(gvk) {
-			o.plugins = append(o.plugins, *gvk)
-			g[gvk.Group] = true
-		}
-	}
-
-	for k := range g {
-		o.groups = append(o.groups, k)
-	}
-
 	return nil
-}
-
-// Filter out plugins to work with
-func (o *InitializeOptions) keepPlugin(gvk *metav1.GroupVersionKind) bool {
-	if gvk != nil {
-		for _, k := range o.Kinds {
-			if ok, err := filepath.Match(k, gvk.Kind); err == nil && ok {
-				return true
-			}
-		}
-	}
-	return gvk != nil && len(o.Kinds) == 0
 }
 
 func (o *InitializeOptions) Run(out io.Writer) error {
-	// Early dismissal
-	if len(o.plugins) == 0 {
-		return nil
+	// Load and filter the plugin list
+	plugins := LoadPlugins(o.PluginDir)
+	if len(o.Kinds) > 0 {
+		plugins = FilterPlugins(plugins, o.Kinds)
 	}
 
+	// Generate the status map
+	var status map[string]string
+	var err error
 	if o.DryRun {
-		return o.checkLinks(out)
+		status, err = o.checkLinks(plugins, out)
+	} else {
+		status, err = o.createLinks(plugins)
 	}
-	return o.createLinks(out)
-}
+	if err != nil {
+		return err
+	}
 
-// TODO Instead of taking a writer, we should return a map of Kind -> status or use a logger or something...
+	// Print it out
+	ok := true
+	for k, v := range status {
+		_, _ = fmt.Fprintf(out, "%s ... %s\n", k, v)
 
-func (o *InitializeOptions) createLinks(out io.Writer) error {
-	// TODO Init should clean out old versions as well
-	// Create a symlink for each plugin
-	pluginDir := util.PluginDirectory()
-	for _, gvk := range o.plugins {
-		// Ensure the directory exists
-		dir := filepath.Join(pluginDir, gvk.Group, gvk.Version, strings.ToLower(gvk.Kind))
-		if err := os.MkdirAll(dir, 0700); err != nil {
-			return err
-		}
-
-		// Remove the existing link
-		link := filepath.Join(dir, gvk.Kind)
-		if _, err := os.Lstat(link); err == nil {
-			if err = os.Remove(link); err != nil {
-				return err
-			}
-		}
-
-		// Link the executable
-		if err := os.Symlink(o.Source, link); err != nil {
-			return err
-		} else {
-			_, _ = fmt.Fprintf(out, "Created %s\n", link)
+		if v != "OK" {
+			ok = false
 		}
 	}
+
+	// Only return an error for "not OK" if this was a dry run
+	if o.DryRun && !ok {
+		return fmt.Errorf("plugin not OK")
+	}
+
 	return nil
 }
 
-func (o *InitializeOptions) checkLinks(out io.Writer) error {
-	// Find what symlinks are installed
-	pluginDir := util.PluginDirectory()
-	installed := findInstalled(pluginDir, o.groups)
-	for _, gvk := range o.plugins {
-		status := "OK"
-		link := filepath.Join(pluginDir, gvk.Group, gvk.Version, strings.ToLower(gvk.Kind), gvk.Kind)
-		if _, err := os.Lstat(link); err != nil {
-			// It does not exist
-			status = "Missing"
-			for _, i := range installed {
-				if gvk.Group == i.Group && gvk.Kind == i.Kind {
-					status = "Wrong version (" + i.Version + ")"
+func (o *InitializeOptions) createLinks(plugins []Plugin) (map[string]string, error) {
+	status := make(map[string]string, len(plugins))
+	for i := range plugins {
+		p := &plugins[i]
+		status[p.Kind] = "OK"
+
+		// Remove the enclosing directory for unsupported plugins, create it for everyone else
+		dir := filepath.Dir(util.ExecPluginPath(o.PluginDir, &p.GroupVersionKind))
+		if !p.Supported {
+			if err := os.RemoveAll(dir); err != nil {
+				return nil, err
+			}
+			status[p.Kind] = "Removed"
+			continue
+		}
+		if err := os.MkdirAll(dir, 0700); err != nil {
+			return nil, err
+		}
+
+		// Re-link all of the installed/supported versions
+		for _, path := range pluginPaths(o.PluginDir, p) {
+			if _, err := os.Lstat(path); err == nil {
+				if l, err := os.Readlink(path); err != nil {
+					return nil, err
+				} else if l != o.Source {
+					if err = os.Remove(path); err != nil {
+						return nil, err
+					}
+					status[p.Kind] = "Updated"
+				} else {
+					continue
+				}
+			} else {
+				status[p.Kind] = "Created"
+			}
+
+			if err := os.Symlink(o.Source, path); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return status, nil
+}
+
+func (o *InitializeOptions) checkLinks(plugins []Plugin, out io.Writer) (map[string]string, error) {
+	status := make(map[string]string, len(plugins))
+	for i := range plugins {
+		p := &plugins[i]
+		status[p.Kind] = "OK"
+
+		if !p.Supported {
+			status[p.Kind] = "Unsupported"
+			continue
+		}
+		if !p.installed() {
+			status[p.Kind] = "Missing"
+			continue
+		}
+
+		for _, path := range pluginPaths(o.PluginDir, p) {
+			if l, err := os.Readlink(path); err != nil {
+				return nil, err
+			} else {
+				if l != o.Source {
+					status[p.Kind] = "Needs Update"
 					break
 				}
 			}
-		} else if l, err := os.Readlink(link); err == nil {
-			// If it exists make sure it is pointing to the right place
-			if l != o.Source {
-				status = "Incorrect link (" + l + ")"
+		}
+	}
+	return status, nil
+}
+
+func FilterPlugins(plugins []Plugin, filters []string) []Plugin {
+	var filtered []Plugin
+	for i := range plugins {
+		for _, f := range filters {
+			// TODO Is github.com/gobwas/glob is a transitive dependency already?
+			if ok, err := filepath.Match(f, plugins[i].Kind); err == nil && ok {
+				filtered = append(filtered, plugins[i])
+				break
 			}
 		}
-		_, _ = fmt.Fprintf(out, "%s ... %s\n", gvk.Kind, status)
+	}
+	return filtered
+}
+
+func LoadPlugins(pluginDir string) []Plugin {
+	var plugins []Plugin
+	groups := make(map[string]bool)
+
+	// First load the currently supported plugins
+	for _, c := range NewKustomizeCommand().Commands() {
+		gvk := util.ExecPluginGVK(c)
+		if gvk != nil {
+			groups[gvk.Group] = true
+			plugins = append(plugins, Plugin{GroupVersionKind: *gvk, Supported: true})
+		}
 	}
 
+	// Next, merge in the installed plugins
+	for _, gvk := range findInstalledPlugins(pluginDir, groups) {
+		p := findCompatiblePlugin(plugins, &gvk)
+		if p == nil {
+			p = &Plugin{GroupVersionKind: gvk}
+			plugins = append(plugins, *p)
+		}
+		p.InstalledVersions = append(p.InstalledVersions, gvk.Version)
+	}
+
+	return plugins
+}
+
+// Finds a plugin from the supplied list with the same group and kind
+func findCompatiblePlugin(plugins []Plugin, gvk *metav1.GroupVersionKind) *Plugin {
+	for i := range plugins {
+		if plugins[i].Group == gvk.Group && plugins[i].Kind == gvk.Kind {
+			return &plugins[i]
+		}
+	}
 	return nil
 }
 
 // Finds all of the installed plugins under the specified directory and groups
-func findInstalled(pluginDir string, groups []string) []metav1.GroupVersionKind {
+func findInstalledPlugins(pluginDir string, groups map[string]bool) []metav1.GroupVersionKind {
 	var installed []metav1.GroupVersionKind
-	for _, g := range groups {
+	for g := range groups {
 		_ = filepath.Walk(filepath.Join(pluginDir, g), func(path string, info os.FileInfo, err error) error {
 			rel, err := filepath.Rel(pluginDir, path)
 			if err != nil {
@@ -170,4 +244,31 @@ func findInstalled(pluginDir string, groups []string) []metav1.GroupVersionKind 
 		})
 	}
 	return installed
+}
+
+// Returns all of the link paths for a plugin
+func pluginPaths(pluginDir string, p *Plugin) []string {
+	var paths []string
+
+	paths = append(paths, util.ExecPluginPath(pluginDir, &p.GroupVersionKind))
+
+	for _, v := range p.InstalledVersions {
+		if v != p.Version {
+			gvk := p.GroupVersionKind.DeepCopy()
+			gvk.Version = v
+			paths = append(paths, util.ExecPluginPath(pluginDir, gvk))
+		}
+	}
+
+	return paths
+}
+
+// Checks to see if the plugin version is installed
+func (p *Plugin) installed() bool {
+	for _, v := range p.InstalledVersions {
+		if v == p.Version {
+			return true
+		}
+	}
+	return false
 }
