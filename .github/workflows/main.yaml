@@ -20,7 +20,7 @@ jobs:
           name: konjure-linux-amd64
           path: .
       - name: Upload darwin-amd64
-          uses: actions/upload-artifact@master
-          with:
-            name: konjure-darwin-amd64
-            path: .
+        uses: actions/upload-artifact@master
+        with:
+          name: konjure-darwin-amd64
+          path: .
