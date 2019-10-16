@@ -49,10 +49,9 @@ func newInitializeCommand() *cobra.Command {
 	opts := NewInitializeOptions()
 
 	cmd := &cobra.Command{
-		Use:           "init [PLUGIN...]",
-		Short:         "Configure Kustomize plugins",
-		SilenceErrors: true,
-		SilenceUsage:  true,
+		Use:          "init [PLUGIN...]",
+		Short:        "Configure Kustomize plugins",
+		SilenceUsage: true,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			opts.Kinds = args
 			return opts.Complete()
@@ -62,7 +61,10 @@ func newInitializeCommand() *cobra.Command {
 		},
 	}
 
+	cmd.Flags().StringVar(&opts.PluginDir, "plugins", "", "override the `path` to the plugin directory")
 	cmd.Flags().StringVar(&opts.Source, "source", "", "override the `path` to the source executable")
+	cmd.Flags().BoolVar(&opts.Prune, "prune", false, "remove old versions")
+	cmd.Flags().BoolVarP(&opts.Verbose, "verbose", "v", false, "be more verbose")
 	cmd.Flags().BoolVar(&opts.DryRun, "dry-run", false, "check existing plugins")
 
 	return cmd
