@@ -15,15 +15,21 @@ jobs:
         run: go mod download
       - name: Build
         run: |
-          GOOS=linux GOARCH=amd64 go build -o konjure-linux-amd64 -ldflags '-X main.Version=1.0.0' .
-          GOOS=darwin GOARCH=amd64 go build -o konjure-darwin-amd64 -ldflags '-X main.Version=1.0.0' .
+          GOOS=linux GOARCH=amd64 go build -o konjure-linux-amd64 .
+          GOOS=darwin GOARCH=amd64 go build -o konjure-darwin-amd64 .
+          sha256sum konjure-* | tee checksums.txt
       - name: Upload linux-amd64
         uses: actions/upload-artifact@master
         with:
           name: konjure-linux-amd64
-          path: .
+          path: konjure-linux-amd64
       - name: Upload darwin-amd64
         uses: actions/upload-artifact@master
         with:
           name: konjure-darwin-amd64
-          path: .
+          path: konjure-darwin-amd64
+      - name: Upload checksums
+        uses: actions/upload-artifact@master
+        with:
+          name: checksums.txt
+          path: checksums.txt
