@@ -13,23 +13,17 @@ jobs:
         uses: actions/checkout@v1
       - name: Get dependencies
         run: go mod download
+      - name: Test
+        run: |
+          go vet
+          go test
       - name: Build
         run: |
-          GOOS=linux GOARCH=amd64 go build -o konjure-linux-amd64 .
-          GOOS=darwin GOARCH=amd64 go build -o konjure-darwin-amd64 .
-          sha256sum konjure-* | tee checksums.txt
-      - name: Upload linux-amd64
+          GOOS=linux GOARCH=amd64 go build -o dist/konjure-linux-amd64 .
+          GOOS=darwin GOARCH=amd64 go build -o dist/konjure-darwin-amd64 .
+          sha256sum dist/* | tee dist/checksums.txt
+      - name: Upload artifacts
         uses: actions/upload-artifact@master
         with:
-          name: konjure-linux-amd64
-          path: konjure-linux-amd64
-      - name: Upload darwin-amd64
-        uses: actions/upload-artifact@master
-        with:
-          name: konjure-darwin-amd64
-          path: konjure-darwin-amd64
-      - name: Upload checksums
-        uses: actions/upload-artifact@master
-        with:
-          name: checksums.txt
-          path: checksums.txt
+          name: konjure
+          path: dist
