@@ -1,6 +1,6 @@
 # 🧙‍ Konjure
 
-![](https://github.com/carbonrelay/konjure/workflows/.github/workflows/main.yml/badge.svg)
+![](https://github.com/carbonrelay/konjure/workflows/Main%20workflow/badge.svg)
 
 Konjure generates and transforms Kubernetes resource definitions. It can be used as a standalone utility or can be integrated into your Kustomize workflow.
 
