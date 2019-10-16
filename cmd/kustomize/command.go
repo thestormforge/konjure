@@ -20,6 +20,7 @@ import (
 	"github.com/carbonrelay/konjure/cmd/berglas"
 	"github.com/carbonrelay/konjure/cmd/helm"
 	"github.com/carbonrelay/konjure/cmd/jsonnet"
+	"github.com/carbonrelay/konjure/cmd/kustomize/edit"
 	"github.com/carbonrelay/konjure/cmd/label"
 	"github.com/spf13/cobra"
 )
@@ -35,6 +36,7 @@ func NewKustomizeCommand() *cobra.Command {
 	}
 
 	cmd.AddCommand(newInitializeCommand())
+	cmd.AddCommand(edit.NewEditCommand())
 
 	cmd.AddCommand(berglas.NewBerglasGenerator())
 	cmd.AddCommand(berglas.NewBerglasTransformer())

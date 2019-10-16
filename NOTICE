@@ -1,0 +1,8 @@
+
+/cmd/kustomize/edit/kustinternal
+
+Internal package code has been reproduced to simplify implementation, this project
+contains the following code from "https://github.com/kubernetes-sigs/kustomize":
+
+* /kustomize/internal/commands/kustfile/kustomizationfile.go
+* /kustomize/internal/commands/util/util.go
