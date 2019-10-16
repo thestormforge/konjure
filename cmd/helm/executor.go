@@ -149,7 +149,14 @@ func (helm *Helm) Template(filename string, name string, values []HelmValue) (re
 // AppendArgs adds the Helm command arguments corresponding to this value
 func (v *HelmValue) AppendArgs(args []string) []string {
 	if v.File != "" {
-		args = append(args, "--value", v.File)
+		// Try to expand a glob; if it fails or does not match, pass on the raw value and let Helm figure it out
+		valueFiles := []string{v.File}
+		if matches, err := filepath.Glob(v.File); err == nil && len(matches) > 0 {
+			valueFiles = matches
+		}
+		for _, f := range valueFiles {
+			args = append(args, "--values", f)
+		}
 	} else if v.Name != "" {
 		setOpt := "--set"
 		if v.LoadFile {
