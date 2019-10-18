@@ -44,7 +44,6 @@ type Helm struct {
 	Bin          string `json:"bin,omitempty"`
 	Home         string `json:"home,omitempty"`
 	ArchiveCache string `json:"chartDir,omitempty"`
-	// TODO Additional repositories?
 }
 
 // Complete fills in the blank configuration values
@@ -90,7 +89,7 @@ func (helm *Helm) Init() error {
 
 // Fetch downloads a chart with an optional specific version (leave version empty to get the latest version).
 // The name of downloaded chart file is returned.
-func (helm *Helm) Fetch(chart, version string) (string, error) {
+func (helm *Helm) Fetch(repo, chart, version string) (string, error) {
 	// Create a temporary directory for downloading since `helm fetch` won't tell us the name of the file
 	d, err := ioutil.TempDir("", "helm-fetch-")
 	if err != nil {
@@ -101,6 +100,9 @@ func (helm *Helm) Fetch(chart, version string) (string, error) {
 	// Run the fetch command into the temporary directory
 	var args []string
 	args = append(args, "fetch", chart, "--destination", d)
+	if repo != "" {
+		args = append(args, "--repo", repo)
+	}
 	if version != "" {
 		args = append(args, "--version", version)
 	}

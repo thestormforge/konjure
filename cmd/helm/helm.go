@@ -23,6 +23,7 @@ import (
 // HelmOptions is the configuration for expanding Helm charts
 type HelmOptions struct {
 	Helm         Helm        `json:"helm"`
+	Repository   string      `json:"repo"`
 	ReleaseName  string      `json:"releaseName"`
 	Chart        string      `json:"chart"`
 	Version      string      `json:"version"`
@@ -43,7 +44,7 @@ func (o *HelmOptions) Run() ([]byte, error) {
 	}
 
 	// Fetch the chart
-	c, err := o.Helm.Fetch(o.Chart, o.Version)
+	c, err := o.Helm.Fetch(o.Repository, o.Chart, o.Version)
 	if err != nil {
 		return nil, err
 	}
