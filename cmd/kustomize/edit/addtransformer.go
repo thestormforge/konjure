@@ -17,7 +17,7 @@ type addTransformerOptions struct {
 	transformerFilePaths []string
 }
 
-// newCmdAddTransformer adds the name of a file containing a resource to the kustomization file.
+// newCmdAddTransformer adds the name of a file containing a transformer to the kustomization file.
 func newCmdAddTransformer(fSys fs.FileSystem) *cobra.Command {
 	var o addTransformerOptions
 

@@ -31,11 +31,18 @@ func NewEditCommand() *cobra.Command {
 	}
 	addCmd.AddCommand(newCmdAddGenerator(fSys), newCmdAddTransformer(fSys))
 
+	removeCmd := &cobra.Command{
+		Use:   "remove",
+		Short: "Removes items from the kustomization file.",
+		Args:  cobra.MinimumNArgs(1),
+	}
+	removeCmd.AddCommand(newCmdRemoveGenerator(fSys), newCmdRemoveTransformer(fSys))
+
 	editCmd := &cobra.Command{
 		Use:   "edit",
 		Short: "Edits a kustomization file",
 		Args:  cobra.MinimumNArgs(1),
 	}
-	editCmd.AddCommand(addCmd)
+	editCmd.AddCommand(addCmd, removeCmd)
 	return editCmd
 }

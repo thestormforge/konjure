@@ -17,7 +17,7 @@ type addGeneratorOptions struct {
 	generatorFilePaths []string
 }
 
-// newCmdAddGenerator adds the name of a file containing a resource to the kustomization file.
+// newCmdAddGenerator adds the name of a file containing a generator to the kustomization file.
 func newCmdAddGenerator(fSys fs.FileSystem) *cobra.Command {
 	var o addGeneratorOptions
 
