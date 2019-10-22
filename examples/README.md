@@ -2,6 +2,7 @@
 
 ## Example Usage
 
+* [Berglas Generator](berglas-generator.md)
 * [Helm Generator](helm.md)
 * [Jsonnet Generator](jsonnet.md)
 
