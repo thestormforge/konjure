@@ -19,6 +19,7 @@ package berglas
 import (
 	"context"
 	"fmt"
+	"path"
 	"reflect"
 	"strings"
 
@@ -82,7 +83,11 @@ func (o *BerglasGenerateOptions) Run() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		fileSource := fmt.Sprintf("%s=%s/%s", r.Filepath(), r.Bucket(), r.Object())
+		k := r.Filepath()
+		if k != "" {
+			k = path.Base(k)
+		}
+		fileSource := fmt.Sprintf("%s=%s/%s", k, r.Bucket(), r.Object())
 		args.FileSources = append(args.FileSources, strings.TrimLeft(fileSource, "="))
 	}
 
