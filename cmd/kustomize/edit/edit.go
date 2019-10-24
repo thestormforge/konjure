@@ -41,6 +41,7 @@ func NewEditCommand() *cobra.Command {
 	editCmd := &cobra.Command{
 		Use:   "edit",
 		Short: "Edits a kustomization file",
+		Long:  "Edits a kustomization file; this functionality is only provided as a stop-gap until it available in Kustomize",
 		Args:  cobra.MinimumNArgs(1),
 	}
 	editCmd.AddCommand(addCmd, removeCmd)

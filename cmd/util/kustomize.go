@@ -79,9 +79,9 @@ func PluginDirectory() string {
 
 // NewExecPluginCommand returns a command for the supplied executable plugin
 func NewExecPluginCommand(group, version, kind string, p ExecPlugin) *cobra.Command {
-	// TODO Any generic short/long/example text?
 	return &cobra.Command{
 		Use:         kind + " FILE",
+		Short:       fmt.Sprintf("Kustomize executable plugin for %s", kind),
 		Version:     version,
 		Annotations: map[string]string{annotationGroup: group},
 		Args:        cobra.ExactArgs(1),

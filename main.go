@@ -32,6 +32,17 @@ import (
 // Version is the current version for the root command
 var Version = "unspecified"
 
+const example = `
+# Use Konjure to render a Helm chart (requires 'helm' on your 'PATH')
+konjure helm --name "my-release" ${CHART}
+
+# Generate a Kubernetes secret using sensitive data stored using Berglas
+konjure berglas generate --name "my-secret" --ref "berglas://${BUCKET_ID}/some-secret-key"
+
+# Install Konjure as a series of Kustomize plugins
+konjure kustomize init
+`
+
 func main() {
 	rootCmd := NewRootCommand(os.Args[0])
 	if err := rootCmd.Execute(); err != nil {
@@ -51,6 +62,7 @@ func NewRootCommand(arg0 string) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:     "konjure",
 		Short:   "Manifest, appear!",
+		Example: example,
 		Version: Version,
 	}
 

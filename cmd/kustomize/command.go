@@ -27,12 +27,22 @@ import (
 
 // The Kustomize command really just aggregates all the exec plugin commands in one place
 
-// TODO Add documentation about how to use Konjure as a Kustomize plugin
+const example = `
+# Edit a kustomization to include a generator configuration file
+# NOTE: This functionality will be removed when it makes it into Kustomize proper
+konjure kustomize edit add generator my-konjure-plugin-config.yaml
+
+# Install Konjure as a series of Kustomize plugins
+konjure kustomize init
+`
+
+// TODO Add a helper for creating configurations
 
 func NewKustomizeCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "kustomize",
-		Short: "Extensions for Kustomize",
+		Use:     "kustomize",
+		Short:   "Extensions for Kustomize",
+		Example: example,
 	}
 
 	cmd.AddCommand(newInitializeCommand())
@@ -53,6 +63,7 @@ func newInitializeCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "init [PLUGIN...]",
 		Short:        "Configure Kustomize plugins",
+		Long:         "Manages your '~/.config/kustomize/plugin' directory to include symlinks back to the Konjure executable",
 		SilenceUsage: true,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			opts.Kinds = args

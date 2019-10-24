@@ -1,6 +1,7 @@
 # 🧙‍ Konjure
 
 ![](https://github.com/carbonrelay/konjure/workflows/Main%20workflow/badge.svg)
+[![Go Report Card](https://goreportcard.com/badge/github.com/carbonrelay/konjure)](https://goreportcard.com/report/github.com/carbonrelay/konjure)
 
 Konjure generates and transforms Kubernetes resource definitions. It can be used as a standalone utility or can be integrated into your Kustomize workflow.
 
@@ -25,7 +26,7 @@ konjure kustomize init
 
 ## Usage
 
-Konjure can be used as a standalone tool by invoking the `konjure` tool directly; all Konjure commands can also be accessed as Kustomize plugins.
+Konjure can be used as a standalone tool by invoking the `konjure` tool directly; all Konjure commands can also be accessed as Kustomize plugins, see the [examples](examples/) for more information.
 
 ## Getting Help
 
