@@ -17,7 +17,7 @@ limitations under the License.
 package transformer
 
 import (
-	"github.com/carbonrelay/konjure/cmd/util"
+	"github.com/carbonrelay/konjure/plugin/util"
 	"github.com/spf13/cobra"
 )
 

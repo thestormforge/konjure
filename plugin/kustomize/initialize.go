@@ -25,7 +25,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/carbonrelay/konjure/cmd/util"
+	"github.com/carbonrelay/konjure/plugin/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kplug "sigs.k8s.io/kustomize/v3/pkg/plugins"
 )

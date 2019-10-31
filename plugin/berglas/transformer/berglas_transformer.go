@@ -19,7 +19,7 @@ package transformer
 import (
 	"context"
 
-	"github.com/carbonrelay/konjure/cmd/berglas/util"
+	"github.com/carbonrelay/konjure/plugin/berglas/util"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/kustomize/v3/pkg/gvk"
 	"sigs.k8s.io/kustomize/v3/pkg/ifc"

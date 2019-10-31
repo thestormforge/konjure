@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package jsonnet
+package helm
 
-import "github.com/carbonrelay/konjure/cmd/jsonnet/generator"
+import "github.com/carbonrelay/konjure/plugin/helm/generator"
 
 var (
-	NewJsonnetCommand             = generator.NewJsonnetGeneratorCommand
-	NewJsonnetGeneratorExecPlugin = generator.NewJsonnetGeneratorExecPlugin
+	NewHelmCommand             = generator.NewHelmGeneratorCommand
+	NewHelmGeneratorExecPlugin = generator.NewHelmGeneratorExecPlugin
 )

@@ -6,7 +6,7 @@ package edit
 import (
 	"errors"
 
-	kustfile "github.com/carbonrelay/konjure/cmd/kustomize/edit/kustinternal"
+	kustfile "github.com/carbonrelay/konjure/plugin/kustomize/edit/kustinternal"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/v3/pkg/fs"
 	"sigs.k8s.io/kustomize/v3/pkg/pgmconfig"

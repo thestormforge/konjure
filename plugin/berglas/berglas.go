@@ -17,8 +17,8 @@ limitations under the License.
 package berglas
 
 import (
-	"github.com/carbonrelay/konjure/cmd/berglas/generator"
-	"github.com/carbonrelay/konjure/cmd/berglas/transformer"
+	"github.com/carbonrelay/konjure/plugin/berglas/generator"
+	"github.com/carbonrelay/konjure/plugin/berglas/transformer"
 	"github.com/spf13/cobra"
 )
 

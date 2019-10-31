@@ -20,12 +20,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/carbonrelay/konjure/cmd/berglas"
-	"github.com/carbonrelay/konjure/cmd/helm"
-	"github.com/carbonrelay/konjure/cmd/jsonnet"
-	"github.com/carbonrelay/konjure/cmd/kustomize"
-	"github.com/carbonrelay/konjure/cmd/label"
-	"github.com/carbonrelay/konjure/cmd/util"
+	"github.com/carbonrelay/konjure/plugin/berglas"
+	"github.com/carbonrelay/konjure/plugin/helm"
+	"github.com/carbonrelay/konjure/plugin/jsonnet"
+	"github.com/carbonrelay/konjure/plugin/kustomize"
+	"github.com/carbonrelay/konjure/plugin/label"
+	"github.com/carbonrelay/konjure/plugin/util"
 	"github.com/spf13/cobra"
 )
 

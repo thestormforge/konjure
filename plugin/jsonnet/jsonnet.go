@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package label
+package jsonnet
 
-import "github.com/carbonrelay/konjure/cmd/label/transformer"
+import "github.com/carbonrelay/konjure/plugin/jsonnet/generator"
 
 var (
-	NewLabelCommand               = transformer.NewLabelTransformerCommand
-	NewLabelTransformerExecPlugin = transformer.NewLabelTransformerExecPlugin
+	NewJsonnetCommand             = generator.NewJsonnetGeneratorCommand
+	NewJsonnetGeneratorExecPlugin = generator.NewJsonnetGeneratorExecPlugin
 )

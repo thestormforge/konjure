@@ -16,6 +16,7 @@ import (
 	fLdr "sigs.k8s.io/kustomize/v3/pkg/loader"
 	"sigs.k8s.io/kustomize/v3/pkg/resmap"
 	"sigs.k8s.io/kustomize/v3/pkg/resource"
+	"sigs.k8s.io/kustomize/v3/pkg/types"
 )
 
 // ExecPluginGVK returns the GVK for the supplied executable plugin command; returns nil if the command is not an executable plugin
@@ -177,10 +178,59 @@ func WithPreRunE(preRunE func(cmd *cobra.Command, args []string) error) RunnerOp
 	}
 }
 
-// TODO This is the option for transformers so they do not need stdin
+// WithAnnotationHashTransformer is used by generators to switch to downstream annotation based name suffix hashing.
+// This should only be used from "ExecPlugin" commands where the expectation is that we were invoked by Kustomize.
+func WithAnnotationHashTransformer(o *types.GeneratorOptions) RunnerOption {
+	return func(k *KustomizePluginRunner) {
+		origPreRunE := k.cmd.PreRunE
+		k.cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
+			// The original pre-run will unmarshal the configuration
+			if origPreRunE != nil {
+				if err := origPreRunE(cmd, args); err != nil {
+					return err
+				}
+			}
+
+			// If the name suffix hash is enabled, disable it and add the annotation instead
+			if !o.DisableNameSuffixHash {
+				o.DisableNameSuffixHash = true
+				if o.Annotations == nil {
+					o.Annotations = make(map[string]string, 1)
+				}
+				o.Annotations["kustomize.config.k8s.io/needs-hash"] = "true"
+			}
+
+			return nil
+		}
+	}
+}
+
+// WithTransformerFilenameFlag is used by transformers to allow input to come from a file instead of stdin.
+// This should only be used with "Command" commands where the expectation is that we were invoked outside of Kustomize.
 func WithTransformerFilenameFlag() RunnerOption {
 	return func(k *KustomizePluginRunner) {
-		k.cmd.Flags().StringVarP(nil, "filename", "f", "", "`file` that contains the manifests to transform")
-		// TODO This needs to overwrite k.generate when the filename is not "-"
+		type fileFlags struct {
+			Filename string
+		}
+		f := &fileFlags{}
+		k.cmd.Flags().StringVarP(&f.Filename, "filename", "f", "", "`file` that contains the manifests to transform")
+
+		origRunE := k.cmd.RunE
+		k.cmd.RunE = func(cmd *cobra.Command, args []string) error {
+			if f.Filename != "-" && f.Filename != "" {
+				k.generate = func() (resmap.ResMap, error) {
+					b, err := ioutil.ReadFile(f.Filename)
+					if err != nil {
+						return nil, err
+					}
+					return k.rf.NewResMapFromBytes(b)
+				}
+			}
+
+			if origRunE != nil {
+				return origRunE(cmd, args)
+			}
+			return nil
+		}
 	}
 }

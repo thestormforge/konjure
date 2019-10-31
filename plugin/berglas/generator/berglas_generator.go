@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/berglas/pkg/berglas"
-	"github.com/carbonrelay/konjure/cmd/berglas/util"
+	"github.com/carbonrelay/konjure/plugin/berglas/util"
 	"sigs.k8s.io/kustomize/v3/pkg/ifc"
 	"sigs.k8s.io/kustomize/v3/pkg/resmap"
 	"sigs.k8s.io/kustomize/v3/pkg/types"
@@ -79,7 +79,6 @@ func (p *plugin) Generate() (resmap.ResMap, error) {
 	}
 
 	// Add hash names (there is only one resource in the map, no need to fix references)
-	// TODO Should we be putting annotations in to GeneratorOptions to handle this?
 	htp := builtin.NewHashTransformerPlugin()
 	if err := htp.Config(p.ldr, p.rf, nil); err != nil {
 		return nil, err

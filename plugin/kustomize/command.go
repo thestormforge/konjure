@@ -17,11 +17,11 @@ limitations under the License.
 package kustomize
 
 import (
-	"github.com/carbonrelay/konjure/cmd/berglas"
-	"github.com/carbonrelay/konjure/cmd/helm"
-	"github.com/carbonrelay/konjure/cmd/jsonnet"
-	"github.com/carbonrelay/konjure/cmd/kustomize/edit"
-	"github.com/carbonrelay/konjure/cmd/label"
+	"github.com/carbonrelay/konjure/plugin/berglas"
+	"github.com/carbonrelay/konjure/plugin/helm"
+	"github.com/carbonrelay/konjure/plugin/jsonnet"
+	"github.com/carbonrelay/konjure/plugin/kustomize/edit"
+	"github.com/carbonrelay/konjure/plugin/label"
 	"github.com/spf13/cobra"
 )
 

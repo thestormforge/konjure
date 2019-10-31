@@ -7,8 +7,8 @@ import (
 	"errors"
 	"log"
 
-	kustfile "github.com/carbonrelay/konjure/cmd/kustomize/edit/kustinternal"
-	util "github.com/carbonrelay/konjure/cmd/kustomize/edit/kustinternal"
+	kustfile "github.com/carbonrelay/konjure/plugin/kustomize/edit/kustinternal"
+	util "github.com/carbonrelay/konjure/plugin/kustomize/edit/kustinternal"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/v3/pkg/fs"
 )

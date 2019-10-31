@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package helm
+package label
 
-import "github.com/carbonrelay/konjure/cmd/helm/generator"
+import "github.com/carbonrelay/konjure/plugin/label/transformer"
 
 var (
-	NewHelmCommand             = generator.NewHelmGeneratorCommand
-	NewHelmGeneratorExecPlugin = generator.NewHelmGeneratorExecPlugin
+	NewLabelCommand               = transformer.NewLabelTransformerCommand
+	NewLabelTransformerExecPlugin = transformer.NewLabelTransformerExecPlugin
 )
