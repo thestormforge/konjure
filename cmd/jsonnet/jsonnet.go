@@ -16,39 +16,9 @@ limitations under the License.
 
 package jsonnet
 
-import (
-	"io"
+import "github.com/carbonrelay/konjure/cmd/jsonnet/generator"
 
-	"sigs.k8s.io/kustomize/v3/pkg/resmap"
+var (
+	NewJsonnetCommand             = generator.NewJsonnetGeneratorCommand
+	NewJsonnetGeneratorExecPlugin = generator.NewJsonnetGeneratorExecPlugin
 )
-
-// JsonnetOptions is the configuration for executing Jsonnet code
-type JsonnetOptions struct {
-	Jsonnet           Jsonnet     `json:"jsonnet"`
-	Filename          string      `json:"filename"`
-	Code              string      `json:"exec"`
-	JsonnetPath       []string    `json:"jpath"`
-	ExternalVariables []Parameter `json:"extVar"`
-	TopLevelArguments []Parameter `json:"topLevelArg"`
-}
-
-func NewJsonnetOptions() *JsonnetOptions {
-	return &JsonnetOptions{}
-}
-
-func (o *JsonnetOptions) Run(stderr io.Writer) ([]byte, error) {
-	var m resmap.ResMap
-	var err error
-	if o.Filename != "" {
-		m, err = o.Jsonnet.ExecuteFile(o.Filename, o.JsonnetPath, o.ExternalVariables, o.TopLevelArguments, stderr)
-	} else if o.Code != "" {
-		m, err = o.Jsonnet.ExecuteCode(o.Code, o.JsonnetPath, o.ExternalVariables, o.TopLevelArguments, stderr)
-	} else {
-		m = resmap.New()
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	return m.AsYaml()
-}

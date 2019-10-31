@@ -16,57 +16,9 @@ limitations under the License.
 
 package helm
 
-import (
-	"sigs.k8s.io/kustomize/v3/pkg/types"
+import "github.com/carbonrelay/konjure/cmd/helm/generator"
+
+var (
+	NewHelmCommand             = generator.NewHelmGeneratorCommand
+	NewHelmGeneratorExecPlugin = generator.NewHelmGeneratorExecPlugin
 )
-
-// HelmOptions is the configuration for expanding Helm charts
-type HelmOptions struct {
-	Helm         Helm        `json:"helm"`
-	Repository   string      `json:"repo"`
-	ReleaseName  string      `json:"releaseName"`
-	Chart        string      `json:"chart"`
-	Version      string      `json:"version"`
-	Values       []HelmValue `json:"values"`
-	IncludeTests bool        `json:"includeTests"`
-}
-
-// TODO Instead of "include tests" should we have a generic "exclude hooks" that defaults to the test hooks?
-
-func NewHelmOptions() *HelmOptions {
-	return &HelmOptions{}
-}
-
-func (o *HelmOptions) Run() ([]byte, error) {
-	// Initialize the client
-	if err := o.Helm.Init(); err != nil {
-		return nil, err
-	}
-
-	// Fetch the chart
-	c, err := o.Helm.Fetch(o.Repository, o.Chart, o.Version)
-	if err != nil {
-		return nil, err
-	}
-
-	// Render the chart
-	m, err := o.Helm.Template(c, o.ReleaseName, o.Values)
-	if err != nil {
-		return nil, err
-	}
-
-	// Strip chart tests
-	if !o.IncludeTests {
-		tests, err := m.Select(types.Selector{AnnotationSelector: "helm.sh/hook in (test-success, test-failure)"})
-		if err != nil {
-			return nil, err
-		}
-		for _, t := range tests {
-			if err := m.Remove(t.OrgId()); err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return m.AsYaml()
-}

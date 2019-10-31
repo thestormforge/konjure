@@ -1,4 +1,4 @@
-package berglas
+package transformer
 
 import (
 	"fmt"

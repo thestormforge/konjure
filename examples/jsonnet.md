@@ -25,7 +25,7 @@ cat <<'EOF' >"$DEMO_HOME/nginx.yaml"
 apiVersion: konjure.carbonrelay.com/v1beta1
 kind: JsonnetGenerator
 metadata:
-  name: currently-ignored
+  name: ignored
 
 exec: |
   local podName = "nginx-demo";

@@ -24,7 +24,7 @@ cat <<'EOF' >"$DEMO_HOME/berglas.yaml"
 apiVersion: konjure.carbonrelay.com/v1beta1
 kind: BerglasGenerator
 metadata:
-  name: currently-ignored-if-name-is-set
+  name: ignored
 
 name: my-secret
 refs:

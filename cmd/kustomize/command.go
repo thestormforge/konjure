@@ -36,8 +36,6 @@ konjure kustomize edit add generator my-konjure-plugin-config.yaml
 konjure kustomize init
 `
 
-// TODO Add a helper for creating configurations
-
 func NewKustomizeCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "kustomize",
@@ -48,11 +46,11 @@ func NewKustomizeCommand() *cobra.Command {
 	cmd.AddCommand(newInitializeCommand())
 	cmd.AddCommand(edit.NewEditCommand())
 
-	cmd.AddCommand(berglas.NewBerglasGenerator())
-	cmd.AddCommand(berglas.NewBerglasTransformer())
-	cmd.AddCommand(helm.NewHelmGenerator())
-	cmd.AddCommand(jsonnet.NewJsonnetGenerator())
-	cmd.AddCommand(label.NewLabelTransformer())
+	cmd.AddCommand(berglas.NewBerglasGeneratorExecPlugin())
+	cmd.AddCommand(berglas.NewBerglasTransformerExecPlugin())
+	cmd.AddCommand(helm.NewHelmGeneratorExecPlugin())
+	cmd.AddCommand(jsonnet.NewJsonnetGeneratorExecPlugin())
+	cmd.AddCommand(label.NewLabelTransformerExecPlugin())
 
 	return cmd
 }

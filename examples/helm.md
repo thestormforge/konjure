@@ -25,7 +25,7 @@ cat <<'EOF' >"$DEMO_HOME/elasticsearch.yaml"
 apiVersion: konjure.carbonrelay.com/v1beta1
 kind: HelmGenerator
 metadata:
-  name: currently-ignored-if-release-name-is-set
+  name: ignored
 
 releaseName: elasticsearch
 chart: stable/elasticsearch

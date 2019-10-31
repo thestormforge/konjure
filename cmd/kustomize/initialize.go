@@ -27,6 +27,7 @@ import (
 
 	"github.com/carbonrelay/konjure/cmd/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kplug "sigs.k8s.io/kustomize/v3/pkg/plugins"
 )
 
 type Plugin struct {
@@ -58,7 +59,7 @@ func NewInitializeOptions() *InitializeOptions {
 func (o *InitializeOptions) Complete() error {
 	// Determine the directory where plugins are located
 	if o.PluginDir == "" {
-		o.PluginDir = util.PluginDirectory()
+		o.PluginDir = kplug.ActivePluginConfig().DirectoryPath
 	}
 
 	// Determine the source to use for the symlinks
