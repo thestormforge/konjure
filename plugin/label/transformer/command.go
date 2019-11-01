@@ -30,7 +30,7 @@ func NewLabelTransformerExecPlugin() *cobra.Command {
 func NewLabelTransformerCommand() *cobra.Command {
 	p := &plugin{}
 	cmd := util.NewKustomizePluginRunner(p, util.WithTransformerFilenameFlag()).Command()
-	cmd.Use = "transform"
+	cmd.Use = "label"
 	cmd.Short = "Alternate to the Kustomize built-in LabelTransformer"
 	cmd.Long = "Alternate to the built-in LabelTransformer, will be removed when selectors are no longer created"
 
