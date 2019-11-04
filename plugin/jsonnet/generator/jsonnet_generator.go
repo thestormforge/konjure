@@ -17,8 +17,6 @@ limitations under the License.
 package generator
 
 import (
-	"os"
-
 	"sigs.k8s.io/kustomize/v3/pkg/ifc"
 	"sigs.k8s.io/kustomize/v3/pkg/resmap"
 	"sigs.k8s.io/yaml"
@@ -47,17 +45,27 @@ func (p *plugin) Config(ldr ifc.Loader, rf *resmap.Factory, c []byte) error {
 func (p *plugin) Generate() (resmap.ResMap, error) {
 	p.Jsonnet.Complete()
 
-	// TODO How do we get this in here?
-	stderr := os.Stderr
-
-	switch {
-	case p.Filename != "":
-		return p.Jsonnet.ExecuteFile(p.Filename, p.JsonnetPath, p.ExternalVariables, p.TopLevelArguments, stderr)
-
-	case p.Code != "":
-		return p.Jsonnet.ExecuteCode(p.Code, p.JsonnetPath, p.ExternalVariables, p.TopLevelArguments, stderr)
-
-	default:
-		return resmap.New(), nil
+	b, err := p.execute()
+	if err != nil {
+		return nil, err
 	}
+
+	m := resmap.New()
+	if err := appendMultiDocumentJSONBytes(p.rf.RF(), m, b); err != nil {
+		return nil, err
+	}
+
+	return m, nil
+}
+
+func (p *plugin) execute() ([]byte, error) {
+	if p.Filename != "" {
+		return p.Jsonnet.ExecuteFile(p.Filename, p.JsonnetPath, p.ExternalVariables, p.TopLevelArguments)
+	}
+
+	if p.Code != "" {
+		return p.Jsonnet.ExecuteCode(p.Code, p.JsonnetPath, p.ExternalVariables, p.TopLevelArguments)
+	}
+
+	return nil, nil
 }

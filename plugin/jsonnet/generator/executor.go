@@ -25,7 +25,6 @@ import (
 	"unicode"
 
 	"k8s.io/apimachinery/pkg/util/json"
-	"sigs.k8s.io/kustomize/v3/k8sdeps/kunstruct"
 	"sigs.k8s.io/kustomize/v3/pkg/resmap"
 	"sigs.k8s.io/kustomize/v3/pkg/resource"
 )
@@ -41,7 +40,8 @@ type Parameter struct {
 
 // Jsonnet specifies configuration and execution helpers for running Jsonnet
 type Jsonnet struct {
-	Bin string `json:"bin,omitempty"`
+	Bin    string `json:"bin,omitempty"`
+	Stderr func() io.Writer
 }
 
 // Complete fills in the blank configuration values
@@ -75,31 +75,33 @@ func (jsonnet *Jsonnet) command(jpath []string, ext, tla []Parameter, extraArgs 
 }
 
 // ExecuteCode executes a snippet of Jsonnet code, returning a resource map
-func (jsonnet *Jsonnet) ExecuteCode(code string, path []string, ext, tla []Parameter, stderr io.Writer) (resmap.ResMap, error) {
-	stdout := &bytes.Buffer{}
+func (jsonnet *Jsonnet) ExecuteCode(code string, path []string, ext, tla []Parameter) ([]byte, error) {
+	b := &bytes.Buffer{}
 	cmd := jsonnet.command(path, ext, tla, "--exec", "--", code)
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
+	cmd.Stdout = b
+	if jsonnet.Stderr != nil {
+		cmd.Stderr = jsonnet.Stderr()
+	}
 
 	if err := cmd.Run(); err != nil {
 		return nil, err
 	}
-
-	return newResMapFromMultiDocumentJSONBytes(stdout.Bytes())
+	return b.Bytes(), nil
 }
 
 // ExecuteFile executes a Jsonnet file, returning a resource map
-func (jsonnet *Jsonnet) ExecuteFile(filename string, path []string, ext, tla []Parameter, stderr io.Writer) (resmap.ResMap, error) {
-	stdout := &bytes.Buffer{}
+func (jsonnet *Jsonnet) ExecuteFile(filename string, path []string, ext, tla []Parameter) ([]byte, error) {
+	b := &bytes.Buffer{}
 	cmd := jsonnet.command(path, ext, tla, "--", filename)
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
+	cmd.Stdout = b
+	if jsonnet.Stderr != nil {
+		cmd.Stderr = jsonnet.Stderr()
+	}
 
 	if err := cmd.Run(); err != nil {
 		return nil, err
 	}
-
-	return newResMapFromMultiDocumentJSONBytes(stdout.Bytes())
+	return b.Bytes(), nil
 }
 
 // AppendArgs adds the Jsonnet command arguments corresponding to this value, prefix should be "--tla-" or "--ext-"
@@ -124,43 +126,46 @@ func (p *Parameter) AppendArgs(args []string, prefix string) []string {
 	return append(args, prefix+opt, fmt.Sprintf("%s=%s", p.Name, val))
 }
 
-// newResMapFromMultiDocumentJSONBytes inspects the supplied byte array to determine how it should be handled: if it
+// appendMultiDocumentJSONBytes inspects the supplied byte array to determine how it should be handled: if it
 // is a JSON list, each item in the list is added to a new resource map; if the the command produces an object with a
 // "kind" field, the contents are passed directly into the resource map; objects without a "kind" field are assumed
 // to be a map of file names to document  contents and each field value is inserted to a new resource map honoring
 // the order imposed by a sort of the keys.
-func newResMapFromMultiDocumentJSONBytes(b []byte) (resmap.ResMap, error) {
-	// Allocate a new resource map that we can append into
-	rf := resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl())
-	m := resmap.New()
-
+func appendMultiDocumentJSONBytes(rf *resource.Factory, m resmap.ResMap, b []byte) error {
 	// This is JSON, we can trim the leading space
 	j := bytes.TrimLeftFunc(b, unicode.IsSpace)
+	if len(j) == 0 {
+		return nil
+	}
 
 	if bytes.HasPrefix(j, []byte("[")) {
 		// JSON list: just add each item as a new resource
 		raw := make([]interface{}, 0)
 		if err := json.Unmarshal(j, &raw); err != nil {
-			return nil, err
+			return err
 		}
 		for i := range raw {
 			if o, ok := raw[i].(map[string]interface{}); ok {
 				if err := m.Append(rf.FromMap(o)); err != nil {
-					return nil, err
+					return err
 				}
 			} else {
-				return nil, fmt.Errorf("expected a list of objects")
+				return fmt.Errorf("expected a list of objects")
 			}
 		}
-	} else if bytes.HasPrefix(j, []byte("{")) {
+		return nil
+	}
+
+	if bytes.HasPrefix(j, []byte("{")) {
+		// JSON object: look for a "kind" field
 		raw := make(map[string]interface{})
 		if err := json.Unmarshal(j, &raw); err != nil {
-			return nil, err
+			return err
 		}
 		if _, ok := raw["kind"]; ok {
 			// If there is a "kind" field, assume the factory will know what to do with it
 			if err := m.Append(rf.FromMap(raw)); err != nil {
-				return nil, err
+				return err
 			}
 		} else {
 			// Assume filename->object (where each object has a "kind"), preserve the order introduced by the filenames
@@ -173,16 +178,15 @@ func newResMapFromMultiDocumentJSONBytes(b []byte) (resmap.ResMap, error) {
 			for _, k := range filenames {
 				if o, ok := raw[k].(map[string]interface{}); ok {
 					if err := m.Append(rf.FromMap(o)); err != nil {
-						return nil, err
+						return err
 					}
 				} else {
-					return nil, fmt.Errorf("expected a map of objects")
+					return fmt.Errorf("expected a map of objects")
 				}
 			}
 		}
-	} else {
-		return nil, fmt.Errorf("expected JSON object or list")
+		return nil
 	}
 
-	return m, nil
+	return fmt.Errorf("expected JSON object or list")
 }

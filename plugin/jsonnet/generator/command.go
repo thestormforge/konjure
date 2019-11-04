@@ -46,6 +46,8 @@ func NewJsonnetGeneratorCommand() *cobra.Command {
 	cmd.Flags().StringToStringVar(&f.topLevelCodeFileArguments, "tla-code-file", nil, "provide top-level argument as Jsonnet code from the file")
 	cmd.Flags().StringArrayVarP(&p.JsonnetPath, "jpath", "J", nil, "specify an additional library search directory")
 
+	p.Jsonnet.Stderr = cmd.ErrOrStderr
+
 	return cmd
 }
 
