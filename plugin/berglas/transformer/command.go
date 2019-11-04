@@ -23,13 +23,13 @@ import (
 
 func NewBerglasTransformerExecPlugin() *cobra.Command {
 	p := &plugin{}
-	cmd := util.NewKustomizePluginRunner(p, util.WithConfigType("konjure.carbonrelay.com", "v1beta1", "BerglasTransformer")).Command()
+	cmd := util.NewKustomizePluginRunner(p, util.WithConfigType("konjure.carbonrelay.com", "v1beta1", "BerglasTransformer"))
 	return cmd
 }
 
 func NewBerglasTransformerCommand() *cobra.Command {
 	p := &plugin{}
-	cmd := util.NewKustomizePluginRunner(p, util.WithTransformerFilenameFlag()).Command()
+	cmd := util.NewKustomizePluginRunner(p, util.WithTransformerFilenameFlag())
 	cmd.Use = "transform"
 	cmd.Short = "Transform an application leveraging Berglas references"
 

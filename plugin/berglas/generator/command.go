@@ -23,15 +23,13 @@ import (
 
 func NewBerglasGeneratorExecPlugin() *cobra.Command {
 	p := &plugin{}
-	cmd := util.NewKustomizePluginRunner(p,
-		util.WithConfigType("konjure.carbonrelay.com", "v1beta1", "BerglasGenerator"),
-		util.WithAnnotationHashTransformer(p.GeneratorOptions)).Command()
+	cmd := util.NewKustomizePluginRunner(p, util.WithConfigType("konjure.carbonrelay.com", "v1beta1", "BerglasGenerator"))
 	return cmd
 }
 
 func NewBerglasGeneratorCommand() *cobra.Command {
 	p := &plugin{}
-	cmd := util.NewKustomizePluginRunner(p).Command()
+	cmd := util.NewKustomizePluginRunner(p)
 	cmd.Use = "generate"
 	cmd.Short = "Generate secrets from Berglas references"
 	cmd.Flags().StringVar(&p.Name, "name", "", "name of the secret to generate")

@@ -27,7 +27,6 @@ import (
 	"sigs.k8s.io/kustomize/v3/pkg/ifc"
 	"sigs.k8s.io/kustomize/v3/pkg/resmap"
 	"sigs.k8s.io/kustomize/v3/pkg/types"
-	"sigs.k8s.io/kustomize/v3/plugin/builtin"
 	"sigs.k8s.io/yaml"
 )
 
@@ -36,6 +35,7 @@ type plugin struct {
 	rf  *resmap.Factory
 
 	GeneratorOptions *types.GeneratorOptions `json:"generatorOptions,omitempty"`
+	Namespace        string                  `json:"namespace,omitempty"`
 	Name             string                  `json:"name"`
 	References       []string                `json:"refs"`
 }
@@ -57,6 +57,7 @@ func (p *plugin) Generate() (resmap.ResMap, error) {
 
 	// Add a file source for each of the configured references
 	args := types.SecretArgs{}
+	args.Namespace = p.Namespace
 	args.Name = p.Name
 	for _, ref := range p.References {
 		// TODO This drops the generation from the URI fragment
@@ -73,19 +74,5 @@ func (p *plugin) Generate() (resmap.ResMap, error) {
 	}
 
 	// Generate the secret resource using the Berglas loader
-	m, err := p.rf.FromSecretArgs(bLdr, p.GeneratorOptions, args)
-	if err != nil {
-		return nil, err
-	}
-
-	// Add hash names (there is only one resource in the map, no need to fix references)
-	htp := builtin.NewHashTransformerPlugin()
-	if err := htp.Config(p.ldr, p.rf, nil); err != nil {
-		return nil, err
-	}
-	if err := htp.Transform(m); err != nil {
-		return nil, err
-	}
-
-	return m, nil
+	return p.rf.FromSecretArgs(bLdr, p.GeneratorOptions, args)
 }

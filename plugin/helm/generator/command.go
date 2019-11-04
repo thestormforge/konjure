@@ -23,14 +23,14 @@ import (
 
 func NewHelmGeneratorExecPlugin() *cobra.Command {
 	p := &plugin{}
-	cmd := util.NewKustomizePluginRunner(p, util.WithConfigType("konjure.carbonrelay.com", "v1beta1", "HelmGenerator")).Command()
+	cmd := util.NewKustomizePluginRunner(p, util.WithConfigType("konjure.carbonrelay.com", "v1beta1", "HelmGenerator"))
 	return cmd
 }
 
 func NewHelmGeneratorCommand() *cobra.Command {
 	p := &plugin{}
 	f := &helmFlags{}
-	cmd := util.NewKustomizePluginRunner(p, f.withPreRun(p)).Command()
+	cmd := util.NewKustomizePluginRunner(p, f.withPreRun(p))
 	cmd.Use = "helm CHART"
 	cmd.Short = "Inflate a Helm chart"
 	cmd.Args = cobra.ExactArgs(1)

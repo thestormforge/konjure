@@ -23,14 +23,14 @@ import (
 
 func NewJsonnetGeneratorExecPlugin() *cobra.Command {
 	p := &plugin{}
-	cmd := util.NewKustomizePluginRunner(p, util.WithConfigType("konjure.carbonrelay.com", "v1beta1", "JsonnetGenerator")).Command()
+	cmd := util.NewKustomizePluginRunner(p, util.WithConfigType("konjure.carbonrelay.com", "v1beta1", "JsonnetGenerator"))
 	return cmd
 }
 
 func NewJsonnetGeneratorCommand() *cobra.Command {
 	p := &plugin{}
 	f := &jsonnetFlags{}
-	cmd := util.NewKustomizePluginRunner(p, f.withPreRun(p)).Command()
+	cmd := util.NewKustomizePluginRunner(p, f.withPreRun(p))
 	cmd.Use = "jsonnet"
 	cmd.Short = "Evaluate a Jsonnet program"
 	cmd.Args = cobra.ExactArgs(1)
