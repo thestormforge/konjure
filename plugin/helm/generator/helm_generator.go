@@ -62,7 +62,13 @@ func (p *plugin) Generate() (resmap.ResMap, error) {
 	}
 
 	// Render the chart
-	m, err := p.Helm.Template(c, p.ReleaseName, p.Values)
+	b, err := p.Helm.Template(c, p.ReleaseName, p.Values)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert to a resource map
+	m, err := p.rf.NewResMapFromBytes(b)
 	if err != nil {
 		return nil, err
 	}

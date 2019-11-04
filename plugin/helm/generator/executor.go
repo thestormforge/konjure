@@ -24,10 +24,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-
-	"sigs.k8s.io/kustomize/v3/k8sdeps/kunstruct"
-	"sigs.k8s.io/kustomize/v3/pkg/resmap"
-	"sigs.k8s.io/kustomize/v3/pkg/resource"
 )
 
 // HelmValue specifies the source for chart configurations
@@ -125,7 +121,7 @@ func (helm *Helm) Fetch(repo, chart, version string) (string, error) {
 }
 
 // Template renders a chart archive using the specified release name and value overrides
-func (helm *Helm) Template(filename string, name string, values []HelmValue) (resmap.ResMap, error) {
+func (helm *Helm) Template(filename string, name string, values []HelmValue) ([]byte, error) {
 	// Construct the arguments
 	var args []string
 	args = append(args, "template", filename)
@@ -143,9 +139,7 @@ func (helm *Helm) Template(filename string, name string, values []HelmValue) (re
 	if err := cmd.Run(); err != nil {
 		return nil, err
 	}
-
-	rmf := resmap.NewFactory(resource.NewFactory(kunstruct.NewKunstructuredFactoryImpl()), nil)
-	return rmf.NewResMapFromBytes(b.Bytes())
+	return b.Bytes(), nil
 }
 
 // AppendArgs adds the Helm command arguments corresponding to this value
