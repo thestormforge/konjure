@@ -19,6 +19,8 @@ package label
 import "github.com/carbonrelay/konjure/plugin/label/transformer"
 
 var (
-	NewLabelCommand               = transformer.NewLabelTransformerCommand
+	// NewLabelCommand creates a new command for running label from the CLI
+	NewLabelCommand = transformer.NewLabelTransformerCommand
+	// NewLabelTransformerExecPlugin creates a new command for running label as an executable plugin
 	NewLabelTransformerExecPlugin = transformer.NewLabelTransformerExecPlugin
 )

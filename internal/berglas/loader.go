@@ -37,6 +37,7 @@ type Loader struct {
 	validator ifc.Validator
 }
 
+// NewLoader returns a new Kustomize loader backed by the Berglas API.
 func NewLoader(ctx context.Context) (*Loader, error) {
 	c, err := berglas.New(ctx)
 	if err != nil {

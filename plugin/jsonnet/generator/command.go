@@ -22,12 +22,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewJsonnetGeneratorExecPlugin creates a new command for running Jsonnet as an executable plugin
 func NewJsonnetGeneratorExecPlugin() *cobra.Command {
 	p := &plugin{}
 	cmd := kustomize.NewPluginRunner(p, kustomize.WithConfigType("konjure.carbonrelay.com", "v1beta1", "JsonnetGenerator"))
 	return cmd
 }
 
+// NewJsonnetCommand creates a new command for running Jsonnet from the CLI
 func NewJsonnetGeneratorCommand() *cobra.Command {
 	p := &plugin{}
 	f := &jsonnetFlags{}

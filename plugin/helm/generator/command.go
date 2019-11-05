@@ -22,12 +22,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewHelmGeneratorExecPlugin creates a new command for running Helm as an executable plugin
 func NewHelmGeneratorExecPlugin() *cobra.Command {
 	p := &plugin{}
 	cmd := kustomize.NewPluginRunner(p, kustomize.WithConfigType("konjure.carbonrelay.com", "v1beta1", "HelmGenerator"))
 	return cmd
 }
 
+// NewHelmCommand creates a new command for running Helm from the CLI
 func NewHelmGeneratorCommand() *cobra.Command {
 	p := &plugin{}
 	f := &helmFlags{}

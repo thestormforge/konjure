@@ -21,12 +21,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewBerglasGeneratorExecPlugin creates a new command for running Berglas as an executable plugin
 func NewBerglasGeneratorExecPlugin() *cobra.Command {
 	p := &plugin{}
 	cmd := kustomize.NewPluginRunner(p, kustomize.WithConfigType("konjure.carbonrelay.com", "v1beta1", "BerglasGenerator"))
 	return cmd
 }
 
+// NewBerglasCommand creates a new command for running Berglas from the CLI
 func NewBerglasGeneratorCommand() *cobra.Command {
 	p := &plugin{}
 	cmd := kustomize.NewPluginRunner(p)

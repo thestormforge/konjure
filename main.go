@@ -55,13 +55,13 @@ konjure kustomize init
 )
 
 func main() {
-	rootCmd := NewRootCommand(os.Args[0])
+	rootCmd := newRootCommand(os.Args[0])
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }
 
-func NewRootCommand(arg0 string) *cobra.Command {
+func newRootCommand(arg0 string) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:     "konjure",
 		Short:   "Manifest, appear!",

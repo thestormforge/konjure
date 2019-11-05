@@ -19,6 +19,8 @@ package helm
 import "github.com/carbonrelay/konjure/plugin/helm/generator"
 
 var (
-	NewHelmCommand             = generator.NewHelmGeneratorCommand
+	// NewHelmCommand creates a new command for running Helm from the CLI
+	NewHelmCommand = generator.NewHelmGeneratorCommand
+	// NewHelmGeneratorExecPlugin creates a new command for running Helm as an executable plugin
 	NewHelmGeneratorExecPlugin = generator.NewHelmGeneratorExecPlugin
 )

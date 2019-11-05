@@ -21,12 +21,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewLabelTransformerExecPlugin creates a new command for running label as an executable plugin
 func NewLabelTransformerExecPlugin() *cobra.Command {
 	p := &plugin{}
 	cmd := kustomize.NewPluginRunner(p, kustomize.WithConfigType("konjure.carbonrelay.com", "v1beta1", "LabelTransformer"))
 	return cmd
 }
 
+// NewLabelCommand creates a new command for running label from the CLI
 func NewLabelTransformerCommand() *cobra.Command {
 	p := &plugin{}
 	cmd := kustomize.NewPluginRunner(p, kustomize.WithTransformerFilenameFlag())

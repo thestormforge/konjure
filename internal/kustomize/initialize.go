@@ -30,15 +30,15 @@ import (
 )
 
 func NewInitializeCommand() *cobra.Command {
-	opts := NewInitializeOptions()
+	opts := &initializeOptions{}
 
 	cmd := &cobra.Command{
 		Use:          "init [PLUGIN...]",
 		Short:        "Configure Kustomize plugins",
 		Long:         "Manages your '~/.config/kustomize/plugin' directory to include symlinks back to the Konjure executable",
 		SilenceUsage: true,
-		PreRunE:      opts.PreRun,
-		RunE:         opts.Run,
+		PreRunE:      opts.preRun,
+		RunE:         opts.run,
 	}
 
 	cmd.Flags().StringVar(&opts.PluginDir, "plugins", "", "override the `path` to the plugin directory")
@@ -63,7 +63,7 @@ type PluginStatus struct {
 	Source      string
 }
 
-type InitializeOptions struct {
+type initializeOptions struct {
 	PluginDir string
 	Source    string
 	Kinds     []string
@@ -72,11 +72,7 @@ type InitializeOptions struct {
 	DryRun    bool
 }
 
-func NewInitializeOptions() *InitializeOptions {
-	return &InitializeOptions{}
-}
-
-func (o *InitializeOptions) PreRun(cmd *cobra.Command, args []string) error {
+func (o *initializeOptions) preRun(cmd *cobra.Command, args []string) error {
 	// Capture the arguments as the kinds
 	o.Kinds = args
 
@@ -96,16 +92,16 @@ func (o *InitializeOptions) PreRun(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (o *InitializeOptions) Run(cmd *cobra.Command, args []string) error {
+func (o *initializeOptions) run(cmd *cobra.Command, args []string) error {
 	var commands []*cobra.Command
 	if cmd.Parent() != nil {
 		commands = cmd.Parent().Commands()
 	}
 
 	// Load and filter the plugin list
-	plugins := LoadPlugins(commands, o.PluginDir, !o.Prune)
+	plugins := loadPlugins(commands, o.PluginDir, !o.Prune)
 	if len(o.Kinds) > 0 {
-		plugins = FilterPlugins(plugins, o.Kinds)
+		plugins = filterPlugins(plugins, o.Kinds)
 	}
 
 	tw := tabwriter.NewWriter(cmd.OutOrStdout(), 1, 2, 2, '.', 0)
@@ -137,7 +133,7 @@ func (o *InitializeOptions) Run(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (o *InitializeOptions) createLinks(p *Plugin) (*PluginStatus, error) {
+func (o *initializeOptions) createLinks(p *Plugin) (*PluginStatus, error) {
 	status := &PluginStatus{Path: pluginPath(o.PluginDir, &p.GroupVersionKind)}
 	dir := filepath.Dir(status.Path)
 
@@ -187,7 +183,7 @@ func (o *InitializeOptions) createLinks(p *Plugin) (*PluginStatus, error) {
 	return status, os.Symlink(o.Source, status.Path)
 }
 
-func FilterPlugins(plugins []Plugin, filters []string) []Plugin {
+func filterPlugins(plugins []Plugin, filters []string) []Plugin {
 	var filtered []Plugin
 	for i := range plugins {
 		for _, f := range filters {
@@ -201,7 +197,7 @@ func FilterPlugins(plugins []Plugin, filters []string) []Plugin {
 	return filtered
 }
 
-func LoadPlugins(commands []*cobra.Command, pluginDir string, keepAllVersions bool) []Plugin {
+func loadPlugins(commands []*cobra.Command, pluginDir string, keepAllVersions bool) []Plugin {
 	var plugins []Plugin
 	groups := make(map[string]bool)
 

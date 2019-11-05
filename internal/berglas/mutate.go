@@ -13,6 +13,7 @@ import (
 	"sigs.k8s.io/kustomize/v3/pkg/types"
 )
 
+// Mutator performs Berglas mutations on pod templates
 type Mutator struct {
 	resMapFactory *resmap.Factory
 	loader        ifc.Loader
@@ -20,14 +21,15 @@ type Mutator struct {
 	secrets       resmap.ResMap
 }
 
-func NewMutator(f *resmap.Factory, l ifc.Loader, o *types.GeneratorOptions) *Mutator {
+// NewMutator returns a new Berglas mutator from the specified Kustomize helpers
+func NewMutator(rf *resmap.Factory, ldr ifc.Loader, opts *types.GeneratorOptions) *Mutator {
 	m := &Mutator{
-		resMapFactory: f,
-		loader:        l,
-		genOpts:       o,
+		resMapFactory: rf,
+		loader:        ldr,
+		genOpts:       opts,
 	}
 
-	if o != nil {
+	if opts != nil {
 		m.secrets = resmap.New()
 	}
 

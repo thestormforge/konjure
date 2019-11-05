@@ -19,6 +19,8 @@ package jsonnet
 import "github.com/carbonrelay/konjure/plugin/jsonnet/generator"
 
 var (
-	NewJsonnetCommand             = generator.NewJsonnetGeneratorCommand
+	// NewJsonnetCommand creates a new command for running Jsonnet from the CLI
+	NewJsonnetCommand = generator.NewJsonnetGeneratorCommand
+	// NewJsonnetGeneratorExecPlugin creates a new command for running Jsonnet as an executable plugin
 	NewJsonnetGeneratorExecPlugin = generator.NewJsonnetGeneratorExecPlugin
 )

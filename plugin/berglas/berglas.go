@@ -23,10 +23,13 @@ import (
 )
 
 var (
-	NewBerglasGeneratorExecPlugin   = generator.NewBerglasGeneratorExecPlugin
+	// NewBerglasGeneratorExecPlugin creates a new command for running Berglas as an executable plugin
+	NewBerglasGeneratorExecPlugin = generator.NewBerglasGeneratorExecPlugin
+	// NewBerglasTransformerExecPlugin creates a new command for running Berglas as an executable plugin
 	NewBerglasTransformerExecPlugin = transformer.NewBerglasTransformerExecPlugin
 )
 
+// NewBerglasCommand creates a new command for running Berglas from the CLI
 func NewBerglasCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "berglas",
