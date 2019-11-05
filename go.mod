@@ -5,6 +5,7 @@ go 1.12
 require (
 	github.com/GoogleCloudPlatform/berglas v0.2.0
 	github.com/emicklei/go-restful v2.9.6+incompatible // indirect
+	github.com/google/go-jsonnet v0.14.0
 	github.com/googleapis/gnostic v0.3.0 // indirect
 	github.com/json-iterator/go v1.1.7 // indirect
 	github.com/mailru/easyjson v0.0.0-20190620125010-da37f6c1e481 // indirect

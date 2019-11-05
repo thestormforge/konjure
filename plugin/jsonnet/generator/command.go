@@ -17,7 +17,6 @@ limitations under the License.
 package generator
 
 import (
-	"github.com/carbonrelay/konjure/internal/jsonnet"
 	"github.com/carbonrelay/konjure/internal/kustomize"
 	"github.com/spf13/cobra"
 )
@@ -49,8 +48,6 @@ func NewJsonnetGeneratorCommand() *cobra.Command {
 	cmd.Flags().StringToStringVar(&f.topLevelCodeFileArguments, "tla-code-file", nil, "provide top-level argument as Jsonnet code from the file")
 	cmd.Flags().StringArrayVarP(&p.JsonnetPath, "jpath", "J", nil, "specify an additional library search directory")
 
-	p.Jsonnet.Stderr = cmd.ErrOrStderr
-
 	return cmd
 }
 
@@ -77,30 +74,30 @@ func (f *jsonnetFlags) withPreRun(p *plugin) kustomize.RunnerOption {
 
 		// External variables
 		for k, v := range f.externalStringVariables {
-			p.ExternalVariables = append(p.ExternalVariables, jsonnet.Parameter{Name: k, String: v})
+			p.ExternalVariables = append(p.ExternalVariables, Parameter{Name: k, String: v})
 		}
 		for k, v := range f.externalStringFileVariables {
-			p.ExternalVariables = append(p.ExternalVariables, jsonnet.Parameter{Name: k, StringFile: v})
+			p.ExternalVariables = append(p.ExternalVariables, Parameter{Name: k, StringFile: v})
 		}
 		for k, v := range f.externalCodeVariables {
-			p.ExternalVariables = append(p.ExternalVariables, jsonnet.Parameter{Name: k, Code: v})
+			p.ExternalVariables = append(p.ExternalVariables, Parameter{Name: k, Code: v})
 		}
 		for k, v := range f.externalCodeFileVariables {
-			p.ExternalVariables = append(p.ExternalVariables, jsonnet.Parameter{Name: k, CodeFile: v})
+			p.ExternalVariables = append(p.ExternalVariables, Parameter{Name: k, CodeFile: v})
 		}
 
 		// Top-level arguments
 		for k, v := range f.topLevelStringArguments {
-			p.TopLevelArguments = append(p.TopLevelArguments, jsonnet.Parameter{Name: k, String: v})
+			p.TopLevelArguments = append(p.TopLevelArguments, Parameter{Name: k, String: v})
 		}
 		for k, v := range f.topLevelStringFileArguments {
-			p.TopLevelArguments = append(p.TopLevelArguments, jsonnet.Parameter{Name: k, StringFile: v})
+			p.TopLevelArguments = append(p.TopLevelArguments, Parameter{Name: k, StringFile: v})
 		}
 		for k, v := range f.topLevelCodeArguments {
-			p.TopLevelArguments = append(p.TopLevelArguments, jsonnet.Parameter{Name: k, Code: v})
+			p.TopLevelArguments = append(p.TopLevelArguments, Parameter{Name: k, Code: v})
 		}
 		for k, v := range f.topLevelCodeFileArguments {
-			p.TopLevelArguments = append(p.TopLevelArguments, jsonnet.Parameter{Name: k, CodeFile: v})
+			p.TopLevelArguments = append(p.TopLevelArguments, Parameter{Name: k, CodeFile: v})
 		}
 
 		return nil

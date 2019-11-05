@@ -17,22 +17,40 @@ limitations under the License.
 package generator
 
 import (
-	"github.com/carbonrelay/konjure/internal/jsonnet"
+	"bytes"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"unicode"
+
+	"github.com/google/go-jsonnet"
+	"k8s.io/apimachinery/pkg/util/json"
 	"sigs.k8s.io/kustomize/v3/pkg/ifc"
 	"sigs.k8s.io/kustomize/v3/pkg/resmap"
 	"sigs.k8s.io/yaml"
 )
 
+// Parameter defines either and external variable or top-level argument; except name, all are mutually exclusive.
+type Parameter struct {
+	Name       string `json:"name,omitempty"`
+	String     string `json:"string,omitempty"`
+	StringFile string `json:"stringFile,omitempty"`
+	Code       string `json:"code,omitempty"`
+	CodeFile   string `json:"codeFile,omitempty"`
+}
+
 type plugin struct {
 	ldr ifc.Loader
 	rf  *resmap.Factory
 
-	Jsonnet           jsonnet.Executor    `json:"jsonnet"`
-	Filename          string              `json:"filename"`
-	Code              string              `json:"exec"`
-	JsonnetPath       []string            `json:"jpath"`
-	ExternalVariables []jsonnet.Parameter `json:"extVar"`
-	TopLevelArguments []jsonnet.Parameter `json:"topLevelArg"`
+	Filename          string      `json:"filename"`
+	Code              string      `json:"exec"`
+	JsonnetPath       []string    `json:"jpath"`
+	ExternalVariables []Parameter `json:"extVar"`
+	TopLevelArguments []Parameter `json:"topLevelArg"`
 }
 
 var KustomizePlugin plugin
@@ -44,29 +62,130 @@ func (p *plugin) Config(ldr ifc.Loader, rf *resmap.Factory, c []byte) error {
 }
 
 func (p *plugin) Generate() (resmap.ResMap, error) {
-	p.Jsonnet.Complete()
+	vm := jsonnet.MakeVM()
+	vm.Importer(&jsonnet.FileImporter{JPaths: p.evalJpath()})
+	processParameters(p.ExternalVariables, vm.ExtVar, vm.ExtCode)
+	processParameters(p.TopLevelArguments, vm.TLAVar, vm.TLACode)
 
-	b, err := p.execute()
+	filename, input, err := p.readInput()
 	if err != nil {
 		return nil, err
 	}
 
-	m := resmap.New()
-	if err := jsonnet.AppendMultiDocumentJSONBytes(p.rf.RF(), m, b); err != nil {
+	output, err := vm.EvaluateSnippet(filename, string(input))
+	if err != nil {
+		return nil, err
+	}
+
+	m, err := p.newResMapFromMultiDocumentJSON([]byte(output))
+	if err != nil {
 		return nil, err
 	}
 
 	return m, nil
 }
 
-func (p *plugin) execute() ([]byte, error) {
+func (p *plugin) readInput() (string, []byte, error) {
 	if p.Filename != "" {
-		return p.Jsonnet.ExecuteFile(p.Filename, p.JsonnetPath, p.ExternalVariables, p.TopLevelArguments)
+		bytes, err := ioutil.ReadFile(p.Filename)
+		return p.Filename, bytes, err
 	}
 
 	if p.Code != "" {
-		return p.Jsonnet.ExecuteCode(p.Code, p.JsonnetPath, p.ExternalVariables, p.TopLevelArguments)
+		return "<cmdline>", []byte(p.Code), nil
 	}
 
-	return nil, nil
+	return "<empty>", nil, nil
+}
+
+func (p *plugin) evalJpath() []string {
+	var evalJpath []string
+	jsonnetPath := filepath.SplitList(os.Getenv("JSONNET_PATH"))
+	for i := len(jsonnetPath) - 1; i >= 0; i-- {
+		evalJpath = append(evalJpath, jsonnetPath[i])
+	}
+	return append(evalJpath, p.JsonnetPath...)
+}
+
+func processParameters(params []Parameter, handleVar func(string, string), handleCode func(string, string)) {
+	for _, p := range params {
+		if p.String != "" {
+			handleVar(p.Name, p.String)
+		} else if p.StringFile != "" {
+			handleCode(p.Name, fmt.Sprintf("importstr @'%s'", strings.ReplaceAll(p.StringFile, "'", "''")))
+		} else if p.Code != "" {
+			handleCode(p.Name, p.Code)
+		} else if p.CodeFile != "" {
+			handleCode(p.Name, fmt.Sprintf("import @'%s'", strings.ReplaceAll(p.StringFile, "'", "''")))
+		}
+	}
+}
+
+// newResMapFromMultiDocumentJSON inspects the supplied byte array to determine how it should be handled: if it
+// is a JSON list, each item in the list is added to a new resource map; if the the command produces an object with a
+// "kind" field, the contents are passed directly into the resource map; objects without a "kind" field are assumed
+// to be a map of file names to document  contents and each field value is inserted to a new resource map honoring
+// the order imposed by a sort of the keys.
+func (p *plugin) newResMapFromMultiDocumentJSON(b []byte) (resmap.ResMap, error) {
+	m := resmap.New()
+
+	// This is JSON, we can trim the leading space
+	j := bytes.TrimLeftFunc(b, unicode.IsSpace)
+	if len(j) == 0 {
+		return m, nil
+	}
+
+	rf := p.rf.RF()
+
+	if bytes.HasPrefix(j, []byte("[")) {
+		// JSON list: just add each item as a new resource
+		raw := make([]interface{}, 0)
+		if err := json.Unmarshal(j, &raw); err != nil {
+			return nil, err
+		}
+		for i := range raw {
+			if o, ok := raw[i].(map[string]interface{}); ok {
+				if err := m.Append(rf.FromMap(o)); err != nil {
+					return nil, err
+				}
+			} else {
+				return nil, fmt.Errorf("expected a list of objects")
+			}
+		}
+		return m, nil
+	}
+
+	if bytes.HasPrefix(j, []byte("{")) {
+		// JSON object: look for a "kind" field
+		raw := make(map[string]interface{})
+		if err := json.Unmarshal(j, &raw); err != nil {
+			return nil, err
+		}
+		if _, ok := raw["kind"]; ok {
+			// If there is a "kind" field, assume the factory will know what to do with it
+			if err := m.Append(rf.FromMap(raw)); err != nil {
+				return nil, err
+			}
+		} else {
+			// Assume filename->object (where each object has a "kind"), preserve the order introduced by the filenames
+			var filenames []string
+			for k := range raw {
+				filenames = append(filenames, k)
+			}
+			sort.Strings(filenames)
+
+			for _, k := range filenames {
+				if o, ok := raw[k].(map[string]interface{}); ok {
+					if err := m.Append(rf.FromMap(o)); err != nil {
+						return nil, err
+					}
+				} else {
+					return nil, fmt.Errorf("expected a map of objects")
+				}
+			}
+		}
+		return m, nil
+	}
+
+	return nil, fmt.Errorf("expected JSON object or list")
 }
