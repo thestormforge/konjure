@@ -29,7 +29,7 @@ func NewHelmGeneratorExecPlugin() *cobra.Command {
 	return cmd
 }
 
-// NewHelmCommand creates a new command for running Helm from the CLI
+// NewHelmGeneratorCommand creates a new command for running Helm from the CLI
 func NewHelmGeneratorCommand() *cobra.Command {
 	p := &plugin{}
 	f := &helmFlags{}

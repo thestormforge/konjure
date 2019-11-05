@@ -82,6 +82,7 @@ func (p *plugin) Generate() (resmap.ResMap, error) {
 	return p.rf.FromSecretArgs(p.ldr, p.GeneratorOptions, args)
 }
 
+// Generate returns the password produced by the supplied generator using this recipe.
 func (r *PasswordRecipe) Generate(gen password.PasswordGenerator) (string, error) {
 	var length, numDigits, numSymbols int
 	var noUpper, allowRepeat bool

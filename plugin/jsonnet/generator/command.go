@@ -28,7 +28,7 @@ func NewJsonnetGeneratorExecPlugin() *cobra.Command {
 	return cmd
 }
 
-// NewJsonnetCommand creates a new command for running Jsonnet from the CLI
+// NewJsonnetGeneratorCommand creates a new command for running Jsonnet from the CLI
 func NewJsonnetGeneratorCommand() *cobra.Command {
 	p := &plugin{}
 	f := &jsonnetFlags{}

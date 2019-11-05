@@ -36,6 +36,7 @@ func NewMutator(rf *resmap.Factory, ldr ifc.Loader, opts *types.GeneratorOptions
 	return m
 }
 
+// FlushSecrets removes the secrets stored in the mutator and appends them to the supplied resource map
 func (m *Mutator) FlushSecrets(rm resmap.ResMap) error {
 	var err error
 	if m.secrets != nil {
@@ -45,6 +46,7 @@ func (m *Mutator) FlushSecrets(rm resmap.ResMap) error {
 	return err
 }
 
+// Mutate will alter the pod template to account for Berglas references, returning true if changes were made
 func (m *Mutator) Mutate(template *corev1.PodTemplateSpec) (bool, error) {
 	if m.genOpts != nil {
 		return m.mutateTemplateWithSecrets(template)
