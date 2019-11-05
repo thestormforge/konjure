@@ -18,6 +18,7 @@ package generator
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -26,6 +27,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/carbonrelay/konjure/internal/berglas"
 	"github.com/google/go-jsonnet"
 	"k8s.io/apimachinery/pkg/util/json"
 	"sigs.k8s.io/kustomize/v3/pkg/ifc"
@@ -62,15 +64,20 @@ func (p *plugin) Config(ldr ifc.Loader, rf *resmap.Factory, c []byte) error {
 }
 
 func (p *plugin) Generate() (resmap.ResMap, error) {
-	vm := jsonnet.MakeVM()
-	vm.Importer(&jsonnet.FileImporter{JPaths: p.evalJpath()})
-	processParameters(p.ExternalVariables, vm.ExtVar, vm.ExtCode)
-	processParameters(p.TopLevelArguments, vm.TLAVar, vm.TLACode)
+	importer, err := newKonjureImporter(context.Background(), p.JsonnetPath)
+	if err != nil {
+		return nil, err
+	}
 
 	filename, input, err := p.readInput()
 	if err != nil {
 		return nil, err
 	}
+
+	vm := jsonnet.MakeVM()
+	vm.Importer(importer)
+	processParameters(p.ExternalVariables, vm.ExtVar, vm.ExtCode)
+	processParameters(p.TopLevelArguments, vm.TLAVar, vm.TLACode)
 
 	output, err := vm.EvaluateSnippet(filename, string(input))
 	if err != nil {
@@ -188,4 +195,34 @@ func (p *plugin) newResMapFromMultiDocumentJSON(b []byte) (resmap.ResMap, error)
 	}
 
 	return nil, fmt.Errorf("expected JSON object or list")
+}
+
+// konjureImporter adds additional functionality to the standard Jsonnet import
+type konjureImporter struct {
+	secretImporter *berglas.SecretImporter
+	fileImporter   *jsonnet.FileImporter
+}
+
+func newKonjureImporter(ctx context.Context, jpaths []string) (*konjureImporter, error) {
+	si, err := berglas.NewSecretImporter(ctx)
+	if err != nil {
+		return nil, err
+	}
+	fi := &jsonnet.FileImporter{}
+	jsonnetPath := filepath.SplitList(os.Getenv("JSONNET_PATH"))
+	for i := len(jsonnetPath) - 1; i >= 0; i-- {
+		fi.JPaths = append(fi.JPaths, jsonnetPath[i])
+	}
+	fi.JPaths = append(fi.JPaths, jpaths...)
+	return &konjureImporter{
+		secretImporter: si,
+		fileImporter:   fi,
+	}, nil
+}
+
+func (ki *konjureImporter) Import(importedFrom, importedPath string) (jsonnet.Contents, string, error) {
+	if ki.secretImporter.Accept(importedFrom, importedPath) {
+		return ki.secretImporter.Import(importedFrom, importedPath)
+	}
+	return ki.fileImporter.Import(importedFrom, importedPath)
 }
