@@ -17,6 +17,7 @@ limitations under the License.
 package generator
 
 import (
+	"github.com/carbonrelay/konjure/internal/helm"
 	"sigs.k8s.io/kustomize/v3/pkg/ifc"
 	"sigs.k8s.io/kustomize/v3/pkg/resmap"
 	"sigs.k8s.io/kustomize/v3/pkg/types"
@@ -29,13 +30,13 @@ type plugin struct {
 	ldr ifc.Loader
 	rf  *resmap.Factory
 
-	Helm         Helm        `json:"helm"`
-	Repository   string      `json:"repo"`
-	ReleaseName  string      `json:"releaseName"`
-	Chart        string      `json:"chart"`
-	Version      string      `json:"version"`
-	Values       []HelmValue `json:"values"`
-	IncludeTests bool        `json:"includeTests"`
+	Helm         helm.Helm        `json:"helm"`
+	Repository   string           `json:"repo"`
+	ReleaseName  string           `json:"releaseName"`
+	Chart        string           `json:"chart"`
+	Version      string           `json:"version"`
+	Values       []helm.HelmValue `json:"values"`
+	IncludeTests bool             `json:"includeTests"`
 }
 
 var KustomizePlugin plugin

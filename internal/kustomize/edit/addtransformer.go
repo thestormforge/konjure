@@ -7,8 +7,7 @@ import (
 	"errors"
 	"log"
 
-	kustfile "github.com/carbonrelay/konjure/plugin/kustomize/edit/kustinternal"
-	util "github.com/carbonrelay/konjure/plugin/kustomize/edit/kustinternal"
+	"github.com/carbonrelay/konjure/internal/kustomize/edit/kustinternal"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/v3/pkg/fs"
 )
@@ -57,7 +56,7 @@ func (o *addTransformerOptions) Complete(cmd *cobra.Command, args []string) erro
 
 // RunAddTransformer runs addTransformer command (do real work).
 func (o *addTransformerOptions) RunAddTransformer(fSys fs.FileSystem) error {
-	transformers, err := util.GlobPatterns(fSys, o.transformerFilePaths)
+	transformers, err := kustinternal.GlobPatterns(fSys, o.transformerFilePaths)
 	if err != nil {
 		return err
 	}
@@ -65,7 +64,7 @@ func (o *addTransformerOptions) RunAddTransformer(fSys fs.FileSystem) error {
 		return nil
 	}
 
-	mf, err := kustfile.NewKustomizationFile(fSys)
+	mf, err := kustinternal.NewKustomizationFile(fSys)
 	if err != nil {
 		return err
 	}
@@ -76,7 +75,7 @@ func (o *addTransformerOptions) RunAddTransformer(fSys fs.FileSystem) error {
 	}
 
 	for _, transformer := range transformers {
-		if kustfile.StringInSlice(transformer, m.Transformers) {
+		if kustinternal.StringInSlice(transformer, m.Transformers) {
 			log.Printf("transformer %s is already in kustomization file", transformer)
 			continue
 		}

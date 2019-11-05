@@ -1,14 +1,28 @@
-package util
+/*
+Copyright 2019 GramLabs, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package kustomize
 
 import (
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/spf13/cobra"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/kustomize/v3/k8sdeps/kunstruct"
 	"sigs.k8s.io/kustomize/v3/k8sdeps/transformer"
 	"sigs.k8s.io/kustomize/v3/k8sdeps/validator"
@@ -21,25 +35,8 @@ import (
 	"sigs.k8s.io/kustomize/v3/plugin/builtin"
 )
 
-// ExecPluginGVK returns the GVK for the supplied executable plugin command; returns nil if the command is not an executable plugin
-func ExecPluginGVK(cmd *cobra.Command) *metav1.GroupVersionKind {
-	if cmd.Annotations["group"] == "" || cmd.Annotations["version"] == "" || cmd.Annotations["kind"] == "" {
-		return nil
-	}
-	return &metav1.GroupVersionKind{
-		Group:   cmd.Annotations["group"],
-		Version: cmd.Annotations["version"],
-		Kind:    cmd.Annotations["kind"],
-	}
-}
-
-// ExecPluginPath returns the path to an executable plugin
-func ExecPluginPath(pluginDir string, gvk *metav1.GroupVersionKind) string {
-	return filepath.Join(pluginDir, gvk.Group, gvk.Version, strings.ToLower(gvk.Kind), gvk.Kind)
-}
-
-// KustomizePluginRunner is used to create Cobra commands that run Kustomize plugins
-type KustomizePluginRunner struct {
+// PluginRunner is used to create Cobra commands that run Kustomize plugins
+type PluginRunner struct {
 	plugin    interface{}
 	cmd       *cobra.Command
 	ldr       ifc.Loader
@@ -49,11 +46,11 @@ type KustomizePluginRunner struct {
 }
 
 // RunnerOption is an option that can be applied when creating a plugin runner
-type RunnerOption func(*KustomizePluginRunner)
+type RunnerOption func(*PluginRunner)
 
-// NewKustomizePluginRunner creates a new runner for the supplied plugin and options
-func NewKustomizePluginRunner(plugin interface{}, opts ...RunnerOption) *cobra.Command {
-	k := &KustomizePluginRunner{plugin: plugin}
+// NewPluginRunner creates a new runner for the supplied plugin and options
+func NewPluginRunner(plugin interface{}, opts ...RunnerOption) *cobra.Command {
+	k := &PluginRunner{plugin: plugin}
 
 	// Setup the command run stages
 	k.cmd = &cobra.Command{
@@ -101,7 +98,7 @@ func NewKustomizePluginRunner(plugin interface{}, opts ...RunnerOption) *cobra.C
 }
 
 // addTransformerPlugin will mutate the transform function to also run the supplied plugin
-func (k *KustomizePluginRunner) addTransformerPlugin(t resmap.TransformerPlugin, config []byte) {
+func (k *PluginRunner) addTransformerPlugin(t resmap.TransformerPlugin, config []byte) {
 	k.transform = combineTransformFunc(k.transform, func(m resmap.ResMap) error {
 		if err := t.Config(k.ldr, k.rf, config); err != nil {
 			return err
@@ -111,12 +108,12 @@ func (k *KustomizePluginRunner) addTransformerPlugin(t resmap.TransformerPlugin,
 }
 
 // newResMap is the default generate function implementation
-func (k *KustomizePluginRunner) newResMap() (resmap.ResMap, error) {
+func (k *PluginRunner) newResMap() (resmap.ResMap, error) {
 	return resmap.New(), nil
 }
 
 // newResMapFromStdin reads stdin and parses it as a resource map
-func (k *KustomizePluginRunner) newResMapFromStdin() (resmap.ResMap, error) {
+func (k *PluginRunner) newResMapFromStdin() (resmap.ResMap, error) {
 	b, err := ioutil.ReadAll(k.cmd.InOrStdin())
 	if err != nil {
 		return nil, err
@@ -125,7 +122,7 @@ func (k *KustomizePluginRunner) newResMapFromStdin() (resmap.ResMap, error) {
 }
 
 // preRunFile will invoke the configure method of the plugin with the contents of file named in the first argument
-func (k *KustomizePluginRunner) preRunFile(cmd *cobra.Command, args []string) error {
+func (k *PluginRunner) preRunFile(cmd *cobra.Command, args []string) error {
 	// Read directly from the real file system since Kustomize can't know to tell us anything different
 	config, err := ioutil.ReadFile(args[0])
 	if err != nil {
@@ -139,7 +136,7 @@ func (k *KustomizePluginRunner) preRunFile(cmd *cobra.Command, args []string) er
 }
 
 // preRun will invoke the configure method of the plugin with a nil configuration
-func (k *KustomizePluginRunner) preRun(cmd *cobra.Command, args []string) error {
+func (k *PluginRunner) preRun(cmd *cobra.Command, args []string) error {
 	if c, ok := k.plugin.(resmap.Configurable); ok {
 		return c.Config(k.ldr, k.rf, nil)
 	}
@@ -147,7 +144,7 @@ func (k *KustomizePluginRunner) preRun(cmd *cobra.Command, args []string) error 
 }
 
 // run will actually run everything
-func (k *KustomizePluginRunner) run(cmd *cobra.Command, args []string) error {
+func (k *PluginRunner) run(cmd *cobra.Command, args []string) error {
 	m, err := k.generate()
 	if err != nil {
 		return err
@@ -169,14 +166,14 @@ func (k *KustomizePluginRunner) run(cmd *cobra.Command, args []string) error {
 }
 
 // postRun will perform necessary clean up
-func (k *KustomizePluginRunner) postRun(cmd *cobra.Command, args []string) error {
+func (k *PluginRunner) postRun(cmd *cobra.Command, args []string) error {
 	return k.ldr.Cleanup()
 }
 
 // WithConfigType will annotate the Cobra command with the GVK of the configuration schema; it will also setup the
 // positional arguments and pre-run of the command to read a configuration file of the specified kind.
 func WithConfigType(group, version, kind string) RunnerOption {
-	return func(k *KustomizePluginRunner) {
+	return func(k *PluginRunner) {
 		// Record the GVK information on the command
 		k.cmd.Use = kind + " FILE"
 		k.cmd.Short = fmt.Sprintf("Executable plugin for the %s kind", kind)
@@ -187,6 +184,8 @@ func WithConfigType(group, version, kind string) RunnerOption {
 			"kind":    kind,
 		}
 
+		// TODO We should take an example object and serialize it as the example text
+
 		// Require an argument for the configuration filename
 		k.cmd.Args = cobra.ExactArgs(1)
 		k.cmd.PreRunE = k.preRunFile
@@ -196,7 +195,7 @@ func WithConfigType(group, version, kind string) RunnerOption {
 // WithPreRunE will setup the pre-run of the command to invoke the specified `preRunE` function before configuring the
 // plugin itself (using a `nil` configuration byte array).
 func WithPreRunE(preRunE func(cmd *cobra.Command, args []string) error) RunnerOption {
-	return func(k *KustomizePluginRunner) {
+	return func(k *PluginRunner) {
 		k.cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
 			if err := preRunE(cmd, args); err != nil {
 				return err
@@ -209,7 +208,7 @@ func WithPreRunE(preRunE func(cmd *cobra.Command, args []string) error) RunnerOp
 }
 
 func WithHashTransformer() RunnerOption {
-	return func(k *KustomizePluginRunner) {
+	return func(k *PluginRunner) {
 		k.addTransformerPlugin(builtin.NewHashTransformerPlugin(), nil)
 		// TODO We can't just add this without having something to fix name references
 	}
@@ -218,7 +217,7 @@ func WithHashTransformer() RunnerOption {
 // WithTransformerFilenameFlag is used by transformers to allow input to come from a file instead of stdin.
 // This should only be used with "Command" commands where the expectation is that we were invoked outside of Kustomize.
 func WithTransformerFilenameFlag() RunnerOption {
-	return func(k *KustomizePluginRunner) {
+	return func(k *PluginRunner) {
 		type fileFlags struct {
 			Filename string
 		}

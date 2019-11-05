@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package generator
+package jsonnet
 
 import (
 	"bytes"
@@ -126,12 +126,12 @@ func (p *Parameter) AppendArgs(args []string, prefix string) []string {
 	return append(args, prefix+opt, fmt.Sprintf("%s=%s", p.Name, val))
 }
 
-// appendMultiDocumentJSONBytes inspects the supplied byte array to determine how it should be handled: if it
+// AppendMultiDocumentJSONBytes inspects the supplied byte array to determine how it should be handled: if it
 // is a JSON list, each item in the list is added to a new resource map; if the the command produces an object with a
 // "kind" field, the contents are passed directly into the resource map; objects without a "kind" field are assumed
 // to be a map of file names to document  contents and each field value is inserted to a new resource map honoring
 // the order imposed by a sort of the keys.
-func appendMultiDocumentJSONBytes(rf *resource.Factory, m resmap.ResMap, b []byte) error {
+func AppendMultiDocumentJSONBytes(rf *resource.Factory, m resmap.ResMap, b []byte) error {
 	// This is JSON, we can trim the leading space
 	j := bytes.TrimLeftFunc(b, unicode.IsSpace)
 	if len(j) == 0 {

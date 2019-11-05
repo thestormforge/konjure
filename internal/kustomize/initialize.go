@@ -18,17 +18,37 @@ package kustomize
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"text/tabwriter"
 
-	"github.com/carbonrelay/konjure/plugin/util"
+	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kplug "sigs.k8s.io/kustomize/v3/pkg/plugins"
 )
+
+func NewInitializeCommand() *cobra.Command {
+	opts := NewInitializeOptions()
+
+	cmd := &cobra.Command{
+		Use:          "init [PLUGIN...]",
+		Short:        "Configure Kustomize plugins",
+		Long:         "Manages your '~/.config/kustomize/plugin' directory to include symlinks back to the Konjure executable",
+		SilenceUsage: true,
+		PreRunE:      opts.PreRun,
+		RunE:         opts.Run,
+	}
+
+	cmd.Flags().StringVar(&opts.PluginDir, "plugins", "", "override the `path` to the plugin directory")
+	cmd.Flags().StringVar(&opts.Source, "source", "", "override the `path` to the source executable")
+	cmd.Flags().BoolVar(&opts.Prune, "prune", false, "remove old versions")
+	cmd.Flags().BoolVarP(&opts.Verbose, "verbose", "v", false, "be more verbose")
+	cmd.Flags().BoolVar(&opts.DryRun, "dry-run", false, "check existing plugins")
+
+	return cmd
+}
 
 type Plugin struct {
 	metav1.GroupVersionKind
@@ -56,7 +76,10 @@ func NewInitializeOptions() *InitializeOptions {
 	return &InitializeOptions{}
 }
 
-func (o *InitializeOptions) Complete() error {
+func (o *InitializeOptions) PreRun(cmd *cobra.Command, args []string) error {
+	// Capture the arguments as the kinds
+	o.Kinds = args
+
 	// Determine the directory where plugins are located
 	if o.PluginDir == "" {
 		o.PluginDir = kplug.ActivePluginConfig().DirectoryPath
@@ -73,14 +96,19 @@ func (o *InitializeOptions) Complete() error {
 	return nil
 }
 
-func (o *InitializeOptions) Run(out io.Writer) error {
+func (o *InitializeOptions) Run(cmd *cobra.Command, args []string) error {
+	var commands []*cobra.Command
+	if cmd.Parent() != nil {
+		commands = cmd.Parent().Commands()
+	}
+
 	// Load and filter the plugin list
-	plugins := LoadPlugins(o.PluginDir, !o.Prune)
+	plugins := LoadPlugins(commands, o.PluginDir, !o.Prune)
 	if len(o.Kinds) > 0 {
 		plugins = FilterPlugins(plugins, o.Kinds)
 	}
 
-	tw := tabwriter.NewWriter(out, 1, 2, 2, '.', 0)
+	tw := tabwriter.NewWriter(cmd.OutOrStdout(), 1, 2, 2, '.', 0)
 	defer tw.Flush()
 
 	// Process each plugin
@@ -110,7 +138,7 @@ func (o *InitializeOptions) Run(out io.Writer) error {
 }
 
 func (o *InitializeOptions) createLinks(p *Plugin) (*PluginStatus, error) {
-	status := &PluginStatus{Path: util.ExecPluginPath(o.PluginDir, &p.GroupVersionKind)}
+	status := &PluginStatus{Path: pluginPath(o.PluginDir, &p.GroupVersionKind)}
 	dir := filepath.Dir(status.Path)
 
 	// Remove unsupported plugins
@@ -173,13 +201,13 @@ func FilterPlugins(plugins []Plugin, filters []string) []Plugin {
 	return filtered
 }
 
-func LoadPlugins(pluginDir string, keepAllVersions bool) []Plugin {
+func LoadPlugins(commands []*cobra.Command, pluginDir string, keepAllVersions bool) []Plugin {
 	var plugins []Plugin
 	groups := make(map[string]bool)
 
 	// First load the currently supported plugins
-	for _, c := range NewKustomizeCommand().Commands() {
-		gvk := util.ExecPluginGVK(c)
+	for _, c := range commands {
+		gvk := commandGVK(c)
 		if gvk != nil {
 			groups[gvk.Group] = true
 			plugins = append(plugins, Plugin{GroupVersionKind: *gvk, Supported: true})
@@ -218,6 +246,23 @@ func LoadPlugins(pluginDir string, keepAllVersions bool) []Plugin {
 	})
 
 	return plugins
+}
+
+// pluginPath returns the path to an executable plugin
+func pluginPath(pluginDir string, gvk *metav1.GroupVersionKind) string {
+	return filepath.Join(pluginDir, gvk.Group, gvk.Version, strings.ToLower(gvk.Kind), gvk.Kind)
+}
+
+// commandGVK returns the GVK for the supplied executable plugin command; returns nil if the command is not an executable plugin
+func commandGVK(cmd *cobra.Command) *metav1.GroupVersionKind {
+	if cmd.Annotations["group"] == "" || cmd.Annotations["version"] == "" || cmd.Annotations["kind"] == "" {
+		return nil
+	}
+	return &metav1.GroupVersionKind{
+		Group:   cmd.Annotations["group"],
+		Version: cmd.Annotations["version"],
+		Kind:    cmd.Annotations["kind"],
+	}
 }
 
 // Returns the GVK for a path given a base directory if possible

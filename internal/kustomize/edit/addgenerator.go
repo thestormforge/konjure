@@ -7,8 +7,7 @@ import (
 	"errors"
 	"log"
 
-	kustfile "github.com/carbonrelay/konjure/plugin/kustomize/edit/kustinternal"
-	util "github.com/carbonrelay/konjure/plugin/kustomize/edit/kustinternal"
+	"github.com/carbonrelay/konjure/internal/kustomize/edit/kustinternal"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/v3/pkg/fs"
 )
@@ -57,7 +56,7 @@ func (o *addGeneratorOptions) Complete(cmd *cobra.Command, args []string) error 
 
 // RunAddGenerator runs addGenerator command (do real work).
 func (o *addGeneratorOptions) RunAddGenerator(fSys fs.FileSystem) error {
-	generators, err := util.GlobPatterns(fSys, o.generatorFilePaths)
+	generators, err := kustinternal.GlobPatterns(fSys, o.generatorFilePaths)
 	if err != nil {
 		return err
 	}
@@ -65,7 +64,7 @@ func (o *addGeneratorOptions) RunAddGenerator(fSys fs.FileSystem) error {
 		return nil
 	}
 
-	mf, err := kustfile.NewKustomizationFile(fSys)
+	mf, err := kustinternal.NewKustomizationFile(fSys)
 	if err != nil {
 		return err
 	}
@@ -76,7 +75,7 @@ func (o *addGeneratorOptions) RunAddGenerator(fSys fs.FileSystem) error {
 	}
 
 	for _, generator := range generators {
-		if kustfile.StringInSlice(generator, m.Generators) {
+		if kustinternal.StringInSlice(generator, m.Generators) {
 			log.Printf("generator %s is already in kustomization file", generator)
 			continue
 		}

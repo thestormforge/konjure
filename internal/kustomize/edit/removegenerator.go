@@ -7,7 +7,7 @@ import (
 	"errors"
 	"path/filepath"
 
-	kustfile "github.com/carbonrelay/konjure/plugin/kustomize/edit/kustinternal"
+	"github.com/carbonrelay/konjure/internal/kustomize/edit/kustinternal"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/v3/pkg/fs"
 	"sigs.k8s.io/kustomize/v3/pkg/pgmconfig"
@@ -58,7 +58,7 @@ func (o *removeGeneratorOptions) Complete(cmd *cobra.Command, args []string) err
 // RunRemoveGenerator runs removeGenerator command (do real work).
 func (o *removeGeneratorOptions) RunRemoveGenerator(fSys fs.FileSystem) error {
 
-	mf, err := kustfile.NewKustomizationFile(fSys)
+	mf, err := kustinternal.NewKustomizationFile(fSys)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (o *removeGeneratorOptions) RunRemoveGenerator(fSys fs.FileSystem) error {
 
 	newGenerators := make([]string, 0, len(m.Generators))
 	for _, generator := range m.Generators {
-		if kustfile.StringInSlice(generator, generators) {
+		if kustinternal.StringInSlice(generator, generators) {
 			continue
 		}
 		newGenerators = append(newGenerators, generator)

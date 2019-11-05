@@ -6,7 +6,7 @@ package edit
 import (
 	"errors"
 
-	kustfile "github.com/carbonrelay/konjure/plugin/kustomize/edit/kustinternal"
+	"github.com/carbonrelay/konjure/internal/kustomize/edit/kustinternal"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/v3/pkg/fs"
 	"sigs.k8s.io/kustomize/v3/pkg/pgmconfig"
@@ -57,7 +57,7 @@ func (o *removeTransformerOptions) Complete(cmd *cobra.Command, args []string) e
 // RunRemoveTransformer runs removeTransformer command (do real work).
 func (o *removeTransformerOptions) RunRemoveTransformer(fSys fs.FileSystem) error {
 
-	mf, err := kustfile.NewKustomizationFile(fSys)
+	mf, err := kustinternal.NewKustomizationFile(fSys)
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func (o *removeTransformerOptions) RunRemoveTransformer(fSys fs.FileSystem) erro
 
 	newTransformers := make([]string, 0, len(m.Transformers))
 	for _, transformer := range m.Transformers {
-		if kustfile.StringInSlice(transformer, transformers) {
+		if kustinternal.StringInSlice(transformer, transformers) {
 			continue
 		}
 		newTransformers = append(newTransformers, transformer)

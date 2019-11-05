@@ -17,20 +17,21 @@ limitations under the License.
 package generator
 
 import (
-	"github.com/carbonrelay/konjure/plugin/util"
+	"github.com/carbonrelay/konjure/internal/helm"
+	"github.com/carbonrelay/konjure/internal/kustomize"
 	"github.com/spf13/cobra"
 )
 
 func NewHelmGeneratorExecPlugin() *cobra.Command {
 	p := &plugin{}
-	cmd := util.NewKustomizePluginRunner(p, util.WithConfigType("konjure.carbonrelay.com", "v1beta1", "HelmGenerator"))
+	cmd := kustomize.NewPluginRunner(p, kustomize.WithConfigType("konjure.carbonrelay.com", "v1beta1", "HelmGenerator"))
 	return cmd
 }
 
 func NewHelmGeneratorCommand() *cobra.Command {
 	p := &plugin{}
 	f := &helmFlags{}
-	cmd := util.NewKustomizePluginRunner(p, f.withPreRun(p))
+	cmd := kustomize.NewPluginRunner(p, f.withPreRun(p))
 	cmd.Use = "helm CHART"
 	cmd.Short = "Inflate a Helm chart"
 	cmd.Args = cobra.ExactArgs(1)
@@ -60,26 +61,26 @@ type helmFlags struct {
 }
 
 // withPreRun will apply the stored flags to a plugin instance
-func (f *helmFlags) withPreRun(p *plugin) util.RunnerOption {
-	return util.WithPreRunE(func(cmd *cobra.Command, args []string) error {
+func (f *helmFlags) withPreRun(p *plugin) kustomize.RunnerOption {
+	return kustomize.WithPreRunE(func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 {
 			p.Chart = args[0]
 		}
 
 		for k, v := range f.set {
-			p.Values = append(p.Values, HelmValue{Name: k, Value: v})
+			p.Values = append(p.Values, helm.HelmValue{Name: k, Value: v})
 		}
 
 		for k, v := range f.setFile {
-			p.Values = append(p.Values, HelmValue{Name: k, Value: v, LoadFile: true})
+			p.Values = append(p.Values, helm.HelmValue{Name: k, Value: v, LoadFile: true})
 		}
 
 		for k, v := range f.setString {
-			p.Values = append(p.Values, HelmValue{Name: k, Value: v, ForceString: true})
+			p.Values = append(p.Values, helm.HelmValue{Name: k, Value: v, ForceString: true})
 		}
 
 		for _, valueFile := range f.values {
-			p.Values = append(p.Values, HelmValue{File: valueFile})
+			p.Values = append(p.Values, helm.HelmValue{File: valueFile})
 		}
 
 		return nil

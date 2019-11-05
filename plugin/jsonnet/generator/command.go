@@ -17,20 +17,21 @@ limitations under the License.
 package generator
 
 import (
-	"github.com/carbonrelay/konjure/plugin/util"
+	"github.com/carbonrelay/konjure/internal/jsonnet"
+	"github.com/carbonrelay/konjure/internal/kustomize"
 	"github.com/spf13/cobra"
 )
 
 func NewJsonnetGeneratorExecPlugin() *cobra.Command {
 	p := &plugin{}
-	cmd := util.NewKustomizePluginRunner(p, util.WithConfigType("konjure.carbonrelay.com", "v1beta1", "JsonnetGenerator"))
+	cmd := kustomize.NewPluginRunner(p, kustomize.WithConfigType("konjure.carbonrelay.com", "v1beta1", "JsonnetGenerator"))
 	return cmd
 }
 
 func NewJsonnetGeneratorCommand() *cobra.Command {
 	p := &plugin{}
 	f := &jsonnetFlags{}
-	cmd := util.NewKustomizePluginRunner(p, f.withPreRun(p))
+	cmd := kustomize.NewPluginRunner(p, f.withPreRun(p))
 	cmd.Use = "jsonnet"
 	cmd.Short = "Evaluate a Jsonnet program"
 	cmd.Args = cobra.ExactArgs(1)
@@ -63,8 +64,8 @@ type jsonnetFlags struct {
 	topLevelCodeFileArguments   map[string]string
 }
 
-func (f *jsonnetFlags) withPreRun(p *plugin) util.RunnerOption {
-	return util.WithPreRunE(func(cmd *cobra.Command, args []string) error {
+func (f *jsonnetFlags) withPreRun(p *plugin) kustomize.RunnerOption {
+	return kustomize.WithPreRunE(func(cmd *cobra.Command, args []string) error {
 		// Exec
 		if f.execute {
 			p.Code = args[0]
@@ -74,30 +75,30 @@ func (f *jsonnetFlags) withPreRun(p *plugin) util.RunnerOption {
 
 		// External variables
 		for k, v := range f.externalStringVariables {
-			p.ExternalVariables = append(p.ExternalVariables, Parameter{Name: k, String: v})
+			p.ExternalVariables = append(p.ExternalVariables, jsonnet.Parameter{Name: k, String: v})
 		}
 		for k, v := range f.externalStringFileVariables {
-			p.ExternalVariables = append(p.ExternalVariables, Parameter{Name: k, StringFile: v})
+			p.ExternalVariables = append(p.ExternalVariables, jsonnet.Parameter{Name: k, StringFile: v})
 		}
 		for k, v := range f.externalCodeVariables {
-			p.ExternalVariables = append(p.ExternalVariables, Parameter{Name: k, Code: v})
+			p.ExternalVariables = append(p.ExternalVariables, jsonnet.Parameter{Name: k, Code: v})
 		}
 		for k, v := range f.externalCodeFileVariables {
-			p.ExternalVariables = append(p.ExternalVariables, Parameter{Name: k, CodeFile: v})
+			p.ExternalVariables = append(p.ExternalVariables, jsonnet.Parameter{Name: k, CodeFile: v})
 		}
 
 		// Top-level arguments
 		for k, v := range f.topLevelStringArguments {
-			p.TopLevelArguments = append(p.TopLevelArguments, Parameter{Name: k, String: v})
+			p.TopLevelArguments = append(p.TopLevelArguments, jsonnet.Parameter{Name: k, String: v})
 		}
 		for k, v := range f.topLevelStringFileArguments {
-			p.TopLevelArguments = append(p.TopLevelArguments, Parameter{Name: k, StringFile: v})
+			p.TopLevelArguments = append(p.TopLevelArguments, jsonnet.Parameter{Name: k, StringFile: v})
 		}
 		for k, v := range f.topLevelCodeArguments {
-			p.TopLevelArguments = append(p.TopLevelArguments, Parameter{Name: k, Code: v})
+			p.TopLevelArguments = append(p.TopLevelArguments, jsonnet.Parameter{Name: k, Code: v})
 		}
 		for k, v := range f.topLevelCodeFileArguments {
-			p.TopLevelArguments = append(p.TopLevelArguments, Parameter{Name: k, CodeFile: v})
+			p.TopLevelArguments = append(p.TopLevelArguments, jsonnet.Parameter{Name: k, CodeFile: v})
 		}
 
 		return nil

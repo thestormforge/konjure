@@ -17,19 +17,19 @@ limitations under the License.
 package generator
 
 import (
-	"github.com/carbonrelay/konjure/plugin/util"
+	"github.com/carbonrelay/konjure/internal/kustomize"
 	"github.com/spf13/cobra"
 )
 
 func NewBerglasGeneratorExecPlugin() *cobra.Command {
 	p := &plugin{}
-	cmd := util.NewKustomizePluginRunner(p, util.WithConfigType("konjure.carbonrelay.com", "v1beta1", "BerglasGenerator"))
+	cmd := kustomize.NewPluginRunner(p, kustomize.WithConfigType("konjure.carbonrelay.com", "v1beta1", "BerglasGenerator"))
 	return cmd
 }
 
 func NewBerglasGeneratorCommand() *cobra.Command {
 	p := &plugin{}
-	cmd := util.NewKustomizePluginRunner(p)
+	cmd := kustomize.NewPluginRunner(p)
 	cmd.Use = "generate"
 	cmd.Short = "Generate secrets from Berglas references"
 	cmd.Flags().StringVar(&p.Name, "name", "", "name of the secret to generate")

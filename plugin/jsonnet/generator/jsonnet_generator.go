@@ -17,6 +17,7 @@ limitations under the License.
 package generator
 
 import (
+	"github.com/carbonrelay/konjure/internal/jsonnet"
 	"sigs.k8s.io/kustomize/v3/pkg/ifc"
 	"sigs.k8s.io/kustomize/v3/pkg/resmap"
 	"sigs.k8s.io/yaml"
@@ -26,12 +27,12 @@ type plugin struct {
 	ldr ifc.Loader
 	rf  *resmap.Factory
 
-	Jsonnet           Jsonnet     `json:"jsonnet"`
-	Filename          string      `json:"filename"`
-	Code              string      `json:"exec"`
-	JsonnetPath       []string    `json:"jpath"`
-	ExternalVariables []Parameter `json:"extVar"`
-	TopLevelArguments []Parameter `json:"topLevelArg"`
+	Jsonnet           jsonnet.Jsonnet     `json:"jsonnet"`
+	Filename          string              `json:"filename"`
+	Code              string              `json:"exec"`
+	JsonnetPath       []string            `json:"jpath"`
+	ExternalVariables []jsonnet.Parameter `json:"extVar"`
+	TopLevelArguments []jsonnet.Parameter `json:"topLevelArg"`
 }
 
 var KustomizePlugin plugin
@@ -51,7 +52,7 @@ func (p *plugin) Generate() (resmap.ResMap, error) {
 	}
 
 	m := resmap.New()
-	if err := appendMultiDocumentJSONBytes(p.rf.RF(), m, b); err != nil {
+	if err := jsonnet.AppendMultiDocumentJSONBytes(p.rf.RF(), m, b); err != nil {
 		return nil, err
 	}
 

@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/berglas/pkg/berglas"
-	"github.com/carbonrelay/konjure/plugin/berglas/util"
+	berglas2 "github.com/carbonrelay/konjure/internal/berglas"
 	"sigs.k8s.io/kustomize/v3/pkg/ifc"
 	"sigs.k8s.io/kustomize/v3/pkg/resmap"
 	"sigs.k8s.io/kustomize/v3/pkg/types"
@@ -50,7 +50,7 @@ func (p *plugin) Config(ldr ifc.Loader, rf *resmap.Factory, c []byte) error {
 
 func (p *plugin) Generate() (resmap.ResMap, error) {
 	// TODO Expose additional configuration options for the client
-	bLdr, err := util.NewBerglasLoader(context.Background())
+	bLdr, err := berglas2.NewBerglasLoader(context.Background())
 	if err != nil {
 		return nil, err
 	}

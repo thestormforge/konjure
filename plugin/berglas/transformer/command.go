@@ -17,19 +17,19 @@ limitations under the License.
 package transformer
 
 import (
-	"github.com/carbonrelay/konjure/plugin/util"
+	"github.com/carbonrelay/konjure/internal/kustomize"
 	"github.com/spf13/cobra"
 )
 
 func NewBerglasTransformerExecPlugin() *cobra.Command {
 	p := &plugin{}
-	cmd := util.NewKustomizePluginRunner(p, util.WithConfigType("konjure.carbonrelay.com", "v1beta1", "BerglasTransformer"))
+	cmd := kustomize.NewPluginRunner(p, kustomize.WithConfigType("konjure.carbonrelay.com", "v1beta1", "BerglasTransformer"))
 	return cmd
 }
 
 func NewBerglasTransformerCommand() *cobra.Command {
 	p := &plugin{}
-	cmd := util.NewKustomizePluginRunner(p, util.WithTransformerFilenameFlag())
+	cmd := kustomize.NewPluginRunner(p, kustomize.WithTransformerFilenameFlag())
 	cmd.Use = "transform"
 	cmd.Short = "Transform an application leveraging Berglas references"
 

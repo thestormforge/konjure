@@ -17,19 +17,19 @@ limitations under the License.
 package transformer
 
 import (
-	"github.com/carbonrelay/konjure/plugin/util"
+	"github.com/carbonrelay/konjure/internal/kustomize"
 	"github.com/spf13/cobra"
 )
 
 func NewLabelTransformerExecPlugin() *cobra.Command {
 	p := &plugin{}
-	cmd := util.NewKustomizePluginRunner(p, util.WithConfigType("konjure.carbonrelay.com", "v1beta1", "LabelTransformer"))
+	cmd := kustomize.NewPluginRunner(p, kustomize.WithConfigType("konjure.carbonrelay.com", "v1beta1", "LabelTransformer"))
 	return cmd
 }
 
 func NewLabelTransformerCommand() *cobra.Command {
 	p := &plugin{}
-	cmd := util.NewKustomizePluginRunner(p, util.WithTransformerFilenameFlag())
+	cmd := kustomize.NewPluginRunner(p, kustomize.WithTransformerFilenameFlag())
 	cmd.Use = "label"
 	cmd.Short = "Alternate to the Kustomize built-in LabelTransformer"
 	cmd.Long = "Alternate to the built-in LabelTransformer, will be removed when selectors are no longer created"
