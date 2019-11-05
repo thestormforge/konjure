@@ -149,7 +149,8 @@ func parseReference(s string) (*berglas.Reference, error) {
 	return berglas.ParseReference(s)
 }
 
-// The rest of this is the mutating webhook from https://github.com/GoogleCloudPlatform/berglas/tree/master/examples/kubernetes
+// The rest of this is the mutating webhook from https://github.com/GoogleCloudPlatform/berglas/tree/master/examples/kubernetes/main.go
+// This code was released under the Apache 2.0 license
 
 const (
 	berglasContainer   = "gcr.io/berglas/berglas:latest"

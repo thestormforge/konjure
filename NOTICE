@@ -1,5 +1,13 @@
 
-/cmd/kustomize/edit/kustinternal
+/internal/berglas/mutate.go
+
+Example code has been reproduced for consistency, this project contains the following
+code from "https://github.com/GoogleCloudPlatform/berglas":
+
+* /examples/kubernetes/main.go
+
+
+/internal/kustomize/edit/kustinternal
 
 Internal package code has been reproduced to simplify implementation, this project
 contains the following code from "https://github.com/kubernetes-sigs/kustomize":
