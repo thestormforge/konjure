@@ -28,7 +28,7 @@ func NewLabelTransformerExecPlugin() *cobra.Command {
 	return cmd
 }
 
-// NewLabelCommand creates a new command for running label from the CLI
+// NewLabelTransformerCommand creates a new command for running label from the CLI
 func NewLabelTransformerCommand() *cobra.Command {
 	p := &plugin{}
 	cmd := kustomize.NewPluginRunner(p, kustomize.WithTransformerFilenameFlag())

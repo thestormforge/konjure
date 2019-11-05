@@ -51,12 +51,13 @@ func NewLoader(ctx context.Context) (*Loader, error) {
 }
 
 func (l *Loader) Load(location string) ([]byte, error) {
-	if r, err := berglas.ParseReference(l.Root() + location); err != nil {
+	r, err := berglas.ParseReference(l.Root() + location)
+	if err != nil {
 		return nil, err
-	} else {
-		// TODO Where do we get the generation from?
-		return l.client.Access(l.ctx, &berglas.AccessRequest{Bucket: r.Bucket(), Object: r.Object()})
 	}
+
+	// TODO Where do we get the generation from?
+	return l.client.Access(l.ctx, &berglas.AccessRequest{Bucket: r.Bucket(), Object: r.Object()})
 }
 
 func (l *Loader) LoadKvPairs(args types.GeneratorArgs) ([]types.Pair, error) {
@@ -91,11 +92,12 @@ func (l *Loader) LoadKvPairs(args types.GeneratorArgs) ([]types.Pair, error) {
 			return nil, fmt.Errorf("invalid file: %s", fs)
 		}
 
-		if v, err := l.Load(location); err != nil {
+		v, err := l.Load(location)
+		if err != nil {
 			return nil, err
-		} else {
-			pairs = append(pairs, types.Pair{Key: key, Value: string(v)})
 		}
+
+		pairs = append(pairs, types.Pair{Key: key, Value: string(v)})
 	}
 
 	return pairs, nil

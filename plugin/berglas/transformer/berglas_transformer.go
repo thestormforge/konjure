@@ -111,11 +111,11 @@ func mutateResourceAs(m *berglas.Mutator, r *resource.Resource) error {
 	if didMutate, err := m.Mutate(template); err != nil {
 		return err
 	} else if didMutate {
-		if data, err := json.Marshal(obj); err != nil {
+		data, err := json.Marshal(obj)
+		if err != nil {
 			return err
-		} else {
-			return r.UnmarshalJSON(data)
 		}
+		return r.UnmarshalJSON(data)
 	}
 	return nil
 }

@@ -28,7 +28,7 @@ func NewBerglasTransformerExecPlugin() *cobra.Command {
 	return cmd
 }
 
-// NewBerglasCommand creates a new command for running Berglas from the CLI
+// NewBerglasTransformerCommand creates a new command for running Berglas from the CLI
 func NewBerglasTransformerCommand() *cobra.Command {
 	p := &plugin{}
 	cmd := kustomize.NewPluginRunner(p, kustomize.WithTransformerFilenameFlag())

@@ -29,6 +29,7 @@ import (
 	kplug "sigs.k8s.io/kustomize/v3/pkg/plugins"
 )
 
+// NewInitializeCommand returns a command for initializing Konjure.
 func NewInitializeCommand() *cobra.Command {
 	opts := &initializeOptions{}
 

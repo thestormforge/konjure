@@ -28,7 +28,7 @@ func NewBerglasGeneratorExecPlugin() *cobra.Command {
 	return cmd
 }
 
-// NewBerglasCommand creates a new command for running Berglas from the CLI
+// NewBerglasGeneratorCommand creates a new command for running Berglas from the CLI
 func NewBerglasGeneratorCommand() *cobra.Command {
 	p := &plugin{}
 	cmd := kustomize.NewPluginRunner(p)
