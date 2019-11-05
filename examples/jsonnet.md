@@ -4,12 +4,11 @@ The Jsonnet Generator is used to run Jsonnet programs, this is useful when using
 
 ## Prerequisites
 
-For this example, you will need Konjure, Kustomize, and Jsonnet installed on your `PATH`. If you plan to use Konjure without Kustomize you can, however the Jsonnet Generator requires the `jsonnet` executable (you can specify an alternate location in your configuration if you like).
+For this example, you will need Konjure and Kustomize installed on your `PATH`. If you plan to use Konjure without Kustomize you can.
 
 ```sh
 which konjure
 which kustomize
-which jsonnet
 konjure kustomize init JsonnetGenerator
 
 DEMO_HOME=$(mktemp -d)
