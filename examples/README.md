@@ -5,6 +5,7 @@
 * [Berglas Generator](berglas-generator.md)
 * [Helm Generator](helm.md)
 * [Jsonnet Generator](jsonnet.md)
+* [Random Generator](random.md)
 
 ## Kustomize vs. CLI
 

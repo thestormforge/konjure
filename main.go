@@ -26,6 +26,7 @@ import (
 	"github.com/carbonrelay/konjure/plugin/helm"
 	"github.com/carbonrelay/konjure/plugin/jsonnet"
 	"github.com/carbonrelay/konjure/plugin/label"
+	"github.com/carbonrelay/konjure/plugin/random"
 	"github.com/spf13/cobra"
 )
 
@@ -77,7 +78,6 @@ func newRootCommand(arg0 string) *cobra.Command {
 
 	cobra.EnableCommandSorting = false
 	addPlugins(rootCmd, kustomizeCmd)
-	rootCmd.AddCommand(kustomizeCmd)
 
 	// If arg0 matches on the kustomizeCmd (i.e. via a symlink to the binary), return it instead
 	if c, _, err := kustomizeCmd.Find([]string{filepath.Base(arg0)}); err == nil {
@@ -85,9 +85,10 @@ func newRootCommand(arg0 string) *cobra.Command {
 		return c
 	}
 
-	// Add the remaining Kustomize commands
+	// Add the remaining commands
 	kustomizeCmd.AddCommand(kustomize.NewInitializeCommand())
 	kustomizeCmd.AddCommand(edit.NewEditCommand())
+	rootCmd.AddCommand(kustomizeCmd)
 
 	return rootCmd
 }
@@ -97,10 +98,12 @@ func addPlugins(rootCmd, kustomizeCmd *cobra.Command) {
 	rootCmd.AddCommand(helm.NewHelmCommand())
 	rootCmd.AddCommand(jsonnet.NewJsonnetCommand())
 	rootCmd.AddCommand(label.NewLabelCommand())
+	rootCmd.AddCommand(random.NewRandomCommand())
 
 	kustomizeCmd.AddCommand(berglas.NewBerglasGeneratorExecPlugin())
 	kustomizeCmd.AddCommand(berglas.NewBerglasTransformerExecPlugin())
 	kustomizeCmd.AddCommand(helm.NewHelmGeneratorExecPlugin())
 	kustomizeCmd.AddCommand(jsonnet.NewJsonnetGeneratorExecPlugin())
 	kustomizeCmd.AddCommand(label.NewLabelTransformerExecPlugin())
+	kustomizeCmd.AddCommand(random.NewRandomGeneratorExecPlugin())
 }
