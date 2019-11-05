@@ -27,7 +27,7 @@ type plugin struct {
 	ldr ifc.Loader
 	rf  *resmap.Factory
 
-	Jsonnet           jsonnet.Jsonnet     `json:"jsonnet"`
+	Jsonnet           jsonnet.Executor    `json:"jsonnet"`
 	Filename          string              `json:"filename"`
 	Code              string              `json:"exec"`
 	JsonnetPath       []string            `json:"jpath"`

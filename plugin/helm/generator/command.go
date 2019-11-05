@@ -68,19 +68,19 @@ func (f *helmFlags) withPreRun(p *plugin) kustomize.RunnerOption {
 		}
 
 		for k, v := range f.set {
-			p.Values = append(p.Values, helm.HelmValue{Name: k, Value: v})
+			p.Values = append(p.Values, helm.Value{Name: k, Value: v})
 		}
 
 		for k, v := range f.setFile {
-			p.Values = append(p.Values, helm.HelmValue{Name: k, Value: v, LoadFile: true})
+			p.Values = append(p.Values, helm.Value{Name: k, Value: v, LoadFile: true})
 		}
 
 		for k, v := range f.setString {
-			p.Values = append(p.Values, helm.HelmValue{Name: k, Value: v, ForceString: true})
+			p.Values = append(p.Values, helm.Value{Name: k, Value: v, ForceString: true})
 		}
 
 		for _, valueFile := range f.values {
-			p.Values = append(p.Values, helm.HelmValue{File: valueFile})
+			p.Values = append(p.Values, helm.Value{File: valueFile})
 		}
 
 		return nil

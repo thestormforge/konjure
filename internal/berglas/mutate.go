@@ -13,15 +13,15 @@ import (
 	"sigs.k8s.io/kustomize/v3/pkg/types"
 )
 
-type BerglasMutator struct {
+type Mutator struct {
 	resMapFactory *resmap.Factory
 	loader        ifc.Loader
 	genOpts       *types.GeneratorOptions
 	secrets       resmap.ResMap
 }
 
-func NewBerglasMutator(f *resmap.Factory, l ifc.Loader, o *types.GeneratorOptions) *BerglasMutator {
-	m := &BerglasMutator{
+func NewMutator(f *resmap.Factory, l ifc.Loader, o *types.GeneratorOptions) *Mutator {
+	m := &Mutator{
 		resMapFactory: f,
 		loader:        l,
 		genOpts:       o,
@@ -34,7 +34,7 @@ func NewBerglasMutator(f *resmap.Factory, l ifc.Loader, o *types.GeneratorOption
 	return m
 }
 
-func (m *BerglasMutator) FlushSecrets(rm resmap.ResMap) error {
+func (m *Mutator) FlushSecrets(rm resmap.ResMap) error {
 	var err error
 	if m.secrets != nil {
 		err = rm.AppendAll(m.secrets)
@@ -43,7 +43,7 @@ func (m *BerglasMutator) FlushSecrets(rm resmap.ResMap) error {
 	return err
 }
 
-func (m *BerglasMutator) Mutate(template *corev1.PodTemplateSpec) (bool, error) {
+func (m *Mutator) Mutate(template *corev1.PodTemplateSpec) (bool, error) {
 	if m.genOpts != nil {
 		return m.mutateTemplateWithSecrets(template)
 	}
@@ -52,7 +52,7 @@ func (m *BerglasMutator) Mutate(template *corev1.PodTemplateSpec) (bool, error) 
 
 // Mutation with secrets does the secret lookup now instead of in the container
 
-func (m *BerglasMutator) mutateTemplateWithSecrets(template *corev1.PodTemplateSpec) (bool, error) {
+func (m *Mutator) mutateTemplateWithSecrets(template *corev1.PodTemplateSpec) (bool, error) {
 	mutated := false
 
 	for i, c := range template.Spec.InitContainers {
@@ -89,7 +89,7 @@ func (m *BerglasMutator) mutateTemplateWithSecrets(template *corev1.PodTemplateS
 	return mutated, nil
 }
 
-func (m *BerglasMutator) mutateContainerWithSecrets(c *corev1.Container) (*corev1.Container, bool, error) {
+func (m *Mutator) mutateContainerWithSecrets(c *corev1.Container) (*corev1.Container, bool, error) {
 	mutated := false
 	for _, e := range c.Env {
 		if berglas.IsReference(e.Value) {
@@ -185,7 +185,7 @@ var binVolumeMount = corev1.VolumeMount{
 	ReadOnly:  true,
 }
 
-func (m *BerglasMutator) mutateTemplate(template *corev1.PodTemplateSpec) bool {
+func (m *Mutator) mutateTemplate(template *corev1.PodTemplateSpec) bool {
 	mutated := false
 
 	for i, c := range template.Spec.InitContainers {
@@ -212,7 +212,7 @@ func (m *BerglasMutator) mutateTemplate(template *corev1.PodTemplateSpec) bool {
 	return mutated
 }
 
-func (m *BerglasMutator) mutateContainer(c *corev1.Container) (*corev1.Container, bool) {
+func (m *Mutator) mutateContainer(c *corev1.Container) (*corev1.Container, bool) {
 	if !m.hasBerglasReferences(c.Env) {
 		return c, false
 	}
@@ -227,7 +227,7 @@ func (m *BerglasMutator) mutateContainer(c *corev1.Container) (*corev1.Container
 	return c, true
 }
 
-func (m *BerglasMutator) hasBerglasReferences(env []corev1.EnvVar) bool {
+func (m *Mutator) hasBerglasReferences(env []corev1.EnvVar) bool {
 	for _, e := range env {
 		if berglas.IsReference(e.Value) {
 			return true

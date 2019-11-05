@@ -30,13 +30,13 @@ type plugin struct {
 	ldr ifc.Loader
 	rf  *resmap.Factory
 
-	Helm         helm.Helm        `json:"helm"`
-	Repository   string           `json:"repo"`
-	ReleaseName  string           `json:"releaseName"`
-	Chart        string           `json:"chart"`
-	Version      string           `json:"version"`
-	Values       []helm.HelmValue `json:"values"`
-	IncludeTests bool             `json:"includeTests"`
+	Helm         helm.Executor `json:"helm"`
+	Repository   string        `json:"repo"`
+	ReleaseName  string        `json:"releaseName"`
+	Chart        string        `json:"chart"`
+	Version      string        `json:"version"`
+	Values       []helm.Value  `json:"values"`
+	IncludeTests bool          `json:"includeTests"`
 }
 
 var KustomizePlugin plugin

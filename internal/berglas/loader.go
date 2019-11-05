@@ -28,28 +28,28 @@ import (
 	"sigs.k8s.io/kustomize/v3/pkg/types"
 )
 
-var _ ifc.Loader = &BerglasLoader{}
+var _ ifc.Loader = &Loader{}
 
-// BerglasLoader is a Kustomize Loader that actually just pulls secret data using the Berglas API.
-type BerglasLoader struct {
+// Loader is a Kustomize Loader that actually just pulls secret data using the Berglas API.
+type Loader struct {
 	ctx       context.Context
 	client    *berglas.Client
 	validator ifc.Validator
 }
 
-func NewBerglasLoader(ctx context.Context) (*BerglasLoader, error) {
+func NewLoader(ctx context.Context) (*Loader, error) {
 	c, err := berglas.New(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return &BerglasLoader{
+	return &Loader{
 		ctx:       ctx,
 		client:    c,
 		validator: validator.NewKustValidator(),
 	}, nil
 }
 
-func (l *BerglasLoader) Load(location string) ([]byte, error) {
+func (l *Loader) Load(location string) ([]byte, error) {
 	if r, err := berglas.ParseReference(l.Root() + location); err != nil {
 		return nil, err
 	} else {
@@ -58,7 +58,7 @@ func (l *BerglasLoader) Load(location string) ([]byte, error) {
 	}
 }
 
-func (l *BerglasLoader) LoadKvPairs(args types.GeneratorArgs) ([]types.Pair, error) {
+func (l *Loader) LoadKvPairs(args types.GeneratorArgs) ([]types.Pair, error) {
 	var pairs []types.Pair
 
 	// We don't support env files sources
@@ -100,18 +100,18 @@ func (l *BerglasLoader) LoadKvPairs(args types.GeneratorArgs) ([]types.Pair, err
 	return pairs, nil
 }
 
-func (l *BerglasLoader) Validator() ifc.Validator {
+func (l *Loader) Validator() ifc.Validator {
 	return l.validator
 }
 
-func (*BerglasLoader) Root() string {
+func (*Loader) Root() string {
 	return "berglas://"
 }
 
-func (*BerglasLoader) New(newRoot string) (ifc.Loader, error) {
+func (*Loader) New(newRoot string) (ifc.Loader, error) {
 	return nil, fmt.Errorf("changing roots is not supported")
 }
 
-func (*BerglasLoader) Cleanup() error {
+func (*Loader) Cleanup() error {
 	return nil
 }

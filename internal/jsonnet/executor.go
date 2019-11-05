@@ -38,14 +38,14 @@ type Parameter struct {
 	CodeFile   string `json:"codeFile,omitempty"`
 }
 
-// Jsonnet specifies configuration and execution helpers for running Jsonnet
-type Jsonnet struct {
+// Executor specifies configuration and execution helpers for running Jsonnet
+type Executor struct {
 	Bin    string `json:"bin,omitempty"`
 	Stderr func() io.Writer
 }
 
 // Complete fills in the blank configuration values
-func (jsonnet *Jsonnet) Complete() {
+func (jsonnet *Executor) Complete() {
 	var err error
 
 	if jsonnet.Bin == "" {
@@ -55,7 +55,7 @@ func (jsonnet *Jsonnet) Complete() {
 	}
 }
 
-func (jsonnet *Jsonnet) command(jpath []string, ext, tla []Parameter, extraArgs ...string) *exec.Cmd {
+func (jsonnet *Executor) command(jpath []string, ext, tla []Parameter, extraArgs ...string) *exec.Cmd {
 	var args []string
 
 	for i := range ext {
@@ -75,7 +75,7 @@ func (jsonnet *Jsonnet) command(jpath []string, ext, tla []Parameter, extraArgs 
 }
 
 // ExecuteCode executes a snippet of Jsonnet code, returning a resource map
-func (jsonnet *Jsonnet) ExecuteCode(code string, path []string, ext, tla []Parameter) ([]byte, error) {
+func (jsonnet *Executor) ExecuteCode(code string, path []string, ext, tla []Parameter) ([]byte, error) {
 	b := &bytes.Buffer{}
 	cmd := jsonnet.command(path, ext, tla, "--exec", "--", code)
 	cmd.Stdout = b
@@ -90,7 +90,7 @@ func (jsonnet *Jsonnet) ExecuteCode(code string, path []string, ext, tla []Param
 }
 
 // ExecuteFile executes a Jsonnet file, returning a resource map
-func (jsonnet *Jsonnet) ExecuteFile(filename string, path []string, ext, tla []Parameter) ([]byte, error) {
+func (jsonnet *Executor) ExecuteFile(filename string, path []string, ext, tla []Parameter) ([]byte, error) {
 	b := &bytes.Buffer{}
 	cmd := jsonnet.command(path, ext, tla, "--", filename)
 	cmd.Stdout = b

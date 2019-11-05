@@ -54,7 +54,7 @@ func (p *plugin) Config(ldr ifc.Loader, rf *resmap.Factory, c []byte) error {
 
 func (p *plugin) Transform(m resmap.ResMap) error {
 	// TODO Expose additional configuration options for the client
-	ldr, err := berglas.NewBerglasLoader(context.Background())
+	ldr, err := berglas.NewLoader(context.Background())
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func (p *plugin) Transform(m resmap.ResMap) error {
 	}
 
 	// Create a new mutator
-	mutator := berglas.NewBerglasMutator(p.rf, ldr, opts)
+	mutator := berglas.NewMutator(p.rf, ldr, opts)
 	for _, r := range m.Resources() {
 		// Mutate using the appropriate API struct
 		if err := mutateResourceAs(mutator, r); err != nil {
@@ -87,7 +87,7 @@ func (p *plugin) Transform(m resmap.ResMap) error {
 }
 
 // Performs the Berglas mutation on a Kustomize resource
-func mutateResourceAs(m *berglas.BerglasMutator, r *resource.Resource) error {
+func mutateResourceAs(m *berglas.Mutator, r *resource.Resource) error {
 	// Create a new typed object
 	obj, err := scheme.Scheme.New(toSchemaGvk(r.GetGvk()))
 	if err != nil {

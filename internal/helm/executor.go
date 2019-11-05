@@ -26,8 +26,8 @@ import (
 	"strings"
 )
 
-// HelmValue specifies the source for chart configurations
-type HelmValue struct {
+// Value specifies the source for chart configurations
+type Value struct {
 	File        string      `json:"file,omitempty"`
 	Name        string      `json:"name,omitempty"`
 	Value       interface{} `json:"value,omitempty"`
@@ -35,15 +35,15 @@ type HelmValue struct {
 	LoadFile    bool        `json:"loadFile,omitempty"`
 }
 
-// Helm specifies configuration and execution helpers for running Helm in the context of fetching and rendering charts
-type Helm struct {
+// Executor specifies configuration and execution helpers for running Helm in the context of fetching and rendering charts
+type Executor struct {
 	Bin          string `json:"bin,omitempty"`
 	Home         string `json:"home,omitempty"`
 	ArchiveCache string `json:"chartDir,omitempty"`
 }
 
 // Complete fills in the blank configuration values
-func (helm *Helm) Complete() {
+func (helm *Executor) Complete() {
 	var err error
 
 	// Lookup Helm on the PATH; default to "helm"
@@ -72,20 +72,20 @@ func (helm *Helm) Complete() {
 	}
 }
 
-func (helm *Helm) command(args ...string) *exec.Cmd {
+func (helm *Executor) command(args ...string) *exec.Cmd {
 	cmd := exec.Command(helm.Bin, args...)
 	cmd.Env = append(cmd.Env, "HELM_HOME="+helm.Home)
 	return cmd
 }
 
 // Init runs a silent, client only, initialization
-func (helm *Helm) Init() error {
+func (helm *Executor) Init() error {
 	return helm.command("init", "--client-only").Run()
 }
 
 // Fetch downloads a chart with an optional specific version (leave version empty to get the latest version).
 // The name of downloaded chart file is returned.
-func (helm *Helm) Fetch(repo, chart, version string) (string, error) {
+func (helm *Executor) Fetch(repo, chart, version string) (string, error) {
 	// Create a temporary directory for downloading since `helm fetch` won't tell us the name of the file
 	d, err := ioutil.TempDir("", "helm-fetch-")
 	if err != nil {
@@ -121,7 +121,7 @@ func (helm *Helm) Fetch(repo, chart, version string) (string, error) {
 }
 
 // Template renders a chart archive using the specified release name and value overrides
-func (helm *Helm) Template(filename string, name string, values []HelmValue) ([]byte, error) {
+func (helm *Executor) Template(filename string, name string, values []Value) ([]byte, error) {
 	// Construct the arguments
 	var args []string
 	args = append(args, "template", filename)
@@ -143,7 +143,7 @@ func (helm *Helm) Template(filename string, name string, values []HelmValue) ([]
 }
 
 // AppendArgs adds the Helm command arguments corresponding to this value
-func (v *HelmValue) AppendArgs(args []string) []string {
+func (v *Value) AppendArgs(args []string) []string {
 	if v.File != "" {
 		// Try to expand a glob; if it fails or does not match, pass on the raw value and let Helm figure it out
 		valueFiles := []string{v.File}

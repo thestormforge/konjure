@@ -50,7 +50,7 @@ func (p *plugin) Config(ldr ifc.Loader, rf *resmap.Factory, c []byte) error {
 
 func (p *plugin) Generate() (resmap.ResMap, error) {
 	// TODO Expose additional configuration options for the client
-	bLdr, err := berglas2.NewBerglasLoader(context.Background())
+	bLdr, err := berglas2.NewLoader(context.Background())
 	if err != nil {
 		return nil, err
 	}
