@@ -133,20 +133,24 @@ func (l *loader) loadBerglas(location string) ([]byte, error) {
 	})
 }
 
+// parseFileSource accepts "key=file" or "file" or "berglas://..."
 func parseFileSource(source string) (string, string, error) {
-	// Note that the real implementation does not support "=" in the location string
-	parts := strings.SplitN(source, "=", 2)
-	if parts[0] != "" {
-		if len(parts) > 1 && parts[1] != "" {
-			return parts[0], parts[1], nil
+	// Since the Berglas URL may have "=" in it (query parameters), handle that first
+	if ref, err := berglas.ParseReference(source); err == nil {
+		if ref.Filepath() != "" {
+			return path.Base(ref.Filepath()), source, nil
 		}
-		if ref, err := berglas.ParseReference(parts[0]); err == nil {
-			if ref.Filepath() != "" {
-				return path.Base(ref.Filepath()), parts[0], nil
-			}
-			return ref.Object(), parts[0], nil
-		}
-		return path.Base(parts[0]), parts[0], nil
+		return ref.Object(), source, nil
 	}
-	return "", "", fmt.Errorf("invalid file source: %s", source)
+
+	// You cannot use keys or files with "=" in their name or the syntax is ambigous
+	n := strings.Count(source, "=")
+	if n == 0 {
+		return path.Base(source), source, nil
+	}
+	if n > 1 || (n == 1 && strings.Trim(source, "=") != source) {
+		return "", "", fmt.Errorf("invalid file source: %s", source)
+	}
+	parts := strings.Split(source, "=")
+	return parts[0], parts[1], nil
 }
