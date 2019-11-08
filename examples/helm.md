@@ -56,7 +56,7 @@ Finally, build the manifests. Notice that there are no test hook pods present in
 
 ```bash
 kustomize build "$DEMO_HOME" --enable_alpha_plugins > "$DEMO_HOME/kustomized.yaml"
-(! grep -q 'helm.sh/hook: test-success' "$DEMO_HOME/kustomized.yaml")
+[ ! $(grep -q 'helm.sh/hook: test-success' "$DEMO_HOME/kustomized.yaml") ]
 ```
 
 ## Clean Up
