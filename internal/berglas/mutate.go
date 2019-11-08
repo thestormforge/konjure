@@ -22,7 +22,7 @@ type Mutator struct {
 }
 
 // NewMutator returns a new Berglas mutator from the specified Kustomize helpers
-func NewMutator(rf *resmap.Factory, ldr ifc.Loader, opts *types.GeneratorOptions) *Mutator {
+func NewMutator(ldr ifc.Loader, rf *resmap.Factory, opts *types.GeneratorOptions) *Mutator {
 	m := &Mutator{
 		resMapFactory: rf,
 		loader:        ldr,
@@ -96,47 +96,49 @@ func (m *Mutator) mutateTemplateWithSecrets(template *corev1.PodTemplateSpec) (b
 func (m *Mutator) mutateContainerWithSecrets(c *corev1.Container) (*corev1.Container, bool, error) {
 	mutated := false
 	for _, e := range c.Env {
-		if berglas.IsReference(e.Value) {
-			// Parse the environment variable value as Berglas reference
-			r, err := parseReference(e.Value)
-			if err != nil {
-				return c, mutated, err
-			}
-
-			// Replace the environment variable value with the path
-			if r.Filepath() != "" {
-				mutated = true
-				e.Value = r.Filepath()
-			} else {
-				// Do not allow environment variables to contain sensitive information in the generated manifests
-				// TODO Should this be an error? Or do we just silently ignore it like when len(command) == 0...
-				continue
-			}
-
-			// Create a resource map with a secret that we can merge into the existing collection
-			args := types.SecretArgs{}
-			args.Name = r.Bucket()
-			args.FileSources = []string{fmt.Sprintf("%s=%s/%s", r.Object(), r.Bucket(), r.Object())}
-			sm, err := m.resMapFactory.FromSecretArgs(m.loader, m.genOpts, args)
-			if err != nil {
-				return c, mutated, err
-			}
-
-			// Merge the generated secret into the existing collection
-			err = m.secrets.AbsorbAll(sm)
-			if err != nil {
-				return c, mutated, err
-			}
-
-			// Add a mount to get the secret where it was requested
-			// TODO If this volume mount is using the secret name, we need to ensure we aren't adding it multiple times
-			c.VolumeMounts = append(c.VolumeMounts, corev1.VolumeMount{
-				Name:      args.Name,
-				ReadOnly:  true,
-				MountPath: e.Value,            // TODO How should we be mounting secrets
-				SubPath:   path.Base(e.Value), // TODO "
-			})
+		if !berglas.IsReference(e.Value) {
+			continue
 		}
+
+		// Parse the environment variable value as Berglas reference
+		r, err := parseReference(e.Value)
+		if err != nil {
+			return c, mutated, err
+		}
+
+		// Create a resource map with a secret that we can merge into the existing collection
+		args := types.SecretArgs{}
+		args.Name = r.Bucket()
+		args.FileSources = []string{e.Value}
+		sm, err := m.resMapFactory.FromSecretArgs(m.loader, m.genOpts, args)
+		if err != nil {
+			return c, mutated, err
+		}
+
+		// Merge the generated secret into the existing collection
+		err = m.secrets.AbsorbAll(sm)
+		if err != nil {
+			return c, mutated, err
+		}
+
+		// Replace the environment variable value with the path
+		if r.Filepath() != "" {
+			mutated = true
+			e.Value = r.Filepath()
+		} else {
+			// Do not allow environment variables to contain sensitive information in the generated manifests
+			// TODO Should this be an error? Or do we just silently ignore it like when len(command) == 0...
+			continue
+		}
+
+		// Add a mount to get the secret where it was requested
+		// TODO If this volume mount is using the secret name, we need to ensure we aren't adding it multiple times
+		c.VolumeMounts = append(c.VolumeMounts, corev1.VolumeMount{
+			Name:      args.Name,
+			ReadOnly:  true,
+			MountPath: e.Value,            // TODO How should we be mounting secrets
+			SubPath:   path.Base(e.Value), // TODO "
+		})
 	}
 
 	return c, mutated, nil

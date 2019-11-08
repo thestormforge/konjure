@@ -17,18 +17,15 @@ limitations under the License.
 package kustomize
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/v3/k8sdeps/kunstruct"
 	"sigs.k8s.io/kustomize/v3/k8sdeps/transformer"
-	"sigs.k8s.io/kustomize/v3/k8sdeps/validator"
-	"sigs.k8s.io/kustomize/v3/pkg/fs"
 	"sigs.k8s.io/kustomize/v3/pkg/ifc"
-	fLdr "sigs.k8s.io/kustomize/v3/pkg/loader"
 	"sigs.k8s.io/kustomize/v3/pkg/resmap"
 	"sigs.k8s.io/kustomize/v3/pkg/resource"
 	"sigs.k8s.io/kustomize/v3/pkg/types"
@@ -37,12 +34,16 @@ import (
 
 // PluginRunner is used to create Cobra commands that run Kustomize plugins
 type PluginRunner struct {
-	plugin    interface{}
-	cmd       *cobra.Command
-	ldr       ifc.Loader
-	rf        *resmap.Factory
+	plugin interface{}
+	cmd    *cobra.Command
+
+	root      string
+	config    func(*cobra.Command, []string) ([]byte, error)
 	generate  func() (resmap.ResMap, error)
 	transform func(resMap resmap.ResMap) error
+
+	ldr ifc.Loader
+	rf  *resmap.Factory
 }
 
 // RunnerOption is an option that can be applied when creating a plugin runner
@@ -50,7 +51,12 @@ type RunnerOption func(*PluginRunner)
 
 // NewPluginRunner creates a new runner for the supplied plugin and options
 func NewPluginRunner(plugin interface{}, opts ...RunnerOption) *cobra.Command {
-	k := &PluginRunner{plugin: plugin}
+	k := &PluginRunner{
+		plugin:    plugin,
+		config:    func(*cobra.Command, []string) ([]byte, error) { return nil, nil },
+		generate:  func() (resmap.ResMap, error) { return resmap.New(), nil },
+		transform: func(resmap.ResMap) error { return nil },
+	}
 
 	// Setup the command run stages
 	k.cmd = &cobra.Command{
@@ -63,84 +69,42 @@ func NewPluginRunner(plugin interface{}, opts ...RunnerOption) *cobra.Command {
 	if p, ok := plugin.(resmap.Generator); ok {
 		k.generate = p.Generate
 	}
-
 	if p, ok := plugin.(resmap.Transformer); ok {
 		k.generate = k.newResMapFromStdin
 		k.transform = p.Transform
 	}
-
-	// Prepare the Kustomize plugin helpers
-	lr := fLdr.RestrictionRootOnly
-	v := validator.NewKustValidator()
-	root := filepath.Clean(os.Getenv("KUSTOMIZE_PLUGIN_CONFIG_ROOT"))
-	fSys := fs.MakeFsOnDisk()
-	uf := kunstruct.NewKunstructuredFactoryImpl()
-	pf := transformer.NewFactoryImpl()
-	if ldr, err := fLdr.NewLoader(lr, v, root, fSys); err != nil {
-		k.ldr = ldr
-	} else {
-		k.ldr = fLdr.NewFileLoaderAtCwd(v, fSys)
-	}
-	k.rf = resmap.NewFactory(resource.NewFactory(uf), pf)
 
 	// Apply the runner options
 	for _, opt := range opts {
 		opt(k)
 	}
 
-	// Post configuration, ensure we persist resource options and have a non-nil generate function
-	k.transform = combineTransformFunc(k.transform, persistResourceOptions)
-	if k.generate == nil {
-		k.generate = func() (resmap.ResMap, error) { return resmap.New(), nil }
-	}
-
 	return k.cmd
 }
 
-// addTransformerPlugin will mutate the transform function to also run the supplied plugin
-func (k *PluginRunner) addTransformerPlugin(t resmap.TransformerPlugin, config []byte) {
-	k.transform = combineTransformFunc(k.transform, func(m resmap.ResMap) error {
-		if err := t.Config(k.ldr, k.rf, config); err != nil {
-			return err
-		}
-		return t.Transform(m)
-	})
-}
-
-// newResMap is the default generate function implementation
-func (k *PluginRunner) newResMap() (resmap.ResMap, error) {
-	return resmap.New(), nil
-}
-
-// newResMapFromStdin reads stdin and parses it as a resource map
-func (k *PluginRunner) newResMapFromStdin() (resmap.ResMap, error) {
-	b, err := ioutil.ReadAll(k.cmd.InOrStdin())
+// preRun will create the plugin helpers and invoke the configure method of the plugin
+func (k *PluginRunner) preRun(cmd *cobra.Command, args []string) error {
+	ldr, err := NewKonjureLoader(context.Background(), k.root)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return k.rf.NewResMapFromBytes(b)
-}
+	k.ldr = ldr
 
-// preRunFile will invoke the configure method of the plugin with the contents of file named in the first argument
-func (k *PluginRunner) preRunFile(cmd *cobra.Command, args []string) error {
-	// Read directly from the real file system since Kustomize can't know to tell us anything different
-	config, err := ioutil.ReadFile(args[0])
+	uf := kunstruct.NewKunstructuredFactoryImpl()
+	pf := transformer.NewFactoryImpl()
+	k.rf = resmap.NewFactory(resource.NewFactory(uf), pf)
+
+	config, err := k.config(cmd, args)
 	if err != nil {
 		return err
 	}
 
-	if c, ok := k.plugin.(resmap.Configurable); ok {
-		return c.Config(k.ldr, k.rf, config)
+	c, ok := k.plugin.(resmap.Configurable)
+	if !ok {
+		return nil // Ignore non-configurable plugins
 	}
-	return nil
-}
 
-// preRun will invoke the configure method of the plugin with a nil configuration
-func (k *PluginRunner) preRun(cmd *cobra.Command, args []string) error {
-	if c, ok := k.plugin.(resmap.Configurable); ok {
-		return c.Config(k.ldr, k.rf, nil)
-	}
-	return nil
+	return c.Config(k.ldr, k.rf, config)
 }
 
 // run will actually run everything
@@ -150,10 +114,12 @@ func (k *PluginRunner) run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if k.transform != nil {
-		if err := k.transform(m); err != nil {
-			return err
-		}
+	if err := k.transform(m); err != nil {
+		return err
+	}
+
+	if err := persistResourceOptions(m); err != nil {
+		return err
 	}
 
 	b, err := m.AsYaml()
@@ -168,6 +134,25 @@ func (k *PluginRunner) run(cmd *cobra.Command, args []string) error {
 // postRun will perform necessary clean up
 func (k *PluginRunner) postRun(cmd *cobra.Command, args []string) error {
 	return k.ldr.Cleanup()
+}
+
+// newResMapFromStdin reads stdin and parses it as a resource map
+func (k *PluginRunner) newResMapFromStdin() (resmap.ResMap, error) {
+	b, err := ioutil.ReadAll(k.cmd.InOrStdin())
+	if err != nil {
+		return nil, err
+	}
+	return k.rf.NewResMapFromBytes(b)
+}
+
+// addTransformerPlugin will mutate the transform function to also run the supplied plugin
+func (k *PluginRunner) addTransformerPlugin(t resmap.TransformerPlugin, config []byte) {
+	k.transform = combineTransformFunc(k.transform, func(m resmap.ResMap) error {
+		if err := t.Config(k.ldr, k.rf, config); err != nil {
+			return err
+		}
+		return t.Transform(m)
+	})
 }
 
 // WithConfigType will annotate the Cobra command with the GVK of the configuration schema; it will also setup the
@@ -188,7 +173,12 @@ func WithConfigType(group, version, kind string) RunnerOption {
 
 		// Require an argument for the configuration filename
 		k.cmd.Args = cobra.ExactArgs(1)
-		k.cmd.PreRunE = k.preRunFile
+		k.config = func(_ *cobra.Command, args []string) ([]byte, error) {
+			return ioutil.ReadFile(args[0])
+		}
+
+		// This is kind of sneaky, but try to pickup the Kustomize root here
+		k.root = os.Getenv("KUSTOMIZE_PLUGIN_CONFIG_ROOT")
 	}
 }
 
@@ -223,6 +213,7 @@ func WithTransformerFilenameFlag() RunnerOption {
 		}
 		f := &fileFlags{}
 		k.cmd.Flags().StringVarP(&f.Filename, "filename", "f", "", "`file` that contains the manifests to transform")
+
 		k.generate = func() (resmap.ResMap, error) {
 			if f.Filename == "-" || f.Filename == "" {
 				return k.newResMapFromStdin()

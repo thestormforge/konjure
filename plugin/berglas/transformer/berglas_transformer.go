@@ -17,9 +17,8 @@ limitations under the License.
 package transformer
 
 import (
-	"context"
-
 	"github.com/carbonrelay/konjure/internal/berglas"
+	"github.com/carbonrelay/konjure/internal/kustomize"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/kustomize/v3/pkg/gvk"
 	"sigs.k8s.io/kustomize/v3/pkg/ifc"
@@ -47,18 +46,12 @@ type plugin struct {
 var KustomizePlugin plugin
 
 func (p *plugin) Config(ldr ifc.Loader, rf *resmap.Factory, c []byte) error {
-	p.ldr = ldr
+	p.ldr = kustomize.MustUseKonjureLoader(ldr)
 	p.rf = rf
 	return yaml.Unmarshal(c, p)
 }
 
 func (p *plugin) Transform(m resmap.ResMap) error {
-	// TODO Expose additional configuration options for the client
-	ldr, err := berglas.NewLoader(context.Background())
-	if err != nil {
-		return err
-	}
-
 	opts := p.GeneratorOptions
 	if opts == nil && p.GenerateSecrets {
 		opts = &types.GeneratorOptions{}
@@ -67,7 +60,7 @@ func (p *plugin) Transform(m resmap.ResMap) error {
 	}
 
 	// Create a new mutator
-	mutator := berglas.NewMutator(p.rf, ldr, opts)
+	mutator := berglas.NewMutator(p.ldr, p.rf, opts)
 	for _, r := range m.Resources() {
 		// Mutate using the appropriate API struct
 		if err := mutateResourceAs(mutator, r); err != nil {
@@ -79,9 +72,6 @@ func (p *plugin) Transform(m resmap.ResMap) error {
 			return err
 		}
 	}
-
-	// TODO What about hash names? We would need to fix name references
-	// kustomize.config.k8s.io/needs-hash
 
 	return nil
 }

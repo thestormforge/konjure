@@ -17,13 +17,10 @@ limitations under the License.
 package generator
 
 import (
-	"context"
 	"fmt"
-	"path"
-	"strings"
 
 	"github.com/GoogleCloudPlatform/berglas/pkg/berglas"
-	berglas2 "github.com/carbonrelay/konjure/internal/berglas"
+	"github.com/carbonrelay/konjure/internal/kustomize"
 	"sigs.k8s.io/kustomize/v3/pkg/ifc"
 	"sigs.k8s.io/kustomize/v3/pkg/resmap"
 	"sigs.k8s.io/kustomize/v3/pkg/types"
@@ -43,36 +40,23 @@ type plugin struct {
 var KustomizePlugin plugin
 
 func (p *plugin) Config(ldr ifc.Loader, rf *resmap.Factory, c []byte) error {
-	p.ldr = ldr
+	p.ldr = kustomize.MustUseKonjureLoader(ldr)
 	p.rf = rf
 	return yaml.Unmarshal(c, p)
 }
 
 func (p *plugin) Generate() (resmap.ResMap, error) {
-	// TODO Expose additional configuration options for the client
-	bLdr, err := berglas2.NewLoader(context.Background())
-	if err != nil {
-		return nil, err
+	// Verify all the references at least look enough like Berglas references to trigger more validation later
+	for _, ref := range p.References {
+		if !berglas.IsReference(ref) {
+			return nil, fmt.Errorf("invalid Berglas reference: %s", ref)
+		}
 	}
 
-	// Add a file source for each of the configured references
+	// Generate the ResMap
 	args := types.SecretArgs{}
 	args.Namespace = p.Namespace
 	args.Name = p.Name
-	for _, ref := range p.References {
-		// TODO This drops the generation from the URI fragment
-		r, err := berglas.ParseReference(ref)
-		if err != nil {
-			return nil, err
-		}
-		k := r.Filepath()
-		if k != "" {
-			k = path.Base(k)
-		}
-		fileSource := fmt.Sprintf("%s=%s/%s", k, r.Bucket(), r.Object())
-		args.FileSources = append(args.FileSources, strings.TrimLeft(fileSource, "="))
-	}
-
-	// Generate the secret resource using the Berglas loader
-	return p.rf.FromSecretArgs(bLdr, p.GeneratorOptions, args)
+	args.FileSources = p.References
+	return p.rf.FromSecretArgs(p.ldr, p.GeneratorOptions, args)
 }
