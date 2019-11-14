@@ -83,31 +83,23 @@ func (p *plugin) addMap(in interface{}) (interface{}, error) {
 
 // This is the additional check not present in the built-in transformer
 func createIfNotPresent(x gvk.Gvk, fs *config.FieldSpec) bool {
+	// If the value is already false we do not need to worry about changing it
+	if !fs.CreateIfNotPresent {
+		return false
+	}
 
 	// For replication controller, the default configuration contains an incorrect field specification
 	if fs.Group == "" && fs.Version == "v1" && fs.Kind == "ReplicationController" && fs.Path == "spec/selector" {
 		return false
 	}
 
-	if !fs.CreateIfNotPresent {
-		return false
-	}
-
-	// TODO Is this the only other check we need, you should NEVER create selector/matchLabels...
-	if fs.Path != "spec/selector/matchLabels" {
+	// We are only making changes to objects in the "apps" and "extensions" groups (we ignore the kind)
+	if x.Group != "apps" && x.Group != "extensions" {
 		return true
 	}
 
-	if x.Version != "v1beta1" {
-		return true
-	}
-
-	// NOTE: Deployment is not explicitly documented as having this behavior, but `kubectl convert` does adjust it
-	if x.Group == "apps" && x.Kind != "StatefulSet" && x.Kind != "Deployment" {
-		return true
-	}
-
-	if x.Group == "extensions" && x.Kind != "DaemonSet" && x.Kind != "ReplicaSet" && x.Kind != "Deployment" {
+	// Only adjust create value for match labels on v1beta1 resources
+	if fs.Path != "spec/selector/matchLabels" || x.Version != "v1beta1" {
 		return true
 	}
 

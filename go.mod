@@ -10,6 +10,7 @@ require (
 	github.com/json-iterator/go v1.1.7 // indirect
 	github.com/mailru/easyjson v0.0.0-20190620125010-da37f6c1e481 // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
+	github.com/onsi/gomega v1.7.0
 	github.com/pborman/uuid v1.2.0 // indirect
 	github.com/sethvargo/go-password v0.1.3
 	github.com/spf13/cobra v0.0.5
