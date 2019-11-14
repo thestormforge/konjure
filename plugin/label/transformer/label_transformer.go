@@ -107,7 +107,7 @@ func createIfNotPresent(x gvk.Gvk, fs *config.FieldSpec) bool {
 		return true
 	}
 
-	if x.Group == "extensions" && x.Kind != "DaemonSet" && x.Kind != "ReplicaSet" {
+	if x.Group == "extensions" && x.Kind != "DaemonSet" && x.Kind != "ReplicaSet" && x.Kind != "Deployment" {
 		return true
 	}
 
