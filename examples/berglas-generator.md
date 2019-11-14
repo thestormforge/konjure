@@ -6,7 +6,7 @@ The Berglas Generator is used to generate Kubernetes secrets from secrets stored
 
 For this example, you will need Konjure and Kustomize. You can also use Konjure without Kustomize if you like.
 
-```bash
+```sh
 which konjure
 which kustomize
 konjure kustomize init BerglasGenerator
@@ -19,7 +19,7 @@ mkdir -p "$DEMO_HOME"
 
 Create a configuration file for the Berglas Generator, in this case we will generate a secret with two entries and we will disable the name suffix using standard Kustomize generator options:
 
-```bash
+```sh
 cat <<'EOF' >"$DEMO_HOME/berglas.yaml"
 apiVersion: konjure.carbonrelay.com/v1beta1
 kind: BerglasGenerator
@@ -40,7 +40,7 @@ EOF
 
 Create a kustomization the uses the Berglas Generator configuration, for this example we are only including the resources generated from the Berglas secrets, however you can use the generator as part of a larger Kustomization as well.
 
-```bash
+```sh
 cat <<'EOF' >"$DEMO_HOME/kustomization.yaml"
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -54,7 +54,7 @@ EOF
 
 Finally, build the manifest.
 
-```bash
+```sh
 kustomize build "$DEMO_HOME" --enable_alpha_plugins
 ```
 
@@ -62,6 +62,6 @@ kustomize build "$DEMO_HOME" --enable_alpha_plugins
 
 Remove your demo workspace:
 
-```bash
+```sh
 rm -rf "$DEMO_HOME"
 ```

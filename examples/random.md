@@ -6,7 +6,7 @@ The Random Generator is used to create secrets containing random values.
 
 For this example, you will need Konjure and Kustomize installed on your `PATH`. If you plan to Konjure without Kustomize you can.
 
-```bash
+```sh
 which konjure
 which kustomize
 
@@ -18,7 +18,7 @@ mkdir -p "$DEMO_HOME"
 
 Create a configuration file for the Random Generator, in this case we will generate two random passwords.
 
-```bash
+```sh
 cat <<'EOF' >"$DEMO_HOME/random.yaml"
 apiVersion: konjure.carbonrelay.com/v1beta1
 kind: RandomGenerator
@@ -38,7 +38,7 @@ EOF
 
 Create a kustomization the uses the Random Generator configuration, for this example we are only including the secret.
 
-```bash
+```sh
 cat <<'EOF' >"$DEMO_HOME/kustomization.yaml"
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -52,7 +52,7 @@ EOF
 
 Finally, build the manifests. Notice that there are no test hook pods present in the output as they are filtered out by default.
 
-```bash
+```sh
 kustomize build "$DEMO_HOME" --enable_alpha_plugins
 ```
 
@@ -60,6 +60,6 @@ kustomize build "$DEMO_HOME" --enable_alpha_plugins
 
 Remove your demo workspace:
 
-```bash
+```sh
 rm -rf "$DEMO_HOME"
 ```
