@@ -3,9 +3,11 @@
 ## Example Usage
 
 * [Berglas Generator](berglas-generator.md)
-* [Helm Generator](helm.md)
-* [Jsonnet Generator](jsonnet.md)
-* [Random Generator](random.md)
+* [Berglas Transformer](berglas-transformer.md)
+* [Helm Generator](helm-generator.md)
+* [Jsonnet Generator](jsonnet-generator.md)
+* [Label Transformer](labels-transformer.md)
+* [Random Generator](random-generator.md)
 
 ## Kustomize vs. CLI
 
