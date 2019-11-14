@@ -118,10 +118,6 @@ func (k *PluginRunner) run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := persistResourceOptions(m); err != nil {
-		return err
-	}
-
 	b, err := m.AsYaml()
 	if err != nil {
 		return err
@@ -179,6 +175,9 @@ func WithConfigType(group, version, kind string) RunnerOption {
 
 		// This is kind of sneaky, but try to pickup the Kustomize root here
 		k.root = os.Getenv("KUSTOMIZE_PLUGIN_CONFIG_ROOT")
+
+		// This is again sneaky and not safe because we need this to always run last
+		k.transform = combineTransformFunc(k.transform, persistResourceOptions)
 	}
 }
 
@@ -244,20 +243,24 @@ func combineTransformFunc(t1, t2 func(resmap.ResMap) error) func(resmap.ResMap) 
 // persistResourceOptions persists resource options using Kustomize annotations
 func persistResourceOptions(m resmap.ResMap) error {
 	for _, r := range m.Resources() {
-		// Look for the Kustomize "id" annotation to determine if we should add other resource options
 		annotations := r.GetAnnotations()
-		if annotations["kustomize.config.k8s.io/id"] != "" {
-
-			if r.Behavior() != types.BehaviorUnspecified {
-				annotations["kustomize.config.k8s.io/behavior"] = r.Behavior().String()
-			}
-
-			if r.NeedHashSuffix() {
-				annotations["kustomize.config.k8s.io/needs-hash"] = "true"
-			}
-
-			r.SetAnnotations(annotations)
+		if annotations == nil {
+			annotations = make(map[string]string)
 		}
+
+		if r.Behavior() != types.BehaviorUnspecified {
+			annotations["kustomize.config.k8s.io/behavior"] = r.Behavior().String()
+		}
+
+		if r.NeedHashSuffix() {
+			annotations["kustomize.config.k8s.io/needs-hash"] = "true"
+		}
+
+		// Store the annotations back to the object
+		if len(annotations) == 0 {
+			annotations = nil
+		}
+		r.SetAnnotations(annotations)
 	}
 	return nil
 }
