@@ -13,8 +13,7 @@ Download the latest binary for your platform, make it executable and put it on y
 os=linux # Or 'darwin'
 curl -s https://api.github.com/repos/carbonrelay/konjure/releases/latest |\
   jq -r ".assets[] | select(.name | contains(\"${os:-linux}\")) | .browser_download_url" |\
-  xargs curl -L -o konjure
-chmod +x konjure
+  xargs curl -L | tar xz
 sudo mv konjure /usr/local/bin/
 ```
 

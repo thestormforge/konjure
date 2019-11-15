@@ -18,8 +18,12 @@ jobs:
         run: go mod download
       - name: Build
         run: |
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o dist/konjure-linux-amd64 -ldflags "-w -s -X main.Version=$(basename ${GITHUB_REF:-HEAD})" .
-          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o dist/konjure-darwin-amd64 -ldflags "-w -s -X main.Version=$(basename ${GITHUB_REF:-HEAD})" .
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o konjure -ldflags "-w -s -X main.Version=$(basename ${GITHUB_REF:-HEAD})" .
+          tar czf dist/konjure-linux-amd64.tar.gz --remove-files konjure
+
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o konjure -ldflags "-w -s -X main.Version=$(basename ${GITHUB_REF:-HEAD})" .
+          tar czf dist/konjure-darwin-amd64.tar.gz --remove-files konjure
+
           sha256sum dist/* | tee dist/checksums.txt
       - name: Create release
         id: create_release
@@ -36,8 +40,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/konjure-linux-amd64
-          asset_name: konjure-linux-amd64
+          asset_path: ./dist/konjure-linux-amd64.tar.gz
+          asset_name: konjure-linux-amd64.tar.gz
           asset_content_type: application/octet-stream
       - name: Upload konjure-darwin-amd64
         uses: actions/upload-release-asset@v1.0.1
@@ -45,8 +49,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/konjure-darwin-amd64
-          asset_name: konjure-darwin-amd64
+          asset_path: ./dist/konjure-darwin-amd64.tar.gz
+          asset_name: konjure-darwin-amd64.tar.gz
           asset_content_type: application/octet-stream
       - name: Upload checksums
         uses: actions/upload-release-asset@v1.0.1
