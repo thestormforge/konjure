@@ -17,16 +17,17 @@ limitations under the License.
 package kustomize
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
-	"github.com/carbonrelay/konjure/internal/kustomize/loader"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/api/builtins"
+	"sigs.k8s.io/kustomize/api/filesys"
 	"sigs.k8s.io/kustomize/api/k8sdeps/kunstruct"
 	"sigs.k8s.io/kustomize/api/k8sdeps/validator"
+	fLdr "sigs.k8s.io/kustomize/api/loader"
 	"sigs.k8s.io/kustomize/api/resmap"
 	"sigs.k8s.io/kustomize/api/resource"
 	"sigs.k8s.io/kustomize/api/types"
@@ -83,7 +84,9 @@ func NewPluginRunner(plugin interface{}, opts ...RunnerOption) *cobra.Command {
 
 // preRun will create the plugin helpers and invoke the configure method of the plugin
 func (k *PluginRunner) preRun(cmd *cobra.Command, args []string) error {
-	ldr, err := loader.NewLoader(context.Background(), k.root)
+	lr := fLdr.RestrictionRootOnly
+	fSys := filesys.MakeFsOnDisk()
+	ldr, err := fLdr.NewLoader(lr, filepath.Clean(k.root), fSys)
 	if err != nil {
 		return err
 	}

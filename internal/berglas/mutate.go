@@ -1,15 +1,14 @@
 package berglas
 
 import (
-	"context"
 	"fmt"
 	"net/url"
 	"path"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/berglas/pkg/berglas"
-	"github.com/carbonrelay/konjure/internal/kustomize/kv"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/kustomize/api/kv"
 	"sigs.k8s.io/kustomize/api/resmap"
 	"sigs.k8s.io/kustomize/api/types"
 )
@@ -105,12 +104,17 @@ func (m *Mutator) mutateContainerWithSecrets(c *corev1.Container) (*corev1.Conta
 			return c, mutated, err
 		}
 
+		fs, err := AsFileSource(e.Value)
+		if err != nil {
+			return c, mutated, err
+		}
+
 		// Create a resource map with a secret that we can merge into the existing collection
 		args := types.SecretArgs{}
 		args.Name = r.Bucket()
-		args.FileSources = []string{e.Value}
+		args.FileSources = []string{fs}
 		sm, err := m.h.ResmapFactory().FromSecretArgs(
-			kv.NewLoader(m.h.Loader(), m.h.Validator(), context.Background()),
+			kv.NewLoader(NewLoader(), m.h.Validator()),
 			m.genOpts, args)
 		if err != nil {
 			return c, mutated, err

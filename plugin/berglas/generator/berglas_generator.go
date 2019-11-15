@@ -17,11 +17,8 @@ limitations under the License.
 package generator
 
 import (
-	"context"
-	"fmt"
-
-	"github.com/GoogleCloudPlatform/berglas/pkg/berglas"
-	"github.com/carbonrelay/konjure/internal/kustomize/kv"
+	"github.com/carbonrelay/konjure/internal/berglas"
+	"sigs.k8s.io/kustomize/api/kv"
 	"sigs.k8s.io/kustomize/api/resmap"
 	"sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/yaml"
@@ -45,19 +42,20 @@ func (p *plugin) Config(h *resmap.PluginHelpers, c []byte) error {
 }
 
 func (p *plugin) Generate() (resmap.ResMap, error) {
-	// Verify all the references at least look enough like Berglas references to trigger more validation later
-	for _, ref := range p.References {
-		if !berglas.IsReference(ref) {
-			return nil, fmt.Errorf("invalid Berglas reference: %s", ref)
-		}
-	}
-
-	// Generate the ResMap
 	args := types.SecretArgs{}
 	args.Namespace = p.Namespace
 	args.Name = p.Name
-	args.FileSources = p.References
+
+	for _, ref := range p.References {
+		fs, err := berglas.AsFileSource(ref)
+		if err != nil {
+			return nil, err
+		}
+		args.FileSources = append(args.FileSources, fs)
+	}
+
+	// Generate the ResMap
 	return p.h.ResmapFactory().FromSecretArgs(
-		kv.NewLoader(p.h.Loader(), p.h.Validator(), context.Background()),
+		kv.NewLoader(berglas.NewLoader(), p.h.Validator()),
 		p.GeneratorOptions, args)
 }

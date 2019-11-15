@@ -17,12 +17,11 @@ limitations under the License.
 package generator
 
 import (
-	"context"
 	"fmt"
 
-	"github.com/carbonrelay/konjure/internal/kustomize/kv"
 	"github.com/sethvargo/go-password/password"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"sigs.k8s.io/kustomize/api/kv"
 	"sigs.k8s.io/kustomize/api/resmap"
 	"sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/yaml"
@@ -80,7 +79,7 @@ func (p *plugin) Generate() (resmap.ResMap, error) {
 	}
 
 	return p.h.ResmapFactory().FromSecretArgs(
-		kv.NewLoader(p.h.Loader(), p.h.Validator(), context.Background()),
+		kv.NewLoader(p.h.Loader(), p.h.Validator()),
 		p.GeneratorOptions, args)
 }
 

@@ -26,6 +26,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/carbonrelay/konjure/internal/berglas"
 	"github.com/google/go-jsonnet"
 	"k8s.io/apimachinery/pkg/util/json"
 	"sigs.k8s.io/kustomize/api/resmap"
@@ -44,6 +45,7 @@ type Parameter struct {
 type plugin struct {
 	h  *resmap.PluginHelpers
 	fi *jsonnet.FileImporter
+	si *berglas.SecretImporter
 
 	Filename          string      `json:"filename"`
 	Code              string      `json:"exec"`
@@ -58,6 +60,7 @@ var KustomizePlugin plugin
 func (p *plugin) Config(h *resmap.PluginHelpers, c []byte) error {
 	p.h = h
 	p.fi = &jsonnet.FileImporter{}
+	p.si = &berglas.SecretImporter{}
 	return yaml.Unmarshal(c, p)
 }
 
@@ -87,13 +90,12 @@ func (p *plugin) Generate() (resmap.ResMap, error) {
 	return m, nil
 }
 
-// Import resolves Jsonnet import statements using the Kustomize loader
+// Import resolves Jsonnet import statements using the Berglas and the file system
 func (p *plugin) Import(importedFrom, importedPath string) (jsonnet.Contents, string, error) {
-	if b, err := p.h.Loader().Load(importedPath); err == nil {
-		return jsonnet.MakeContents(string(b)), importedPath, nil
+	// Ignore errors from the SecretImporter and just fall back to the FileImporter
+	if c, fp, err := p.si.Import(importedFrom, importedPath); err == nil {
+		return c, fp, nil
 	}
-
-	// Fallback to the standard Jsonnet implementation if there was an error
 	return p.fi.Import(importedFrom, importedPath)
 }
 
