@@ -49,7 +49,7 @@ func NewHelmGeneratorCommand() *cobra.Command {
 	cmd.Flags().StringArrayVarP(&f.values, "values", "f", nil, "specify values in a YAML `file`")
 
 	// These flags are specific to our plugin
-	cmd.Flags().BoolVar(&KustomizePlugin.IncludeTests, "include-tests", false, "do not remove resources labeled as test hooks")
+	cmd.Flags().BoolVar(&p.IncludeTests, "include-tests", false, "do not remove resources labeled as test hooks")
 
 	return cmd
 }
