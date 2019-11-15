@@ -7,7 +7,7 @@ Konjure generates and transforms Kubernetes resource definitions. It can be used
 
 ## Installation
 
-Download the latest binary for your platform, make it executable and put it on your path:
+Download the [latest binary](https://github.com/carbonrelay/konjure/releases/latest) for your platform and put it on your path:
 
 ```sh
 os=linux # Or 'darwin'
@@ -17,7 +17,7 @@ curl -s https://api.github.com/repos/carbonrelay/konjure/releases/latest |\
 sudo mv konjure /usr/local/bin/
 ```
 
-For Kustomization integration, you can run:
+To enable the Kustomization integration, you can also run:
 
 ```sh
 konjure kustomize init
