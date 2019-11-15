@@ -49,6 +49,7 @@ type plugin struct {
 	UUIDSources      []string                 `json:"uuids,omitempty"`
 }
 
+//noinspection GoUnusedGlobalVariable
 var KustomizePlugin plugin
 
 func (p *plugin) Config(h *resmap.PluginHelpers, c []byte) error {

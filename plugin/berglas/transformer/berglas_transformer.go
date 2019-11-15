@@ -39,6 +39,7 @@ type plugin struct {
 	GenerateSecrets  bool                    `json:"-"` // TODO Change back to "generateSecrets,omitempty
 }
 
+//noinspection GoUnusedGlobalVariable
 var KustomizePlugin plugin
 
 func (p *plugin) Config(h *resmap.PluginHelpers, c []byte) error {

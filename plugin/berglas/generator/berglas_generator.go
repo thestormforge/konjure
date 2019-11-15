@@ -36,6 +36,7 @@ type plugin struct {
 	References       []string                `json:"refs"`
 }
 
+//noinspection GoUnusedGlobalVariable
 var KustomizePlugin plugin
 
 func (p *plugin) Config(h *resmap.PluginHelpers, c []byte) error {

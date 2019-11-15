@@ -37,6 +37,7 @@ type plugin struct {
 	IncludeTests bool          `json:"includeTests"`
 }
 
+//noinspection GoUnusedGlobalVariable
 var KustomizePlugin plugin
 
 func (p *plugin) Config(h *resmap.PluginHelpers, c []byte) error {

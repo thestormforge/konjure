@@ -40,6 +40,7 @@ type plugin struct {
 	FieldSpecs []types.FieldSpec `json:"fieldSpecs,omitempty"`
 }
 
+//noinspection GoUnusedGlobalVariable
 var KustomizePlugin plugin
 
 func (p *plugin) Config(h *resmap.PluginHelpers, c []byte) error {

@@ -52,6 +52,7 @@ type plugin struct {
 	TopLevelArguments []Parameter `json:"topLevelArg"`
 }
 
+//noinspection GoUnusedGlobalVariable
 var KustomizePlugin plugin
 
 func (p *plugin) Config(h *resmap.PluginHelpers, c []byte) error {
@@ -98,8 +99,8 @@ func (p *plugin) Import(importedFrom, importedPath string) (jsonnet.Contents, st
 
 func (p *plugin) readInput() (string, []byte, error) {
 	if p.Filename != "" {
-		bytes, err := ioutil.ReadFile(p.Filename)
-		return p.Filename, bytes, err
+		b, err := ioutil.ReadFile(p.Filename)
+		return p.Filename, b, err
 	}
 
 	if p.Code != "" {
