@@ -26,7 +26,7 @@ import (
 
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kplug "sigs.k8s.io/kustomize/v3/pkg/plugins"
+	"sigs.k8s.io/kustomize/api/konfig"
 )
 
 // NewInitializeCommand returns a command for initializing Konjure.
@@ -79,7 +79,11 @@ func (o *initializeOptions) preRun(cmd *cobra.Command, args []string) error {
 
 	// Determine the directory where plugins are located
 	if o.PluginDir == "" {
-		o.PluginDir = kplug.ActivePluginConfig().DirectoryPath
+		pc, err := konfig.EnabledPluginConfig()
+		if err != nil {
+			return err
+		}
+		o.PluginDir = pc.AbsPluginHome
 	}
 
 	// Determine the source to use for the symlinks

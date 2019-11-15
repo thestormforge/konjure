@@ -1,32 +1,31 @@
 package berglas
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"path"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/berglas/pkg/berglas"
+	"github.com/carbonrelay/konjure/internal/kustomize/kv"
 	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/kustomize/v3/pkg/ifc"
-	"sigs.k8s.io/kustomize/v3/pkg/resmap"
-	"sigs.k8s.io/kustomize/v3/pkg/types"
+	"sigs.k8s.io/kustomize/api/resmap"
+	"sigs.k8s.io/kustomize/api/types"
 )
 
 // Mutator performs Berglas mutations on pod templates
 type Mutator struct {
-	resMapFactory *resmap.Factory
-	loader        ifc.Loader
-	genOpts       *types.GeneratorOptions
-	secrets       resmap.ResMap
+	h       *resmap.PluginHelpers
+	genOpts *types.GeneratorOptions
+	secrets resmap.ResMap
 }
 
 // NewMutator returns a new Berglas mutator from the specified Kustomize helpers
-func NewMutator(ldr ifc.Loader, rf *resmap.Factory, opts *types.GeneratorOptions) *Mutator {
+func NewMutator(h *resmap.PluginHelpers, opts *types.GeneratorOptions) *Mutator {
 	m := &Mutator{
-		resMapFactory: rf,
-		loader:        ldr,
-		genOpts:       opts,
+		h:       h,
+		genOpts: opts,
 	}
 
 	if opts != nil {
@@ -110,7 +109,9 @@ func (m *Mutator) mutateContainerWithSecrets(c *corev1.Container) (*corev1.Conta
 		args := types.SecretArgs{}
 		args.Name = r.Bucket()
 		args.FileSources = []string{e.Value}
-		sm, err := m.resMapFactory.FromSecretArgs(m.loader, m.genOpts, args)
+		sm, err := m.h.ResmapFactory().FromSecretArgs(
+			kv.NewLoader(m.h.Loader(), m.h.Validator(), context.Background()),
+			m.genOpts, args)
 		if err != nil {
 			return c, mutated, err
 		}

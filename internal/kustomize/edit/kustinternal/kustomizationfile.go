@@ -13,9 +13,9 @@ import (
 	"regexp"
 	"strings"
 
-	"sigs.k8s.io/kustomize/v3/pkg/fs"
-	"sigs.k8s.io/kustomize/v3/pkg/pgmconfig"
-	"sigs.k8s.io/kustomize/v3/pkg/types"
+	"sigs.k8s.io/kustomize/api/filesys"
+	"sigs.k8s.io/kustomize/api/konfig"
+	"sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/yaml"
 )
 
@@ -102,12 +102,12 @@ func squash(x [][]byte) []byte {
 
 type kustomizationFile struct {
 	path           string
-	fSys           fs.FileSystem
+	fSys           filesys.FileSystem
 	originalFields []*commentedField
 }
 
 // NewKustomizationFile returns a new instance.
-func NewKustomizationFile(fSys fs.FileSystem) (*kustomizationFile, error) { // nolint
+func NewKustomizationFile(fSys filesys.FileSystem) (*kustomizationFile, error) { // nolint
 	mf := &kustomizationFile{fSys: fSys}
 	err := mf.validate()
 	if err != nil {
@@ -119,7 +119,7 @@ func NewKustomizationFile(fSys fs.FileSystem) (*kustomizationFile, error) { // n
 func (mf *kustomizationFile) validate() error {
 	match := 0
 	var path []string
-	for _, kfilename := range pgmconfig.RecognizedKustomizationFileNames() {
+	for _, kfilename := range konfig.RecognizedKustomizationFileNames() {
 		if mf.fSys.Exists(kfilename) {
 			match += 1
 			path = append(path, kfilename)
@@ -130,7 +130,7 @@ func (mf *kustomizationFile) validate() error {
 	case 0:
 		return fmt.Errorf(
 			"Missing kustomization file '%s'.\n",
-			pgmconfig.DefaultKustomizationFileName())
+			konfig.DefaultKustomizationFileName())
 	case 1:
 		mf.path = path[0]
 	default:

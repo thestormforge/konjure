@@ -8,12 +8,12 @@ import (
 	"log"
 	"strings"
 
-	"sigs.k8s.io/kustomize/v3/pkg/fs"
+	"sigs.k8s.io/kustomize/api/filesys"
 )
 
 // GlobPatterns accepts a slice of glob strings and returns the set of
 // matching file paths.
-func GlobPatterns(fsys fs.FileSystem, patterns []string) ([]string, error) {
+func GlobPatterns(fsys filesys.FileSystem, patterns []string) ([]string, error) {
 	var result []string
 	for _, pattern := range patterns {
 		files, err := fsys.Glob(pattern)

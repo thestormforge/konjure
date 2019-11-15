@@ -9,8 +9,8 @@ import (
 
 	"github.com/carbonrelay/konjure/internal/kustomize/edit/kustinternal"
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/kustomize/v3/pkg/fs"
-	"sigs.k8s.io/kustomize/v3/pkg/pgmconfig"
+	"sigs.k8s.io/kustomize/api/filesys"
+	"sigs.k8s.io/kustomize/api/konfig"
 )
 
 type removeGeneratorOptions struct {
@@ -18,13 +18,13 @@ type removeGeneratorOptions struct {
 }
 
 // newCmdRemoveGenerator removes the name of a file containing a generator from the kustomization file.
-func newCmdRemoveGenerator(fSys fs.FileSystem) *cobra.Command {
+func newCmdRemoveGenerator(fSys filesys.FileSystem) *cobra.Command {
 	var o removeGeneratorOptions
 
 	cmd := &cobra.Command{
 		Use: "generator",
 		Short: "Removes one or more generator file paths from " +
-			pgmconfig.DefaultKustomizationFileName(),
+			konfig.DefaultKustomizationFileName(),
 		Example: ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			err := o.Validate(args)
@@ -56,7 +56,7 @@ func (o *removeGeneratorOptions) Complete(cmd *cobra.Command, args []string) err
 }
 
 // RunRemoveGenerator runs removeGenerator command (do real work).
-func (o *removeGeneratorOptions) RunRemoveGenerator(fSys fs.FileSystem) error {
+func (o *removeGeneratorOptions) RunRemoveGenerator(fSys filesys.FileSystem) error {
 
 	mf, err := kustinternal.NewKustomizationFile(fSys)
 	if err != nil {

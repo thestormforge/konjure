@@ -9,7 +9,7 @@ import (
 
 	"github.com/carbonrelay/konjure/internal/kustomize/edit/kustinternal"
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/kustomize/v3/pkg/fs"
+	"sigs.k8s.io/kustomize/api/filesys"
 )
 
 type addGeneratorOptions struct {
@@ -17,7 +17,7 @@ type addGeneratorOptions struct {
 }
 
 // newCmdAddGenerator adds the name of a file containing a generator to the kustomization file.
-func newCmdAddGenerator(fSys fs.FileSystem) *cobra.Command {
+func newCmdAddGenerator(fSys filesys.FileSystem) *cobra.Command {
 	var o addGeneratorOptions
 
 	cmd := &cobra.Command{
@@ -55,7 +55,7 @@ func (o *addGeneratorOptions) Complete(cmd *cobra.Command, args []string) error 
 }
 
 // RunAddGenerator runs addGenerator command (do real work).
-func (o *addGeneratorOptions) RunAddGenerator(fSys fs.FileSystem) error {
+func (o *addGeneratorOptions) RunAddGenerator(fSys filesys.FileSystem) error {
 	generators, err := kustinternal.GlobPatterns(fSys, o.generatorFilePaths)
 	if err != nil {
 		return err

@@ -18,17 +18,15 @@ package generator
 
 import (
 	"github.com/carbonrelay/konjure/internal/helm"
-	"sigs.k8s.io/kustomize/v3/pkg/ifc"
-	"sigs.k8s.io/kustomize/v3/pkg/resmap"
-	"sigs.k8s.io/kustomize/v3/pkg/types"
+	"sigs.k8s.io/kustomize/api/resmap"
+	"sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/yaml"
 )
 
 // TODO Instead of "include tests" should we have a generic "exclude hooks" that defaults to the test hooks?
 
 type plugin struct {
-	ldr ifc.Loader
-	rf  *resmap.Factory
+	h *resmap.PluginHelpers
 
 	Helm         helm.Executor `json:"helm"`
 	Repository   string        `json:"repo"`
@@ -41,9 +39,8 @@ type plugin struct {
 
 var KustomizePlugin plugin
 
-func (p *plugin) Config(ldr ifc.Loader, rf *resmap.Factory, c []byte) error {
-	p.ldr = ldr
-	p.rf = rf
+func (p *plugin) Config(h *resmap.PluginHelpers, c []byte) error {
+	p.h = h
 	return yaml.Unmarshal(c, p)
 }
 
@@ -69,7 +66,7 @@ func (p *plugin) Generate() (resmap.ResMap, error) {
 	}
 
 	// Convert to a resource map
-	m, err := p.rf.NewResMapFromBytes(b)
+	m, err := p.h.ResmapFactory().NewResMapFromBytes(b)
 	if err != nil {
 		return nil, err
 	}

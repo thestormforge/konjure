@@ -20,8 +20,8 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"sigs.k8s.io/kustomize/v3/pkg/gvk"
-	"sigs.k8s.io/kustomize/v3/pkg/transformers/config"
+	"sigs.k8s.io/kustomize/api/resid"
+	"sigs.k8s.io/kustomize/api/types"
 )
 
 func Test_createIfNotPresent(t *testing.T) {
@@ -30,7 +30,7 @@ func Test_createIfNotPresent(t *testing.T) {
 	// In all these cases the "fs" comes from the default built-in configuration
 	// The following configuration was used at the time this test was written:
 	// https://raw.githubusercontent.com/kubernetes-sigs/kustomize/077c7b2d20bfdb0de78e6873a4ae1ce08afa1c40/api/konfig/builtinpluginconsts/commonlabels.go
-	var fs *config.FieldSpec
+	var fs *types.FieldSpec
 
 	fs = fieldSpec("spec/selector", true, "", "v1", "ReplicationController")
 	g.Expect(createIfNotPresent(x("", "v1", "ReplicationController"), fs)).To(Equal(false))
@@ -66,16 +66,16 @@ func Test_createIfNotPresent(t *testing.T) {
 	g.Expect(createIfNotPresent(x("batch", "v1", "Job"), fs)).To(Equal(false))
 }
 
-func x(group, version, kind string) gvk.Gvk {
-	return gvk.Gvk{
+func x(group, version, kind string) resid.Gvk {
+	return resid.Gvk{
 		Group:   group,
 		Version: version,
 		Kind:    kind,
 	}
 }
 
-func fieldSpec(path string, create bool, group, version, kind string) *config.FieldSpec {
-	return &config.FieldSpec{
+func fieldSpec(path string, create bool, group, version, kind string) *types.FieldSpec {
+	return &types.FieldSpec{
 		Gvk:                x(group, version, kind),
 		Path:               path,
 		CreateIfNotPresent: create,

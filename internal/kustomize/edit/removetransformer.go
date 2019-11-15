@@ -8,8 +8,8 @@ import (
 
 	"github.com/carbonrelay/konjure/internal/kustomize/edit/kustinternal"
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/kustomize/v3/pkg/fs"
-	"sigs.k8s.io/kustomize/v3/pkg/pgmconfig"
+	"sigs.k8s.io/kustomize/api/filesys"
+	"sigs.k8s.io/kustomize/api/konfig"
 )
 
 type removeTransformerOptions struct {
@@ -17,13 +17,13 @@ type removeTransformerOptions struct {
 }
 
 // newCmdRemoveTransformer removes the name of a file containing a transformer from the kustomization file.
-func newCmdRemoveTransformer(fSys fs.FileSystem) *cobra.Command {
+func newCmdRemoveTransformer(fSys filesys.FileSystem) *cobra.Command {
 	var o removeTransformerOptions
 
 	cmd := &cobra.Command{
 		Use: "transformer",
 		Short: "Removes one or more transformer file paths from " +
-			pgmconfig.DefaultKustomizationFileName(),
+			konfig.DefaultKustomizationFileName(),
 		Example: ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			err := o.Validate(args)
@@ -55,7 +55,7 @@ func (o *removeTransformerOptions) Complete(cmd *cobra.Command, args []string) e
 }
 
 // RunRemoveTransformer runs removeTransformer command (do real work).
-func (o *removeTransformerOptions) RunRemoveTransformer(fSys fs.FileSystem) error {
+func (o *removeTransformerOptions) RunRemoveTransformer(fSys filesys.FileSystem) error {
 
 	mf, err := kustinternal.NewKustomizationFile(fSys)
 	if err != nil {

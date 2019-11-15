@@ -18,12 +18,12 @@ package edit
 
 import (
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/kustomize/v3/pkg/fs"
+	"sigs.k8s.io/kustomize/api/filesys"
 )
 
 // NewEditCommand returns a minimal edit command with the Konjure specific additions
 func NewEditCommand() *cobra.Command {
-	fSys := fs.MakeFsOnDisk()
+	fSys := filesys.MakeFsOnDisk()
 	addCmd := &cobra.Command{
 		Use:   "add",
 		Short: "Adds an item to the kustomization file.",

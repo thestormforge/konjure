@@ -18,12 +18,13 @@ package transformer
 
 import (
 	"fmt"
+	"sort"
 
-	"sigs.k8s.io/kustomize/v3/pkg/gvk"
-	"sigs.k8s.io/kustomize/v3/pkg/ifc"
-	"sigs.k8s.io/kustomize/v3/pkg/resmap"
-	"sigs.k8s.io/kustomize/v3/pkg/transformers"
-	"sigs.k8s.io/kustomize/v3/pkg/transformers/config"
+	"sigs.k8s.io/kustomize/api/konfig/builtinpluginconsts"
+	"sigs.k8s.io/kustomize/api/resid"
+	"sigs.k8s.io/kustomize/api/resmap"
+	"sigs.k8s.io/kustomize/api/transform"
+	"sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/yaml"
 )
 
@@ -33,24 +34,30 @@ import (
 // the new labels: it is easier to just not create the selector.
 
 type plugin struct {
-	ldr ifc.Loader
-	rf  *resmap.Factory
+	h *resmap.PluginHelpers
 
-	Labels     map[string]string  `json:"labels"`
-	FieldSpecs []config.FieldSpec `json:"fieldSpecs,omitempty"`
+	Labels     map[string]string `json:"labels"`
+	FieldSpecs []types.FieldSpec `json:"fieldSpecs,omitempty"`
 }
 
 var KustomizePlugin plugin
 
-func (p *plugin) Config(ldr ifc.Loader, rf *resmap.Factory, c []byte) error {
-	p.ldr = ldr
-	p.rf = rf
+func (p *plugin) Config(h *resmap.PluginHelpers, c []byte) error {
+	p.h = h
 	return yaml.Unmarshal(c, p)
 }
 
 func (p *plugin) Transform(m resmap.ResMap) error {
 	if len(p.FieldSpecs) == 0 {
-		tc, _ := config.MakeDefaultConfig().Merge(config.MakeEmptyConfig())
+		type TransformerConfig struct {
+			CommonLabels types.FsSlice `json:"commonLabels"`
+		}
+		tc := &TransformerConfig{}
+		err := yaml.Unmarshal(builtinpluginconsts.GetDefaultFieldSpecs(), tc)
+		if err != nil {
+			return err
+		}
+		sort.Sort(tc.CommonLabels)
 		p.FieldSpecs = tc.CommonLabels
 	}
 
@@ -59,7 +66,7 @@ func (p *plugin) Transform(m resmap.ResMap) error {
 			if !r.OrgId().IsSelected(&path.Gvk) {
 				continue
 			}
-			err := transformers.MutateField(r.Map(), path.PathSlice(), createIfNotPresent(r.GetGvk(), &path), p.addMap)
+			err := transform.MutateField(r.Map(), path.PathSlice(), createIfNotPresent(r.GetGvk(), &path), p.addMap)
 			if err != nil {
 				return err
 			}
@@ -82,7 +89,7 @@ func (p *plugin) addMap(in interface{}) (interface{}, error) {
 }
 
 // This is the additional check not present in the built-in transformer
-func createIfNotPresent(x gvk.Gvk, fs *config.FieldSpec) bool {
+func createIfNotPresent(x resid.Gvk, fs *types.FieldSpec) bool {
 	// If the value is already false we do not need to worry about changing it
 	if !fs.CreateIfNotPresent {
 		return false

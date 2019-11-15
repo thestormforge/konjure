@@ -17,13 +17,14 @@ limitations under the License.
 package generator
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/carbonrelay/konjure/internal/kustomize/kv"
 	"github.com/sethvargo/go-password/password"
 	"k8s.io/apimachinery/pkg/util/uuid"
-	"sigs.k8s.io/kustomize/v3/pkg/ifc"
-	"sigs.k8s.io/kustomize/v3/pkg/resmap"
-	"sigs.k8s.io/kustomize/v3/pkg/types"
+	"sigs.k8s.io/kustomize/api/resmap"
+	"sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/yaml"
 )
 
@@ -38,8 +39,7 @@ type PasswordRecipe struct {
 }
 
 type plugin struct {
-	ldr ifc.Loader
-	rf  *resmap.Factory
+	h *resmap.PluginHelpers
 
 	GeneratorOptions *types.GeneratorOptions  `json:"generatorOptions,omitempty"`
 	GeneratorInput   *password.GeneratorInput `json:"passwordOptions,omitempty"`
@@ -51,9 +51,8 @@ type plugin struct {
 
 var KustomizePlugin plugin
 
-func (p *plugin) Config(ldr ifc.Loader, rf *resmap.Factory, c []byte) error {
-	p.ldr = ldr
-	p.rf = rf
+func (p *plugin) Config(h *resmap.PluginHelpers, c []byte) error {
+	p.h = h
 	return yaml.Unmarshal(c, p)
 }
 
@@ -79,7 +78,9 @@ func (p *plugin) Generate() (resmap.ResMap, error) {
 		args.LiteralSources = append(args.LiteralSources, fmt.Sprintf("%s=%s", s, uuid.NewUUID()))
 	}
 
-	return p.rf.FromSecretArgs(p.ldr, p.GeneratorOptions, args)
+	return p.h.ResmapFactory().FromSecretArgs(
+		kv.NewLoader(p.h.Loader(), p.h.Validator(), context.Background()),
+		p.GeneratorOptions, args)
 }
 
 // Generate returns the password produced by the supplied generator using this recipe.

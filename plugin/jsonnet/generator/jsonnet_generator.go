@@ -28,8 +28,7 @@ import (
 
 	"github.com/google/go-jsonnet"
 	"k8s.io/apimachinery/pkg/util/json"
-	"sigs.k8s.io/kustomize/v3/pkg/ifc"
-	"sigs.k8s.io/kustomize/v3/pkg/resmap"
+	"sigs.k8s.io/kustomize/api/resmap"
 	"sigs.k8s.io/yaml"
 )
 
@@ -43,9 +42,8 @@ type Parameter struct {
 }
 
 type plugin struct {
-	ldr ifc.Loader
-	rf  *resmap.Factory
-	fi  *jsonnet.FileImporter
+	h  *resmap.PluginHelpers
+	fi *jsonnet.FileImporter
 
 	Filename          string      `json:"filename"`
 	Code              string      `json:"exec"`
@@ -56,9 +54,8 @@ type plugin struct {
 
 var KustomizePlugin plugin
 
-func (p *plugin) Config(ldr ifc.Loader, rf *resmap.Factory, c []byte) error {
-	p.ldr = ldr
-	p.rf = rf
+func (p *plugin) Config(h *resmap.PluginHelpers, c []byte) error {
+	p.h = h
 	p.fi = &jsonnet.FileImporter{}
 	return yaml.Unmarshal(c, p)
 }
@@ -91,7 +88,7 @@ func (p *plugin) Generate() (resmap.ResMap, error) {
 
 // Import resolves Jsonnet import statements using the Kustomize loader
 func (p *plugin) Import(importedFrom, importedPath string) (jsonnet.Contents, string, error) {
-	if b, err := p.ldr.Load(importedPath); err == nil {
+	if b, err := p.h.Loader().Load(importedPath); err == nil {
 		return jsonnet.MakeContents(string(b)), importedPath, nil
 	}
 
@@ -149,7 +146,7 @@ func (p *plugin) newResMapFromMultiDocumentJSON(b []byte) (resmap.ResMap, error)
 		return m, nil
 	}
 
-	rf := p.rf.RF()
+	rf := p.h.ResmapFactory().RF()
 
 	if bytes.HasPrefix(j, []byte("[")) {
 		// JSON list: just add each item as a new resource

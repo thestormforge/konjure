@@ -17,27 +17,23 @@ limitations under the License.
 package transformer
 
 import (
-	"github.com/carbonrelay/konjure/internal/berglas"
-	"github.com/carbonrelay/konjure/internal/kustomize"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"sigs.k8s.io/kustomize/v3/pkg/gvk"
-	"sigs.k8s.io/kustomize/v3/pkg/ifc"
-	"sigs.k8s.io/kustomize/v3/pkg/resmap"
-	"sigs.k8s.io/kustomize/v3/pkg/types"
-	"sigs.k8s.io/yaml"
-
 	"reflect"
 
+	"github.com/carbonrelay/konjure/internal/berglas"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/kustomize/v3/pkg/resource"
+	"sigs.k8s.io/kustomize/api/resid"
+	"sigs.k8s.io/kustomize/api/resmap"
+	"sigs.k8s.io/kustomize/api/resource"
+	"sigs.k8s.io/kustomize/api/types"
+	"sigs.k8s.io/yaml"
 )
 
 type plugin struct {
-	ldr ifc.Loader
-	rf  *resmap.Factory
+	h *resmap.PluginHelpers
 
 	GeneratorOptions *types.GeneratorOptions `json:"generatorOptions,omitempty"`
 	GenerateSecrets  bool                    `json:"-"` // TODO Change back to "generateSecrets,omitempty
@@ -45,9 +41,8 @@ type plugin struct {
 
 var KustomizePlugin plugin
 
-func (p *plugin) Config(ldr ifc.Loader, rf *resmap.Factory, c []byte) error {
-	p.ldr = kustomize.MustUseKonjureLoader(ldr)
-	p.rf = rf
+func (p *plugin) Config(h *resmap.PluginHelpers, c []byte) error {
+	p.h = h
 	return yaml.Unmarshal(c, p)
 }
 
@@ -60,7 +55,7 @@ func (p *plugin) Transform(m resmap.ResMap) error {
 	}
 
 	// Create a new mutator
-	mutator := berglas.NewMutator(p.ldr, p.rf, opts)
+	mutator := berglas.NewMutator(p.h, opts)
 	for _, r := range m.Resources() {
 		// Mutate using the appropriate API struct
 		if err := mutateResourceAs(mutator, r); err != nil {
@@ -110,7 +105,7 @@ func mutateResourceAs(m *berglas.Mutator, r *resource.Resource) error {
 	return nil
 }
 
-func toSchemaGvk(x gvk.Gvk) schema.GroupVersionKind {
+func toSchemaGvk(x resid.Gvk) schema.GroupVersionKind {
 	return schema.GroupVersionKind{
 		Group:   x.Group,
 		Version: x.Version,

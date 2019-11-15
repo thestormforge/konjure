@@ -22,14 +22,14 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/carbonrelay/konjure/internal/kustomize/loader"
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/kustomize/v3/k8sdeps/kunstruct"
-	"sigs.k8s.io/kustomize/v3/k8sdeps/transformer"
-	"sigs.k8s.io/kustomize/v3/pkg/ifc"
-	"sigs.k8s.io/kustomize/v3/pkg/resmap"
-	"sigs.k8s.io/kustomize/v3/pkg/resource"
-	"sigs.k8s.io/kustomize/v3/pkg/types"
-	"sigs.k8s.io/kustomize/v3/plugin/builtin"
+	"sigs.k8s.io/kustomize/api/builtins"
+	"sigs.k8s.io/kustomize/api/k8sdeps/kunstruct"
+	"sigs.k8s.io/kustomize/api/k8sdeps/validator"
+	"sigs.k8s.io/kustomize/api/resmap"
+	"sigs.k8s.io/kustomize/api/resource"
+	"sigs.k8s.io/kustomize/api/types"
 )
 
 // PluginRunner is used to create Cobra commands that run Kustomize plugins
@@ -42,8 +42,7 @@ type PluginRunner struct {
 	generate  func() (resmap.ResMap, error)
 	transform func(resMap resmap.ResMap) error
 
-	ldr ifc.Loader
-	rf  *resmap.Factory
+	h *resmap.PluginHelpers
 }
 
 // RunnerOption is an option that can be applied when creating a plugin runner
@@ -84,15 +83,18 @@ func NewPluginRunner(plugin interface{}, opts ...RunnerOption) *cobra.Command {
 
 // preRun will create the plugin helpers and invoke the configure method of the plugin
 func (k *PluginRunner) preRun(cmd *cobra.Command, args []string) error {
-	ldr, err := NewKonjureLoader(context.Background(), k.root)
+	ldr, err := loader.NewLoader(context.Background(), k.root)
 	if err != nil {
 		return err
 	}
-	k.ldr = ldr
+
+	v := validator.NewKustValidator()
 
 	uf := kunstruct.NewKunstructuredFactoryImpl()
-	pf := transformer.NewFactoryImpl()
-	k.rf = resmap.NewFactory(resource.NewFactory(uf), pf)
+	var tf resmap.PatchFactory // The actual implementation is internal now...
+	rf := resmap.NewFactory(resource.NewFactory(uf), tf)
+
+	k.h = resmap.NewPluginHelpers(ldr, v, rf)
 
 	config, err := k.config(cmd, args)
 	if err != nil {
@@ -104,7 +106,7 @@ func (k *PluginRunner) preRun(cmd *cobra.Command, args []string) error {
 		return nil // Ignore non-configurable plugins
 	}
 
-	return c.Config(k.ldr, k.rf, config)
+	return c.Config(k.h, config)
 }
 
 // run will actually run everything
@@ -129,7 +131,7 @@ func (k *PluginRunner) run(cmd *cobra.Command, args []string) error {
 
 // postRun will perform necessary clean up
 func (k *PluginRunner) postRun(cmd *cobra.Command, args []string) error {
-	return k.ldr.Cleanup()
+	return k.h.Loader().Cleanup()
 }
 
 // newResMapFromStdin reads stdin and parses it as a resource map
@@ -138,13 +140,13 @@ func (k *PluginRunner) newResMapFromStdin() (resmap.ResMap, error) {
 	if err != nil {
 		return nil, err
 	}
-	return k.rf.NewResMapFromBytes(b)
+	return k.h.ResmapFactory().NewResMapFromBytes(b)
 }
 
 // addTransformerPlugin will mutate the transform function to also run the supplied plugin
 func (k *PluginRunner) addTransformerPlugin(t resmap.TransformerPlugin, config []byte) {
 	k.transform = combineTransformFunc(k.transform, func(m resmap.ResMap) error {
-		if err := t.Config(k.ldr, k.rf, config); err != nil {
+		if err := t.Config(k.h, config); err != nil {
 			return err
 		}
 		return t.Transform(m)
@@ -198,7 +200,7 @@ func WithPreRunE(preRunE func(cmd *cobra.Command, args []string) error) RunnerOp
 
 func WithHashTransformer() RunnerOption {
 	return func(k *PluginRunner) {
-		k.addTransformerPlugin(builtin.NewHashTransformerPlugin(), nil)
+		k.addTransformerPlugin(builtins.NewHashTransformerPlugin(), nil)
 		// TODO We can't just add this without having something to fix name references
 	}
 }
@@ -222,7 +224,7 @@ func WithTransformerFilenameFlag() RunnerOption {
 			if err != nil {
 				return nil, err
 			}
-			return k.rf.NewResMapFromBytes(b)
+			return k.h.ResmapFactory().NewResMapFromBytes(b)
 		}
 	}
 }

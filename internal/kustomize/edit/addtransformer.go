@@ -9,7 +9,7 @@ import (
 
 	"github.com/carbonrelay/konjure/internal/kustomize/edit/kustinternal"
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/kustomize/v3/pkg/fs"
+	"sigs.k8s.io/kustomize/api/filesys"
 )
 
 type addTransformerOptions struct {
@@ -17,7 +17,7 @@ type addTransformerOptions struct {
 }
 
 // newCmdAddTransformer adds the name of a file containing a transformer to the kustomization file.
-func newCmdAddTransformer(fSys fs.FileSystem) *cobra.Command {
+func newCmdAddTransformer(fSys filesys.FileSystem) *cobra.Command {
 	var o addTransformerOptions
 
 	cmd := &cobra.Command{
@@ -55,7 +55,7 @@ func (o *addTransformerOptions) Complete(cmd *cobra.Command, args []string) erro
 }
 
 // RunAddTransformer runs addTransformer command (do real work).
-func (o *addTransformerOptions) RunAddTransformer(fSys fs.FileSystem) error {
+func (o *addTransformerOptions) RunAddTransformer(fSys filesys.FileSystem) error {
 	transformers, err := kustinternal.GlobPatterns(fSys, o.transformerFilePaths)
 	if err != nil {
 		return err
