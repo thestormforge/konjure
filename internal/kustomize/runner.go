@@ -23,7 +23,6 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/kustomize/api/builtins"
 	"sigs.k8s.io/kustomize/api/filesys"
 	"sigs.k8s.io/kustomize/api/k8sdeps/kunstruct"
 	"sigs.k8s.io/kustomize/api/k8sdeps/validator"
@@ -32,6 +31,9 @@ import (
 	"sigs.k8s.io/kustomize/api/resource"
 	"sigs.k8s.io/kustomize/api/types"
 )
+
+// RunnerOption is an option that can be applied when creating a plugin runner
+type RunnerOption func(*PluginRunner)
 
 // PluginRunner is used to create Cobra commands that run Kustomize plugins
 type PluginRunner struct {
@@ -45,9 +47,6 @@ type PluginRunner struct {
 
 	h *resmap.PluginHelpers
 }
-
-// RunnerOption is an option that can be applied when creating a plugin runner
-type RunnerOption func(*PluginRunner)
 
 // NewPluginRunner creates a new runner for the supplied plugin and options
 func NewPluginRunner(plugin interface{}, opts ...RunnerOption) *cobra.Command {
@@ -94,22 +93,22 @@ func (k *PluginRunner) preRun(cmd *cobra.Command, args []string) error {
 	v := validator.NewKustValidator()
 
 	uf := kunstruct.NewKunstructuredFactoryImpl()
-	var tf resmap.PatchFactory // The actual implementation is internal now...
+	var tf resmap.PatchFactory // TODO The actual implementation is internal now...
 	rf := resmap.NewFactory(resource.NewFactory(uf), tf)
 
 	k.h = resmap.NewPluginHelpers(ldr, v, rf)
 
-	config, err := k.config(cmd, args)
-	if err != nil {
-		return err
+	if c, ok := k.plugin.(resmap.Configurable); ok {
+		config, err := k.config(cmd, args)
+		if err != nil {
+			return err
+		}
+		if err := c.Config(k.h, config); err != nil {
+			return err
+		}
 	}
 
-	c, ok := k.plugin.(resmap.Configurable)
-	if !ok {
-		return nil // Ignore non-configurable plugins
-	}
-
-	return c.Config(k.h, config)
+	return nil
 }
 
 // run will actually run everything
@@ -154,6 +153,44 @@ func (k *PluginRunner) addTransformerPlugin(t resmap.TransformerPlugin, config [
 		}
 		return t.Transform(m)
 	})
+}
+
+// combineTransformFunc combines two transform functions into a single function. The second function must not be nil.
+func combineTransformFunc(t1, t2 func(resmap.ResMap) error) func(resmap.ResMap) error {
+	if t1 == nil {
+		return t2
+	}
+	return func(m resmap.ResMap) error {
+		if err := t1(m); err != nil {
+			return err
+		}
+		return t2(m)
+	}
+}
+
+// persistResourceOptions persists resource options using Kustomize annotations
+func persistResourceOptions(m resmap.ResMap) error {
+	for _, r := range m.Resources() {
+		annotations := r.GetAnnotations()
+		if annotations == nil {
+			annotations = make(map[string]string)
+		}
+
+		if r.Behavior() != types.BehaviorUnspecified {
+			annotations["kustomize.config.k8s.io/behavior"] = r.Behavior().String()
+		}
+
+		if r.NeedHashSuffix() {
+			annotations["kustomize.config.k8s.io/needs-hash"] = "true"
+		}
+
+		// Store the annotations back to the object
+		if len(annotations) == 0 {
+			annotations = nil
+		}
+		r.SetAnnotations(annotations)
+	}
+	return nil
 }
 
 // WithConfigType will annotate the Cobra command with the GVK of the configuration schema; it will also setup the
@@ -201,12 +238,12 @@ func WithPreRunE(preRunE func(cmd *cobra.Command, args []string) error) RunnerOp
 	}
 }
 
-func WithHashTransformer() RunnerOption {
-	return func(k *PluginRunner) {
-		k.addTransformerPlugin(builtins.NewHashTransformerPlugin(), nil)
-		// TODO We can't just add this without having something to fix name references
-	}
-}
+// TODO We can't just add this without having something to fix name references
+//func WithHashTransformer() RunnerOption {
+//	return func(k *PluginRunner) {
+//		k.addTransformerPlugin(builtins.NewHashTransformerPlugin(), nil)
+//	}
+//}
 
 // WithTransformerFilenameFlag is used by transformers to allow input to come from a file instead of stdin.
 // This should only be used with "Command" commands where the expectation is that we were invoked outside of Kustomize.
@@ -230,42 +267,4 @@ func WithTransformerFilenameFlag() RunnerOption {
 			return k.h.ResmapFactory().NewResMapFromBytes(b)
 		}
 	}
-}
-
-// combineTransformFunc combines two transform functions into a single function. The second function must not be nil.
-func combineTransformFunc(t1, t2 func(resmap.ResMap) error) func(resmap.ResMap) error {
-	if t1 == nil {
-		return t2
-	}
-	return func(m resmap.ResMap) error {
-		if err := t1(m); err != nil {
-			return err
-		}
-		return t2(m)
-	}
-}
-
-// persistResourceOptions persists resource options using Kustomize annotations
-func persistResourceOptions(m resmap.ResMap) error {
-	for _, r := range m.Resources() {
-		annotations := r.GetAnnotations()
-		if annotations == nil {
-			annotations = make(map[string]string)
-		}
-
-		if r.Behavior() != types.BehaviorUnspecified {
-			annotations["kustomize.config.k8s.io/behavior"] = r.Behavior().String()
-		}
-
-		if r.NeedHashSuffix() {
-			annotations["kustomize.config.k8s.io/needs-hash"] = "true"
-		}
-
-		// Store the annotations back to the object
-		if len(annotations) == 0 {
-			annotations = nil
-		}
-		r.SetAnnotations(annotations)
-	}
-	return nil
 }

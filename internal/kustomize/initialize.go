@@ -110,7 +110,7 @@ func (o *initializeOptions) run(cmd *cobra.Command, args []string) error {
 	}
 
 	tw := tabwriter.NewWriter(cmd.OutOrStdout(), 1, 2, 2, '.', 0)
-	defer tw.Flush()
+	defer func() { _ = tw.Flush() }()
 
 	// Process each plugin
 	for i := range plugins {
