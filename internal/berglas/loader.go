@@ -65,12 +65,18 @@ func NewLoader() ifc.Loader {
 	return &SecretImporter{}
 }
 
-func (si *SecretImporter) Root() string   { return "berglas://" }
+// Root returns the prefix required by the Berglas IsReference function
+func (si *SecretImporter) Root() string { return "berglas://" }
+
+// Cleanup does nothing
 func (si *SecretImporter) Cleanup() error { return nil }
+
+// New is not supported for this loader
 func (si *SecretImporter) New(newRoot string) (ifc.Loader, error) {
 	return nil, fmt.Errorf("cannot create new roots for Berglas")
 }
 
+// Load will access a Berglas secret using a reference combined from the root and supplied location
 func (si *SecretImporter) Load(location string) ([]byte, error) {
 	ref, err := berglas.ParseReference(si.Root() + location)
 	if err != nil {
@@ -84,6 +90,7 @@ func (si *SecretImporter) Load(location string) ([]byte, error) {
 	})
 }
 
+// Import will access a Berglas secret for use in a Jsonnet program
 func (si *SecretImporter) Import(importedFrom, importedPath string) (jsonnet.Contents, string, error) {
 	b, err := si.Load(importedPath)
 	if err != nil {

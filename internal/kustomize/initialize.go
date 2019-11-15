@@ -51,13 +51,13 @@ func NewInitializeCommand() *cobra.Command {
 	return cmd
 }
 
-type Plugin struct {
+type plugin struct {
 	metav1.GroupVersionKind
 	Supported bool
 	Installed bool
 }
 
-type PluginStatus struct {
+type pluginStatus struct {
 	Path        string
 	PathRemoved bool
 	PathCreated bool
@@ -138,8 +138,8 @@ func (o *initializeOptions) run(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (o *initializeOptions) createLinks(p *Plugin) (*PluginStatus, error) {
-	status := &PluginStatus{Path: pluginPath(o.PluginDir, &p.GroupVersionKind)}
+func (o *initializeOptions) createLinks(p *plugin) (*pluginStatus, error) {
+	status := &pluginStatus{Path: pluginPath(o.PluginDir, &p.GroupVersionKind)}
 	dir := filepath.Dir(status.Path)
 
 	// Remove unsupported plugins
@@ -188,8 +188,8 @@ func (o *initializeOptions) createLinks(p *Plugin) (*PluginStatus, error) {
 	return status, os.Symlink(o.Source, status.Path)
 }
 
-func filterPlugins(plugins []Plugin, filters []string) []Plugin {
-	var filtered []Plugin
+func filterPlugins(plugins []plugin, filters []string) []plugin {
+	var filtered []plugin
 	for i := range plugins {
 		for _, f := range filters {
 			// TODO Is github.com/gobwas/glob is a transitive dependency already?
@@ -202,8 +202,8 @@ func filterPlugins(plugins []Plugin, filters []string) []Plugin {
 	return filtered
 }
 
-func loadPlugins(commands []*cobra.Command, pluginDir string, keepAllVersions bool) []Plugin {
-	var plugins []Plugin
+func loadPlugins(commands []*cobra.Command, pluginDir string, keepAllVersions bool) []plugin {
+	var plugins []plugin
 	groups := make(map[string]bool)
 
 	// First load the currently supported plugins
@@ -211,7 +211,7 @@ func loadPlugins(commands []*cobra.Command, pluginDir string, keepAllVersions bo
 		gvk := commandGVK(c)
 		if gvk != nil {
 			groups[gvk.Group] = true
-			plugins = append(plugins, Plugin{GroupVersionKind: *gvk, Supported: true})
+			plugins = append(plugins, plugin{GroupVersionKind: *gvk, Supported: true})
 		}
 	}
 
@@ -235,7 +235,7 @@ func loadPlugins(commands []*cobra.Command, pluginDir string, keepAllVersions bo
 			}
 
 			if !installed {
-				plugins = append(plugins, Plugin{GroupVersionKind: *gvk})
+				plugins = append(plugins, plugin{GroupVersionKind: *gvk})
 			}
 			return nil
 		})
