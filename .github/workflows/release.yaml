@@ -18,6 +18,7 @@ jobs:
         run: go mod download
       - name: Build
         run: |
+          mkdir dist
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o konjure -ldflags "-w -s -X main.Version=$(basename ${GITHUB_REF:-HEAD})" .
           tar czf dist/konjure-linux-amd64.tar.gz --remove-files konjure
           CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o konjure -ldflags "-w -s -X main.Version=$(basename ${GITHUB_REF:-HEAD})" .
