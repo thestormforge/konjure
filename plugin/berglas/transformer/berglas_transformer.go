@@ -20,15 +20,15 @@ import (
 	"reflect"
 
 	"github.com/carbonrelay/konjure/internal/berglas"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/json"
-	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/kustomize/api/resid"
 	"sigs.k8s.io/kustomize/api/resmap"
 	"sigs.k8s.io/kustomize/api/resource"
 	"sigs.k8s.io/kustomize/api/types"
+	corev1 "sigs.k8s.io/kustomize/pseudo/k8s/api/core/v1"
+	"sigs.k8s.io/kustomize/pseudo/k8s/apimachinery/pkg/runtime"
+	"sigs.k8s.io/kustomize/pseudo/k8s/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/kustomize/pseudo/k8s/apimachinery/pkg/util/json"
+	"sigs.k8s.io/kustomize/pseudo/k8s/client-go/kubernetes/scheme"
 	"sigs.k8s.io/yaml"
 )
 

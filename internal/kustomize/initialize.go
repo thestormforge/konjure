@@ -25,8 +25,8 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/kustomize/api/konfig"
+	metav1 "sigs.k8s.io/kustomize/pseudo/k8s/apimachinery/pkg/apis/meta/v1"
 )
 
 // NewInitializeCommand returns a command for initializing Konjure.

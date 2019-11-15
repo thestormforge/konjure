@@ -7,10 +7,10 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/berglas/pkg/berglas"
-	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/kustomize/api/kv"
 	"sigs.k8s.io/kustomize/api/resmap"
 	"sigs.k8s.io/kustomize/api/types"
+	corev1 "sigs.k8s.io/kustomize/pseudo/k8s/api/core/v1"
 )
 
 // Mutator performs Berglas mutations on pod templates

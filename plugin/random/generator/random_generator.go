@@ -20,10 +20,10 @@ import (
 	"fmt"
 
 	"github.com/sethvargo/go-password/password"
-	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/kustomize/api/kv"
 	"sigs.k8s.io/kustomize/api/resmap"
 	"sigs.k8s.io/kustomize/api/types"
+	"sigs.k8s.io/kustomize/pseudo/k8s/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/yaml"
 )
 
