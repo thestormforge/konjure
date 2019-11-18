@@ -12,7 +12,7 @@ Download the [latest binary](https://github.com/carbonrelay/konjure/releases/lat
 ```sh
 os=linux # Or 'darwin'
 curl -s https://api.github.com/repos/carbonrelay/konjure/releases/latest |\
-  jq -r ".assets[] | select(.name | contains(\"${os:-linux}\")) | .browser_download_url" |\
+  grep browser_download_url | grep ${os:-linux} | cut -d '"' -f 4 |\
   xargs curl -L | tar xz
 sudo mv konjure /usr/local/bin/
 ```
