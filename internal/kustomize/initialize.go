@@ -26,6 +26,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/api/konfig"
+	"sigs.k8s.io/kustomize/api/types"
 	metav1 "sigs.k8s.io/kustomize/pseudo/k8s/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -42,7 +43,7 @@ func NewInitializeCommand() *cobra.Command {
 		RunE:         opts.run,
 	}
 
-	cmd.Flags().StringVar(&opts.PluginDir, "plugins", "", "override the `path` to the plugin directory")
+	cmd.Flags().StringVar(&opts.PluginHome, "plugins", "", "override the `path` to the plugin directory")
 	cmd.Flags().StringVar(&opts.Source, "source", "", "override the `path` to the source executable")
 	cmd.Flags().BoolVar(&opts.Prune, "prune", false, "remove old versions")
 	cmd.Flags().BoolVarP(&opts.Verbose, "verbose", "v", false, "be more verbose")
@@ -65,12 +66,12 @@ type pluginStatus struct {
 }
 
 type initializeOptions struct {
-	PluginDir string
-	Source    string
-	Kinds     []string
-	Prune     bool
-	Verbose   bool
-	DryRun    bool
+	PluginHome string
+	Source     string
+	Kinds      []string
+	Prune      bool
+	Verbose    bool
+	DryRun     bool
 }
 
 func (o *initializeOptions) preRun(cmd *cobra.Command, args []string) error {
@@ -78,12 +79,12 @@ func (o *initializeOptions) preRun(cmd *cobra.Command, args []string) error {
 	o.Kinds = args
 
 	// Determine the directory where plugins are located
-	if o.PluginDir == "" {
-		pc, err := konfig.EnabledPluginConfig()
+	if o.PluginHome == "" {
+		ph, err := findOrCreatePluginHome()
 		if err != nil {
 			return err
 		}
-		o.PluginDir = pc.AbsPluginHome
+		o.PluginHome = ph
 	}
 
 	// Determine the source to use for the symlinks
@@ -104,7 +105,7 @@ func (o *initializeOptions) run(cmd *cobra.Command, args []string) error {
 	}
 
 	// Load and filter the plugin list
-	plugins := loadPlugins(commands, o.PluginDir, !o.Prune)
+	plugins := loadPlugins(commands, o.PluginHome, !o.Prune)
 	if len(o.Kinds) > 0 {
 		plugins = filterPlugins(plugins, o.Kinds)
 	}
@@ -139,7 +140,7 @@ func (o *initializeOptions) run(cmd *cobra.Command, args []string) error {
 }
 
 func (o *initializeOptions) createLinks(p *plugin) (*pluginStatus, error) {
-	status := &pluginStatus{Path: pluginPath(o.PluginDir, &p.GroupVersionKind)}
+	status := &pluginStatus{Path: pluginPath(o.PluginHome, &p.GroupVersionKind)}
 	dir := filepath.Dir(status.Path)
 
 	// Remove unsupported plugins
@@ -247,6 +248,32 @@ func loadPlugins(commands []*cobra.Command, pluginDir string, keepAllVersions bo
 	})
 
 	return plugins
+}
+
+// findOrCreatePluginHome attempts to find the plugin home directory, creating one if it does not yet exist
+func findOrCreatePluginHome() (string, error) {
+	pc, err := konfig.EnabledPluginConfig()
+	if types.IsErrUnableToFind(err) {
+		// Create a directory (we never create "~/kustomize/plugin")
+		pluginHome := os.Getenv(konfig.KustomizePluginHomeEnv)
+		if pluginHome == "" {
+			pluginHome = os.Getenv(konfig.XdgConfigHomeEnv)
+			if pluginHome == "" {
+				pluginHome = filepath.Join(konfig.HomeDir(), konfig.XdgConfigHomeEnvDefault)
+			}
+			pluginHome = filepath.Join(pluginHome, konfig.ProgramName, konfig.RelPluginHome)
+		}
+		if err := os.MkdirAll(pluginHome, 0700); err != nil {
+			return "", err
+		}
+
+		// Try again
+		pc, err = konfig.EnabledPluginConfig()
+	}
+	if err != nil {
+		return "", err
+	}
+	return pc.AbsPluginHome, nil
 }
 
 // pluginPath returns the path to an executable plugin
