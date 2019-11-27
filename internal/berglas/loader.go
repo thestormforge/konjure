@@ -92,7 +92,16 @@ func (si *SecretImporter) Load(location string) ([]byte, error) {
 
 // Import will access a Berglas secret for use in a Jsonnet program
 func (si *SecretImporter) Import(importedFrom, importedPath string) (jsonnet.Contents, string, error) {
-	b, err := si.Load(importedPath)
+	ref, err := berglas.ParseReference(importedPath)
+	if err != nil {
+		return jsonnet.Contents{}, "", err
+	}
+
+	b, err := berglas.Access(context.TODO(), &berglas.AccessRequest{
+		Bucket:     ref.Bucket(),
+		Object:     ref.Object(),
+		Generation: ref.Generation(),
+	})
 	if err != nil {
 		return jsonnet.Contents{}, "", err
 	}
