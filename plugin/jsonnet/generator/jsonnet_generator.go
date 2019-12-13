@@ -28,8 +28,8 @@ import (
 
 	"github.com/carbonrelay/konjure/internal/berglas"
 	"github.com/google/go-jsonnet"
+	"k8s.io/apimachinery/pkg/util/json"
 	"sigs.k8s.io/kustomize/api/resmap"
-	"sigs.k8s.io/kustomize/pseudo/k8s/apimachinery/pkg/util/json"
 	"sigs.k8s.io/yaml"
 )
 

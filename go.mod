@@ -8,7 +8,9 @@ require (
 	github.com/onsi/gomega v1.7.0
 	github.com/sethvargo/go-password v0.1.3
 	github.com/spf13/cobra v0.0.5
-	sigs.k8s.io/kustomize/api v0.2.0
-	sigs.k8s.io/kustomize/pseudo/k8s v0.1.0
+	k8s.io/api v0.17.0
+	k8s.io/apimachinery v0.17.0
+	k8s.io/client-go v0.17.0
+	sigs.k8s.io/kustomize/api v0.3.0
 	sigs.k8s.io/yaml v1.1.0
 )
