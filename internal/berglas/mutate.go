@@ -1,12 +1,14 @@
 package berglas
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"path"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/berglas/pkg/berglas"
+	kwhlog "github.com/slok/kubewebhook/pkg/log"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/kustomize/api/kv"
 	"sigs.k8s.io/kustomize/api/resmap"
@@ -18,6 +20,7 @@ type Mutator struct {
 	h       *resmap.PluginHelpers
 	genOpts *types.GeneratorOptions
 	secrets resmap.ResMap
+	logger  kwhlog.Logger
 }
 
 // NewMutator returns a new Berglas mutator from the specified Kustomize helpers
@@ -25,6 +28,7 @@ func NewMutator(h *resmap.PluginHelpers, opts *types.GeneratorOptions) *Mutator 
 	m := &Mutator{
 		h:       h,
 		genOpts: opts,
+		logger:  kwhlog.Dummy,
 	}
 
 	if opts != nil {
@@ -49,7 +53,7 @@ func (m *Mutator) Mutate(template *corev1.PodTemplateSpec) (bool, error) {
 	if m.genOpts != nil {
 		return m.mutateTemplateWithSecrets(template)
 	}
-	return m.mutateTemplate(template), nil
+	return m.mutate(context.TODO(), template)
 }
 
 // Mutation with secrets does the secret lookup now instead of in the container
@@ -164,16 +168,25 @@ func parseReference(s string) (*berglas.Reference, error) {
 // This code was released under the Apache 2.0 license
 
 const (
-	berglasContainer   = "gcr.io/berglas/berglas:latest"
-	binVolumeName      = "berglas-bin"
+	// berglasContainer is the default berglas container from which to pull the
+	// berglas binary.
+	berglasContainer = "gcr.io/berglas/berglas:latest"
+
+	// binVolumeName is the name of the volume where the berglas binary is stored.
+	binVolumeName = "berglas-bin"
+
+	// binVolumeMountPath is the mount path where the berglas binary can be found.
 	binVolumeMountPath = "/berglas/bin/"
 )
 
+// binInitContainer is the container that pulls the berglas binary executable
+// into a shared volume mount.
 var binInitContainer = corev1.Container{
 	Name:            "copy-berglas-bin",
 	Image:           berglasContainer,
 	ImagePullPolicy: corev1.PullIfNotPresent,
-	Command:         []string{"sh", "-c", fmt.Sprintf("cp /bin/berglas %s", binVolumeMountPath)},
+	Command: []string{"sh", "-c",
+		fmt.Sprintf("cp /bin/berglas %s", binVolumeMountPath)},
 	VolumeMounts: []corev1.VolumeMount{
 		{
 			Name:      binVolumeName,
@@ -182,6 +195,7 @@ var binInitContainer = corev1.Container{
 	},
 }
 
+// binVolume is the shared, in-memory volume where the berglas binary lives.
 var binVolume = corev1.Volume{
 	Name: binVolumeName,
 	VolumeSource: corev1.VolumeSource{
@@ -191,54 +205,76 @@ var binVolume = corev1.Volume{
 	},
 }
 
+// binVolumeMount is the shared volume mount where the berglas binary lives.
 var binVolumeMount = corev1.VolumeMount{
 	Name:      binVolumeName,
 	MountPath: binVolumeMountPath,
 	ReadOnly:  true,
 }
 
-func (m *Mutator) mutateTemplate(template *corev1.PodTemplateSpec) bool {
+// Mutate implements MutateFunc and provides the top-level entrypoint for object
+// mutation.
+func (m *Mutator) mutate(ctx context.Context, pod *corev1.PodTemplateSpec) (bool, error) {
+	m.logger.Infof("calling mutate")
+
 	mutated := false
 
-	for i, c := range template.Spec.InitContainers {
-		c, didMutate := m.mutateContainer(&c)
+	for i, c := range pod.Spec.InitContainers {
+		c, didMutate := m.mutateContainer(ctx, &c)
 		if didMutate {
 			mutated = true
-			template.Spec.InitContainers[i] = *c
+			pod.Spec.InitContainers[i] = *c
 		}
 	}
 
-	for i, c := range template.Spec.Containers {
-		c, didMutate := m.mutateContainer(&c)
+	for i, c := range pod.Spec.Containers {
+		c, didMutate := m.mutateContainer(ctx, &c)
 		if didMutate {
 			mutated = true
-			template.Spec.Containers[i] = *c
+			pod.Spec.Containers[i] = *c
 		}
 	}
 
+	// If any of the containers requested berglas secrets, mount the shared volume
+	// and ensure the berglas binary is available via an init container.
 	if mutated {
-		template.Spec.Volumes = append(template.Spec.Volumes, binVolume)
-		template.Spec.InitContainers = append([]corev1.Container{binInitContainer}, template.Spec.InitContainers...)
+		pod.Spec.Volumes = append(pod.Spec.Volumes, binVolume)
+		pod.Spec.InitContainers = append([]corev1.Container{binInitContainer},
+			pod.Spec.InitContainers...)
 	}
 
-	return mutated
+	return mutated, nil
 }
 
-func (m *Mutator) mutateContainer(c *corev1.Container) (*corev1.Container, bool) {
+// mutateContainer mutates the given container, updating the volume mounts and
+// command if it contains berglas references.
+func (m *Mutator) mutateContainer(_ context.Context, c *corev1.Container) (*corev1.Container, bool) {
+	// Ignore if there are no berglas references in the container.
 	if !m.hasBerglasReferences(c.Env) {
 		return c, false
 	}
+
+	// Berglas prepends the command from the podspec. If there's no command in the
+	// podspec, there's nothing to append. Note: this is the command in the
+	// podspec, not a CMD or ENTRYPOINT in a Dockerfile.
 	if len(c.Command) == 0 {
-		// TODO Should this be an error?
+		m.logger.Warningf("cannot apply berglas to %s: container spec does not define a command", c.Name)
 		return c, false
 	}
+
+	// Add the shared volume mount
 	c.VolumeMounts = append(c.VolumeMounts, binVolumeMount)
+
+	// Prepend the command with berglas exec --
 	original := append(c.Command, c.Args...)
 	c.Command = []string{binVolumeMountPath + "berglas"}
-	c.Args = append([]string{"exec", "--local", "--"}, original...)
+	c.Args = append([]string{"exec", "--"}, original...)
+
 	return c, true
 }
 
+// hasBerglasReferences parses the environment and returns true if any of the
+// environment variables includes a berglas reference.
 func (m *Mutator) hasBerglasReferences(env []corev1.EnvVar) bool {
 	for _, e := range env {
 		if berglas.IsReference(e.Value) {
