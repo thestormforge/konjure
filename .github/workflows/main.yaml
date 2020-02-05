@@ -14,7 +14,7 @@ jobs:
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v1
         with:
-          args: release --rm-dist --release-notes
+          args: release --rm-dist --release-notes CHANGELOG.md
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
