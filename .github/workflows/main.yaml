@@ -5,25 +5,18 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     steps:
+      - name: Check out code
+        uses: actions/checkout@v2
       - name: Set up Go
         uses: actions/setup-go@v1
         with:
           go-version: '1.13.4'
-      - name: Check out code
-        uses: actions/checkout@v1
-      - name: Get dependencies
-        run: go mod download
-      - name: Test
-        run: |
-          go vet
-          go test
-      - name: Build
-        run: |
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o dist/konjure-linux-amd64 -ldflags "-w -s -X main.Version=$(basename ${GITHUB_REF:-HEAD})" .
-          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o dist/konjure-darwin-amd64 -ldflags "-w -s -X main.Version=$(basename ${GITHUB_REF:-HEAD})" .
-          sha256sum dist/* | tee dist/checksums.txt
-      - name: Upload artifacts
-        uses: actions/upload-artifact@master
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v1
         with:
-          name: konjure
+          args: release --rm-dist --release-notes
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: dist
           path: dist

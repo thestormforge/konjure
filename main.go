@@ -30,8 +30,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Version is the current version for the root command
-var Version = "unspecified"
+var version = "unspecified"
 
 const (
 	rootExample = `
@@ -67,7 +66,7 @@ func newRootCommand(arg0 string) *cobra.Command {
 		Use:     "konjure",
 		Short:   "Manifest, appear!",
 		Example: rootExample,
-		Version: Version,
+		Version: version,
 	}
 
 	kustomizeCmd := &cobra.Command{
