@@ -16,3 +16,9 @@ snapshot:
   name_template: "{{ .Tag }}-next+commit.{{ .ShortCommit }}"
 release:
   draft: true
+brews:
+  - description: Manifest appear!
+    homepage: "https://github.com/carbonrelay/konjure/"
+    github:
+      owner: redskyops
+      name: homebrew-tap
