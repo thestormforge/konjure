@@ -1,6 +1,6 @@
-## Changelog
+# Changelog
 
-This file is used to track changes since the [last release](https://github.com/carbonrelay/konjure/releases/tag/v0.1.1).
+This file is used to track unreleased changes, for a complete history, check the [releases page](https://github.com/carbonrelay/konjure/releases).
 
 ## Unreleased 
 
