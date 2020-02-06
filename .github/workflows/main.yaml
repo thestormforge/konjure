@@ -20,6 +20,8 @@ jobs:
         uses: goreleaser/goreleaser-action@v1
         with:
           args: release --rm-dist --release-notes CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Clean up dist
         run: 'rm dist/config.yaml dist/*.tar.gz'
       - name: Upload artifacts
