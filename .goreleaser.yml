@@ -17,8 +17,12 @@ snapshot:
 release:
   draft: true
 brews:
-  - description: Manifest appear!
-    homepage: "https://github.com/carbonrelay/konjure/"
-    github:
+  - github:
       owner: redskyops
       name: homebrew-tap
+    commit_author:
+      name: Butch Masters
+      email: butch@carbonrelay.com
+    folder: Formula
+    homepage: "https://github.com/carbonrelay/konjure/"
+    description: Manifest appear!
