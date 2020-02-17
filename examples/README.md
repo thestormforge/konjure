@@ -16,5 +16,6 @@ These examples all use Konjure as a Kustomize executable plugin. While this is p
 For example, the Helm Generator example can be run directly from the CLI using:
 
 ```sh
-konjure helm --name elasticsearch --version 1.31.1 --set data.replicas=3 stable/elasticsearch
+STABLE_URL=https://kubernetes-charts.storage.googleapis.com/
+konjure helm --name elasticsearch --version 1.31.1 --repo $STABLE_URL --set data.replicas=3 elasticsearch
 ```

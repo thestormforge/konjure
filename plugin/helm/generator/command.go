@@ -42,7 +42,7 @@ func NewHelmGeneratorCommand() *cobra.Command {
 	cmd.Flags().StringVar(&p.Repository, "repo", "", "repository `url` used to locate the chart")
 	cmd.Flags().StringVarP(&p.ReleaseName, "name", "n", "release-name", "release `name`")
 	cmd.Flags().StringVar(&p.Version, "version", "", "fetch a specific `version` of a chart; if empty, the latest version of the chart will be used")
-	cmd.Flags().StringVar(&p.Helm.Home, "home", "", "override the location of your Helm config `directory`")
+	cmd.Flags().StringVar(&p.Helm.RepositoryCache, "repository-cache", "", "override the `directory` of your cached Helm repository index")
 	cmd.Flags().StringToStringVar(&f.set, "set", nil, "set `value`s on the command line")
 	cmd.Flags().StringToStringVar(&f.setFile, "set-file", nil, "set values from `file`s on the command line")
 	cmd.Flags().StringToStringVar(&f.setString, "set-string", nil, "set string `value`s on the command line")

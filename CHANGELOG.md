@@ -8,6 +8,8 @@ This file is used to track unreleased changes, for a complete history, check the
 
 ### 🏗 Changed
 
+* Helm generation now requires a Helm 3 binary to function properly.
+
 ### ⏳ Deprecated
 
 ### 🛑 Removed

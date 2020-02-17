@@ -28,8 +28,9 @@ metadata:
   name: ignored
 
 releaseName: elasticsearch
-chart: stable/elasticsearch
+chart: elasticsearch
 version: 1.31.1
+repo: https://kubernetes-charts.storage.googleapis.com/
 values:
   - name: data.replicas
     value: 3

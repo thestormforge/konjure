@@ -29,10 +29,10 @@ type plugin struct {
 	h *resmap.PluginHelpers
 
 	Helm         helm.Executor `json:"helm"`
-	Repository   string        `json:"repo"`
 	ReleaseName  string        `json:"releaseName"`
 	Chart        string        `json:"chart"`
 	Version      string        `json:"version"`
+	Repository   string        `json:"repo"`
 	Values       []helm.Value  `json:"values"`
 	IncludeTests bool          `json:"includeTests"`
 }
@@ -46,22 +46,8 @@ func (p *plugin) Config(h *resmap.PluginHelpers, c []byte) error {
 }
 
 func (p *plugin) Generate() (resmap.ResMap, error) {
-	// Make sure everything is configured
-	p.Helm.Complete()
-
-	// Initialize the client
-	if err := p.Helm.Init(); err != nil {
-		return nil, err
-	}
-
-	// Fetch the chart
-	c, err := p.Helm.Fetch(p.Repository, p.Chart, p.Version)
-	if err != nil {
-		return nil, err
-	}
-
 	// Render the chart
-	b, err := p.Helm.Template(c, p.ReleaseName, p.Values)
+	b, err := p.Helm.Template(p.ReleaseName, p.Chart, p.Version, p.Repository, p.Values)
 	if err != nil {
 		return nil, err
 	}
