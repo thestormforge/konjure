@@ -3,7 +3,7 @@ module github.com/carbonrelay/konjure
 go 1.13
 
 require (
-	github.com/GoogleCloudPlatform/berglas v0.4.0
+	github.com/GoogleCloudPlatform/berglas v0.5.1
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/google/go-jsonnet v0.14.0
 	github.com/googleapis/gnostic v0.3.0 // indirect
