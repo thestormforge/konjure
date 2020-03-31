@@ -27,7 +27,10 @@ import (
 	"unicode"
 
 	"github.com/carbonrelay/konjure/internal/berglas"
+	"github.com/fatih/color"
 	"github.com/google/go-jsonnet"
+	"github.com/jsonnet-bundler/jsonnet-bundler/pkg"
+	"github.com/jsonnet-bundler/jsonnet-bundler/pkg/jsonnetfile"
 	"k8s.io/apimachinery/pkg/util/json"
 	"sigs.k8s.io/kustomize/api/resmap"
 	"sigs.k8s.io/yaml"
@@ -52,6 +55,9 @@ type plugin struct {
 	JsonnetPath       []string    `json:"jpath"`
 	ExternalVariables []Parameter `json:"extVar"`
 	TopLevelArguments []Parameter `json:"topLevelArg"`
+
+	JsonnetBundlerPackageHome string `json:"jbPkgHome"`
+	JsonnetBundlerRefresh     bool   `json:"jbRefresh"`
 }
 
 //noinspection GoUnusedGlobalVariable
@@ -67,6 +73,10 @@ func (p *plugin) Config(h *resmap.PluginHelpers, c []byte) error {
 func (p *plugin) Generate() (resmap.ResMap, error) {
 	filename, input, err := p.readInput()
 	if err != nil {
+		return nil, err
+	}
+
+	if err := p.evalJsonnetBundler(); err != nil {
 		return nil, err
 	}
 
@@ -112,11 +122,59 @@ func (p *plugin) readInput() (string, []byte, error) {
 	return "<empty>", nil, nil
 }
 
+func (p *plugin) evalJsonnetBundler() error {
+	// Attempt to find and load the Jsonnet Bundler file
+	jbfilebytes, err := p.h.Loader().Load(jsonnetfile.File)
+	if err != nil {
+		return nil // Ignore errors, just return if the file isn't present
+	}
+	jsonnetFile, err := jsonnetfile.Unmarshal(jbfilebytes)
+	if err != nil {
+		return err
+	}
+
+	// Attempt to find and load the Jsonnet Bundler lock file
+	jblockfilebytes, err := p.h.Loader().Load(jsonnetfile.LockFile)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	lockFile, err := jsonnetfile.Unmarshal(jblockfilebytes)
+	if err != nil {
+		return err
+	}
+
+	// Default the name of the package home directory
+	if p.JsonnetBundlerPackageHome == "" {
+		p.JsonnetBundlerPackageHome = "vendor"
+	}
+
+	// Only run if the package home directory is missing or refresh is enabled
+	jsonnetHome := filepath.Join(p.h.Loader().Root(), p.JsonnetBundlerPackageHome)
+	if !p.JsonnetBundlerRefresh {
+		if _, err := os.Stat(jsonnetHome); err == nil { // No error from stat, something is there
+			return nil
+		}
+	}
+	if err := os.MkdirAll(filepath.Join(jsonnetHome, ".tmp"), os.ModePerm); err != nil {
+		return err
+	}
+
+	// Ignore output when ensuring dependencies are updated
+	color.Output = ioutil.Discard
+	_, err = pkg.Ensure(jsonnetFile, p.JsonnetBundlerPackageHome, lockFile.Dependencies)
+	return err
+}
+
 func (p *plugin) evalJpath() {
 	// Include the environment variable
 	jsonnetPath := filepath.SplitList(os.Getenv("JSONNET_PATH"))
 	for i := len(jsonnetPath) - 1; i >= 0; i-- {
 		p.fi.JPaths = append(p.fi.JPaths, jsonnetPath[i])
+	}
+
+	// Include the jsonnet-bundler integration
+	if p.JsonnetBundlerPackageHome != "" {
+		p.fi.JPaths = append(p.fi.JPaths, p.JsonnetBundlerPackageHome)
 	}
 
 	// Include the configured paths
