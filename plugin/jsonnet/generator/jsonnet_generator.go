@@ -113,12 +113,14 @@ func (p *plugin) readInput() (string, []byte, error) {
 }
 
 func (p *plugin) evalJpath() {
-	var evalJpath []string
+	// Include the environment variable
 	jsonnetPath := filepath.SplitList(os.Getenv("JSONNET_PATH"))
 	for i := len(jsonnetPath) - 1; i >= 0; i-- {
-		evalJpath = append(evalJpath, jsonnetPath[i])
+		p.fi.JPaths = append(p.fi.JPaths, jsonnetPath[i])
 	}
-	p.fi.JPaths = append(evalJpath, p.JsonnetPath...)
+
+	// Include the configured paths
+	p.fi.JPaths = append(p.fi.JPaths, p.JsonnetPath...)
 }
 
 func processParameters(params []Parameter, handleVar func(string, string), handleCode func(string, string)) {
