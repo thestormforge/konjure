@@ -24,6 +24,7 @@ import (
 	"github.com/carbonrelay/konjure/internal/kustomize"
 	"github.com/carbonrelay/konjure/internal/kustomize/edit"
 	"github.com/carbonrelay/konjure/plugin/berglas"
+	"github.com/carbonrelay/konjure/plugin/filter"
 	"github.com/carbonrelay/konjure/plugin/helm"
 	"github.com/carbonrelay/konjure/plugin/jsonnet"
 	"github.com/carbonrelay/konjure/plugin/label"
@@ -97,6 +98,7 @@ func addPlugins(rootCmd, kustomizeCmd *cobra.Command) {
 	rootCmd.AddCommand(env.NewCommand())
 
 	rootCmd.AddCommand(berglas.NewBerglasCommand())
+	rootCmd.AddCommand(filter.NewFilterCommand())
 	rootCmd.AddCommand(helm.NewHelmCommand())
 	rootCmd.AddCommand(jsonnet.NewJsonnetCommand())
 	rootCmd.AddCommand(label.NewLabelCommand())
