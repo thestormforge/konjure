@@ -279,3 +279,10 @@ func WithTransformerFilenameFlag() RunnerOption {
 		}
 	}
 }
+
+// WithPrinter is used to overwrite the default output format.
+func WithPrinter(p func(io.Writer, resmap.ResMap) error) RunnerOption {
+	return func(k *PluginRunner) {
+		k.print = p
+	}
+}
