@@ -18,6 +18,7 @@ package kustomize
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -43,7 +44,8 @@ type PluginRunner struct {
 	root      string
 	config    func(*cobra.Command, []string) ([]byte, error)
 	generate  func() (resmap.ResMap, error)
-	transform func(resMap resmap.ResMap) error
+	transform func(resmap.ResMap) error
+	print     func(io.Writer, resmap.ResMap) error
 
 	h *resmap.PluginHelpers
 }
@@ -55,6 +57,7 @@ func NewPluginRunner(plugin interface{}, opts ...RunnerOption) *cobra.Command {
 		config:    func(*cobra.Command, []string) ([]byte, error) { return nil, nil },
 		generate:  func() (resmap.ResMap, error) { return resmap.New(), nil },
 		transform: func(resmap.ResMap) error { return nil },
+		print:     asYaml,
 	}
 
 	// Setup the command run stages
@@ -112,7 +115,7 @@ func (k *PluginRunner) preRun(cmd *cobra.Command, args []string) error {
 }
 
 // run will actually run everything
-func (k *PluginRunner) run(cmd *cobra.Command, args []string) error {
+func (k *PluginRunner) run(cmd *cobra.Command, _ []string) error {
 	m, err := k.generate()
 	if err != nil {
 		return err
@@ -122,17 +125,25 @@ func (k *PluginRunner) run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if err := k.print(cmd.OutOrStdout(), m); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// asYaml will render the resource map to the supplied writer as YAML
+func asYaml(w io.Writer, m resmap.ResMap) error {
 	b, err := m.AsYaml()
 	if err != nil {
 		return err
 	}
-
-	_, err = cmd.OutOrStdout().Write(b)
+	_, err = w.Write(b)
 	return err
 }
 
 // postRun will perform necessary clean up
-func (k *PluginRunner) postRun(cmd *cobra.Command, args []string) error {
+func (k *PluginRunner) postRun(*cobra.Command, []string) error {
 	return k.h.Loader().Cleanup()
 }
 
