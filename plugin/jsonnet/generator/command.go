@@ -47,6 +47,8 @@ func NewJsonnetGeneratorCommand() *cobra.Command {
 	cmd.Flags().StringToStringVar(&f.topLevelCodeArguments, "tla-code", nil, "provide top-level argument as Jsonnet code")
 	cmd.Flags().StringToStringVar(&f.topLevelCodeFileArguments, "tla-code-file", nil, "provide top-level argument as Jsonnet code from the file")
 	cmd.Flags().StringArrayVarP(&p.JsonnetPath, "jpath", "J", nil, "specify an additional library search directory")
+	cmd.Flags().StringVar(&p.JsonnetBundlerPackageHome, "jsonnetpkg-home", "", "the directory used to cache packages in")
+	cmd.Flags().BoolVar(&p.JsonnetBundlerRefresh, "jsonnetpkg-refresh", false, "force update dependencies")
 
 	return cmd
 }
