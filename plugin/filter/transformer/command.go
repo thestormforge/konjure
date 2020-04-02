@@ -21,13 +21,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewFilterTransformerExecPlugin creates a new command for running filter as an executable plugin
-func NewFilterTransformerExecPlugin() *cobra.Command {
-	p := &plugin{}
-	cmd := kustomize.NewPluginRunner(p, kustomize.WithConfigType("konjure.carbonrelay.com", "v1beta1", "FilterTransformer"))
-	return cmd
-}
-
 // NewFilterTransformerCommand creates a new command for running filter from the CLI
 func NewFilterTransformerCommand() *cobra.Command {
 	p := &plugin{}

@@ -21,6 +21,4 @@ import "github.com/carbonrelay/konjure/plugin/filter/transformer"
 var (
 	// NewFilterCommand creates a new command for running filter from the CLI
 	NewFilterCommand = transformer.NewFilterTransformerCommand
-	// NewFilterTransformerExecPlugin creates a new command for running filter as an executable plugin
-	NewFilterTransformerExecPlugin = transformer.NewFilterTransformerExecPlugin
 )
