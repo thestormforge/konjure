@@ -17,6 +17,8 @@ limitations under the License.
 package env
 
 import (
+	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"strconv"
@@ -27,6 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/kustomize/api/resid"
 	"sigs.k8s.io/kustomize/api/resmap"
+	"sigs.k8s.io/kustomize/api/resource"
 	"sigs.k8s.io/kustomize/api/types"
 )
 
@@ -97,7 +100,7 @@ func (c *command) Transform(m resmap.ResMap) error {
 			return err
 		}
 		for k, v := range data {
-			if envVar := c.newEnvFrom(k, string(v.([]byte))); envVar != nil {
+			if envVar := c.newEnvFrom(k, v); envVar != nil {
 				envVar.ValueFrom.SecretKeyRef = &corev1.SecretKeySelector{
 					LocalObjectReference: corev1.LocalObjectReference{Name: ss[i].GetName()},
 					Key:                  k,
@@ -155,7 +158,7 @@ func (c *command) print(w io.Writer, m resmap.ResMap) error {
 	return nil
 }
 
-func (c *command) newEnvFrom(key, value string) *corev1.EnvVar {
+func (c *command) newEnvFrom(key string, value interface{}) *corev1.EnvVar {
 	// NOTE: Even though the value is supplied, we only use it to filter out mappings we do not want, it MUST NOT be in the result
 
 	// If key contains a "." assume it is meant to be a file name
@@ -164,8 +167,15 @@ func (c *command) newEnvFrom(key, value string) *corev1.EnvVar {
 	}
 
 	// If value contains a line break character assume it is meant to be file contents
-	if strings.ContainsAny(value, "\n\r") {
-		return nil
+	switch v := value.(type) {
+	case string:
+		if strings.ContainsAny(v, "\n\r") {
+			return nil
+		}
+	case []byte:
+		if bytes.ContainsAny(v, "\n\r") {
+			return nil
+		}
 	}
 
 	// TODO Filter out keys we do not want or transform the key
@@ -184,33 +194,46 @@ func GetEnvValue(envVar *corev1.EnvVar, m resmap.ResMap) (string, error) {
 
 	case envVar.ValueFrom.ConfigMapKeyRef != nil:
 		id := resid.NewResId(resid.Gvk{Version: "v1", Kind: "ConfigMap"}, envVar.ValueFrom.ConfigMapKeyRef.Name)
-		res, err := m.GetByCurrentId(id)
+		res, err := getByCurrentGvkn(m, id, envVar.ValueFrom.ConfigMapKeyRef.Optional)
 		if err != nil {
-			return "", ignoreIf(envVar.ValueFrom.ConfigMapKeyRef.Optional, err)
+			return "", err
 		}
 		return res.GetString("data." + envVar.ValueFrom.ConfigMapKeyRef.Key)
 
 	case envVar.ValueFrom.SecretKeyRef != nil:
-		id := resid.NewResId(resid.Gvk{Version: "v1", Kind: "Secret"}, envVar.ValueFrom.ConfigMapKeyRef.Name)
-		res, err := m.GetByCurrentId(id)
+		id := resid.NewResId(resid.Gvk{Version: "v1", Kind: "Secret"}, envVar.ValueFrom.SecretKeyRef.Name)
+		res, err := getByCurrentGvkn(m, id, envVar.ValueFrom.SecretKeyRef.Optional)
 		if err != nil {
-			return "", ignoreIf(envVar.ValueFrom.SecretKeyRef.Optional, err)
+			return "", err
 		}
 		v, err := res.GetFieldValue("data." + envVar.ValueFrom.SecretKeyRef.Key)
 		if err != nil {
 			return "", err
 		}
-		return string(v.([]byte)), nil
+		vb, ok := v.([]byte)
+		if !ok {
+			vb, err = base64.StdEncoding.DecodeString(v.(string))
+			if err != nil {
+				return "", err
+			}
+		}
+		return string(vb), nil
 
 	}
 	// TODO If we were to support the other types of references, we would need some type of context object reference to lookup first
 	return "", fmt.Errorf("cannot get environment variable value")
 }
 
-// ignoreIf is a helper for ignoring "not found" or "found multiple" errors when a valueFrom is optional
-func ignoreIf(optional *bool, err error) error {
-	if optional != nil && *optional {
-		return nil
+func getByCurrentGvkn(m resmap.ResMap, id resid.ResId, optional *bool) (*resource.Resource, error) {
+	result := m.GetMatchingResourcesByCurrentId(id.GvknEquals)
+	if len(result) > 1 {
+		return nil, fmt.Errorf("multiple matches for CurrentId %s", id)
 	}
-	return err
+	if len(result) == 0 {
+		if optional != nil && *optional {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("no matches for CurrentId %s", id)
+	}
+	return result[0], nil
 }
