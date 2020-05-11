@@ -24,6 +24,7 @@ import (
 	"github.com/carbonrelay/konjure/internal/kustomize"
 	"github.com/carbonrelay/konjure/internal/kustomize/edit"
 	"github.com/carbonrelay/konjure/plugin/berglas"
+	"github.com/carbonrelay/konjure/plugin/cat"
 	"github.com/carbonrelay/konjure/plugin/filter"
 	"github.com/carbonrelay/konjure/plugin/helm"
 	"github.com/carbonrelay/konjure/plugin/jsonnet"
@@ -38,6 +39,9 @@ const (
 	rootExample = `
 # Use Konjure to render a Helm chart (requires 'helm' on your 'PATH')
 konjure helm --name "my-release" ${CHART}
+
+# Concatenate manifests into a single document stream
+konjure cat manifest1.yaml manifest2.yaml
 
 # Generate a Kubernetes secret using sensitive data stored using Berglas
 konjure berglas generate --name "my-secret" --ref "berglas://${BUCKET_ID}/some-secret-key"
@@ -98,6 +102,7 @@ func addPlugins(rootCmd, kustomizeCmd *cobra.Command) {
 	rootCmd.AddCommand(env.NewCommand())
 
 	rootCmd.AddCommand(berglas.NewBerglasCommand())
+	rootCmd.AddCommand(cat.NewCatCommand())
 	rootCmd.AddCommand(filter.NewFilterCommand())
 	rootCmd.AddCommand(helm.NewHelmCommand())
 	rootCmd.AddCommand(jsonnet.NewJsonnetCommand())
@@ -106,6 +111,7 @@ func addPlugins(rootCmd, kustomizeCmd *cobra.Command) {
 
 	kustomizeCmd.AddCommand(berglas.NewBerglasGeneratorExecPlugin())
 	kustomizeCmd.AddCommand(berglas.NewBerglasTransformerExecPlugin())
+	kustomizeCmd.AddCommand(cat.NewCatGeneratorExecPlugin())
 	kustomizeCmd.AddCommand(helm.NewHelmGeneratorExecPlugin())
 	kustomizeCmd.AddCommand(jsonnet.NewJsonnetGeneratorExecPlugin())
 	kustomizeCmd.AddCommand(label.NewLabelTransformerExecPlugin())
