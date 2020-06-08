@@ -13,10 +13,10 @@ import (
 
 // GlobPatterns accepts a slice of glob strings and returns the set of
 // matching file paths.
-func GlobPatterns(fsys filesys.FileSystem, patterns []string) ([]string, error) {
+func GlobPatterns(fSys filesys.FileSystem, patterns []string) ([]string, error) {
 	var result []string
 	for _, pattern := range patterns {
-		files, err := fsys.Glob(pattern)
+		files, err := fSys.Glob(pattern)
 		if err != nil {
 			return nil, err
 		}

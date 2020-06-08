@@ -252,7 +252,7 @@ func loadPlugins(commands []*cobra.Command, pluginDir string, keepAllVersions bo
 
 // findOrCreatePluginHome attempts to find the plugin home directory, creating one if it does not yet exist
 func findOrCreatePluginHome() (string, error) {
-	pc, err := konfig.EnabledPluginConfig()
+	pc, err := konfig.EnabledPluginConfig(types.BploUseStaticallyLinked)
 	if types.IsErrUnableToFind(err) {
 		// Create a directory (we never create "~/kustomize/plugin")
 		pluginHome := os.Getenv(konfig.KustomizePluginHomeEnv)
@@ -268,7 +268,7 @@ func findOrCreatePluginHome() (string, error) {
 		}
 
 		// Try again
-		pc, err = konfig.EnabledPluginConfig()
+		pc, err = konfig.EnabledPluginConfig(types.BploUseStaticallyLinked)
 	}
 	if err != nil {
 		return "", err

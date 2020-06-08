@@ -117,9 +117,8 @@ func (m *Mutator) mutateContainerWithSecrets(c *corev1.Container) (*corev1.Conta
 		args := types.SecretArgs{}
 		args.Name = r.Bucket()
 		args.FileSources = []string{fs}
-		sm, err := m.h.ResmapFactory().FromSecretArgs(
-			kv.NewLoader(NewLoader(), m.h.Validator()),
-			m.genOpts, args)
+		args.Options = m.genOpts
+		sm, err := m.h.ResmapFactory().FromSecretArgs(kv.NewLoader(NewLoader(), m.h.Validator()), args)
 		if err != nil {
 			return c, mutated, err
 		}

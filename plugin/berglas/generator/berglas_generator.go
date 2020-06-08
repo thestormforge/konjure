@@ -55,7 +55,6 @@ func (p *plugin) Generate() (resmap.ResMap, error) {
 	}
 
 	// Generate the ResMap
-	return p.h.ResmapFactory().FromSecretArgs(
-		kv.NewLoader(berglas.NewLoader(), p.h.Validator()),
-		p.GeneratorOptions, args)
+	args.Options = p.GeneratorOptions
+	return p.h.ResmapFactory().FromSecretArgs(kv.NewLoader(berglas.NewLoader(), p.h.Validator()), args)
 }

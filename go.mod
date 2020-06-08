@@ -12,10 +12,10 @@ require (
 	github.com/onsi/gomega v1.7.0
 	github.com/sethvargo/go-password v0.1.3
 	github.com/slok/kubewebhook v0.3.0
-	github.com/spf13/cobra v0.0.5
+	github.com/spf13/cobra v1.0.0
 	k8s.io/api v0.17.0
 	k8s.io/apimachinery v0.17.0
 	k8s.io/client-go v0.17.0
-	sigs.k8s.io/kustomize/api v0.3.2
-	sigs.k8s.io/yaml v1.1.0
+	sigs.k8s.io/kustomize/api v0.4.1
+	sigs.k8s.io/yaml v1.2.0
 )

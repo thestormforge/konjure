@@ -10,6 +10,8 @@ Added a `konjure cat` command to concatenate and print manifest files.
 
 ### 🏗 Changed
 
+Upgraded Kustomize API to 0.4.1.
+
 ### ⏳ Deprecated
 
 ### 🛑 Removed

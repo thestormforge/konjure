@@ -78,9 +78,8 @@ func (p *plugin) Generate() (resmap.ResMap, error) {
 		args.LiteralSources = append(args.LiteralSources, fmt.Sprintf("%s=%s", s, uuid.NewUUID()))
 	}
 
-	return p.h.ResmapFactory().FromSecretArgs(
-		kv.NewLoader(p.h.Loader(), p.h.Validator()),
-		p.GeneratorOptions, args)
+	args.Options = p.GeneratorOptions
+	return p.h.ResmapFactory().FromSecretArgs(kv.NewLoader(p.h.Loader(), p.h.Validator()), args)
 }
 
 // Generate returns the password produced by the supplied generator using this recipe.
