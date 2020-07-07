@@ -51,7 +51,7 @@ func (helm *Executor) command(args ...string) *exec.Cmd {
 }
 
 // Template renders a chart archive using the specified release name and value overrides
-func (helm *Executor) Template(name, chart, version, repo string, values []Value) ([]byte, error) {
+func (helm *Executor) Template(name, chart, version, namespace, repo string, values []Value) ([]byte, error) {
 	// Construct the arguments
 	var args []string
 	args = append(args, "template")
@@ -65,6 +65,9 @@ func (helm *Executor) Template(name, chart, version, repo string, values []Value
 
 	if version != "" {
 		args = append(args, "--version", version)
+	}
+	if namespace != "" {
+		args = append(args, "--namespace", namespace)
 	}
 	if repo != "" {
 		args = append(args, "--repo", repo)
