@@ -41,6 +41,7 @@ func NewHelmGeneratorCommand() *cobra.Command {
 	// These flags match what real Helm has
 	cmd.Flags().StringVar(&p.Repository, "repo", "", "repository `url` used to locate the chart")
 	cmd.Flags().StringVarP(&p.ReleaseName, "name", "n", "release-name", "release `name`")
+	cmd.Flags().StringVarP(&p.ReleaseNamespace, "namespace", "s", "release-namespace", "release `namespace`")
 	cmd.Flags().StringVar(&p.Version, "version", "", "fetch a specific `version` of a chart; if empty, the latest version of the chart will be used")
 	cmd.Flags().StringVar(&p.Helm.RepositoryCache, "repository-cache", "", "override the `directory` of your cached Helm repository index")
 	cmd.Flags().StringToStringVar(&f.set, "set", nil, "set `value`s on the command line")

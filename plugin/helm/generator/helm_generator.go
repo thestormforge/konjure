@@ -28,13 +28,14 @@ import (
 type plugin struct {
 	h *resmap.PluginHelpers
 
-	Helm         helm.Executor `json:"helm"`
-	ReleaseName  string        `json:"releaseName"`
-	Chart        string        `json:"chart"`
-	Version      string        `json:"version"`
-	Repository   string        `json:"repo"`
-	Values       []helm.Value  `json:"values"`
-	IncludeTests bool          `json:"includeTests"`
+	Helm             helm.Executor `json:"helm"`
+	ReleaseName      string        `json:"releaseName"`
+	ReleaseNamespace string        `json:"releaseNamespace"`
+	Chart            string        `json:"chart"`
+	Version          string        `json:"version"`
+	Repository       string        `json:"repo"`
+	Values           []helm.Value  `json:"values"`
+	IncludeTests     bool          `json:"includeTests"`
 }
 
 //noinspection GoUnusedGlobalVariable
@@ -47,7 +48,7 @@ func (p *plugin) Config(h *resmap.PluginHelpers, c []byte) error {
 
 func (p *plugin) Generate() (resmap.ResMap, error) {
 	// Render the chart
-	b, err := p.Helm.Template(p.ReleaseName, p.Chart, p.Version, p.Repository, p.Values)
+	b, err := p.Helm.Template(p.ReleaseName, p.Chart, p.Version, p.ReleaseNamespace, p.Repository, p.Values)
 	if err != nil {
 		return nil, err
 	}
