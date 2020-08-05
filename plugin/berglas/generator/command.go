@@ -34,6 +34,7 @@ func NewBerglasGeneratorCommand() *cobra.Command {
 	cmd := kustomize.NewPluginRunner(p)
 	cmd.Use = "generate"
 	cmd.Short = "Generate secrets from Berglas references"
+	cmd.Deprecated = "Berglas support will be removed in the next release"
 	cmd.Flags().StringVar(&p.Name, "name", "", "name of the secret to generate")
 	cmd.Flags().StringArrayVarP(&p.References, "ref", "R", nil, "Berglas references to include in the secret")
 	return cmd

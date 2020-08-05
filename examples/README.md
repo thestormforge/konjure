@@ -2,8 +2,6 @@
 
 ## Example Usage
 
-* [Berglas Generator](berglas-generator.md)
-* [Berglas Transformer](berglas-transformer.md)
 * [Helm Generator](helm-generator.md)
 * [Jsonnet Generator](jsonnet-generator.md)
 * [Label Transformer](labels-transformer.md)

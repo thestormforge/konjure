@@ -34,6 +34,7 @@ func NewBerglasTransformerCommand() *cobra.Command {
 	cmd := kustomize.NewPluginRunner(p, kustomize.WithTransformerFilenameFlag())
 	cmd.Use = "transform"
 	cmd.Short = "Transform an application leveraging Berglas references"
+	cmd.Deprecated = "Berglas support will be removed in the next release"
 
 	//cmd.Flags().BoolVar(&p.GenerateSecrets, "secrets", false, "perform transformation using secrets")
 

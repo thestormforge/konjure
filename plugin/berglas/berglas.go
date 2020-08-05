@@ -32,8 +32,9 @@ var (
 // NewBerglasCommand creates a new command for running Berglas from the CLI
 func NewBerglasCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "berglas",
-		Short: "Generate secrets using Berglas",
+		Use:        "berglas",
+		Short:      "Generate secrets using Berglas",
+		Deprecated: "Berglas support will be removed in the next release",
 	}
 	cmd.AddCommand(generator.NewBerglasGeneratorCommand())
 	cmd.AddCommand(transformer.NewBerglasTransformerCommand())

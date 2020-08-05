@@ -12,6 +12,8 @@ This file is used to track unreleased changes, for a complete history, check the
 
 ### ⏳ Deprecated
 
+* Berglas support is deprecated and will be removed in the next release
+
 ### 🛑 Removed
 
 ### 🐛 Fixed
