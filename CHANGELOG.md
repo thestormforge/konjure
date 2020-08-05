@@ -8,6 +8,8 @@ This file is used to track unreleased changes, for a complete history, check the
 
 ### 🏗 Changed
 
+* Upgrade Kustomize API to 0.5.1
+
 ### ⏳ Deprecated
 
 ### 🛑 Removed
