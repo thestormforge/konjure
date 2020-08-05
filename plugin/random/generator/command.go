@@ -38,6 +38,7 @@ func NewRandomGeneratorCommand() *cobra.Command {
 	cmd := kustomize.NewPluginRunner(p, f.withPreRun(p))
 	cmd.Use = "random"
 	cmd.Short = "Generate random secrets"
+	cmd.Deprecated = "Random secret generation will be removed in the next release"
 	cmd.Flags().StringVar(&p.Name, "name", "", "name of the secret to generate")
 	cmd.Flags().StringToStringVarP(&f.passwords, "password", "P", nil, "password `spec` to generate, e.g. 'mypassword=length:5,numDigits:2'")
 	cmd.Flags().StringArrayVarP(&p.UUIDSources, "uuid", "U", nil, "uuid `key` to generate")

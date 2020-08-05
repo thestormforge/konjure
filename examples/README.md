@@ -5,7 +5,6 @@
 * [Helm Generator](helm-generator.md)
 * [Jsonnet Generator](jsonnet-generator.md)
 * [Label Transformer](labels-transformer.md)
-* [Random Generator](random-generator.md)
 
 ## Kustomize vs. CLI
 
