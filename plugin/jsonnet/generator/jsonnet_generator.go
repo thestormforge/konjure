@@ -18,6 +18,7 @@ package generator
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -27,6 +28,7 @@ import (
 	"unicode"
 
 	"github.com/carbonrelay/konjure/internal/berglas"
+	"github.com/carbonrelay/konjure/internal/secrets"
 	"github.com/fatih/color"
 	"github.com/google/go-jsonnet"
 	"github.com/jsonnet-bundler/jsonnet-bundler/pkg"
@@ -48,7 +50,8 @@ type Parameter struct {
 type plugin struct {
 	h  *resmap.PluginHelpers
 	fi *jsonnet.FileImporter
-	si *berglas.SecretImporter
+	l  secrets.Loader
+	bi *berglas.SecretImporter
 
 	Filename          string      `json:"filename"`
 	Code              string      `json:"exec"`
@@ -66,7 +69,12 @@ var KustomizePlugin plugin
 func (p *plugin) Config(h *resmap.PluginHelpers, c []byte) error {
 	p.h = h
 	p.fi = &jsonnet.FileImporter{}
-	p.si = &berglas.SecretImporter{}
+	p.bi = &berglas.SecretImporter{}
+	if l, err := secrets.NewLoader(context.Background()); err != nil {
+		return err
+	} else {
+		p.l = l
+	}
 	return yaml.Unmarshal(c, p)
 }
 
@@ -83,7 +91,7 @@ func (p *plugin) Generate() (resmap.ResMap, error) {
 	p.evalJpath()
 
 	vm := jsonnet.MakeVM()
-	vm.Importer(p)
+	vm.Importer(p) // TODO vm.Importer(secrets.NewJsonnetImporter(p.fi, p.l)
 	processParameters(p.ExternalVariables, vm.ExtVar, vm.ExtCode)
 	processParameters(p.TopLevelArguments, vm.TLAVar, vm.TLACode)
 
@@ -102,11 +110,11 @@ func (p *plugin) Generate() (resmap.ResMap, error) {
 
 // Import resolves Jsonnet import statements using the Berglas and the file system
 func (p *plugin) Import(importedFrom, importedPath string) (jsonnet.Contents, string, error) {
-	// Ignore errors from the SecretImporter and just fall back to the FileImporter
-	if c, fp, err := p.si.Import(importedFrom, importedPath); err == nil {
+	// Ignore errors from the Berglas SecretImporter and just fall back to the FileImporter
+	if c, fp, err := p.bi.Import(importedFrom, importedPath); err == nil {
 		return c, fp, nil
 	}
-	return p.fi.Import(importedFrom, importedPath)
+	return secrets.NewJsonnetImporter(p.fi, p.l).Import(importedFrom, importedPath)
 }
 
 func (p *plugin) readInput() (string, []byte, error) {

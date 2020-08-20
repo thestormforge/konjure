@@ -30,6 +30,7 @@ import (
 	"github.com/carbonrelay/konjure/plugin/jsonnet"
 	"github.com/carbonrelay/konjure/plugin/label"
 	"github.com/carbonrelay/konjure/plugin/random"
+	"github.com/carbonrelay/konjure/plugin/secret"
 	"github.com/spf13/cobra"
 )
 
@@ -108,6 +109,7 @@ func addPlugins(rootCmd, kustomizeCmd *cobra.Command) {
 	rootCmd.AddCommand(jsonnet.NewJsonnetCommand())
 	rootCmd.AddCommand(label.NewLabelCommand())
 	rootCmd.AddCommand(random.NewRandomCommand())
+	rootCmd.AddCommand(secret.NewSecretCommand())
 
 	kustomizeCmd.AddCommand(berglas.NewBerglasGeneratorExecPlugin())
 	kustomizeCmd.AddCommand(berglas.NewBerglasTransformerExecPlugin())
@@ -116,4 +118,5 @@ func addPlugins(rootCmd, kustomizeCmd *cobra.Command) {
 	kustomizeCmd.AddCommand(jsonnet.NewJsonnetGeneratorExecPlugin())
 	kustomizeCmd.AddCommand(label.NewLabelTransformerExecPlugin())
 	kustomizeCmd.AddCommand(random.NewRandomGeneratorExecPlugin())
+	kustomizeCmd.AddCommand(secret.NewSecretGeneratorExecPlugin())
 }
