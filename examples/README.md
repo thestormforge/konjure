@@ -5,6 +5,7 @@
 * [Helm Generator](helm-generator.md)
 * [Jsonnet Generator](jsonnet-generator.md)
 * [Label Transformer](labels-transformer.md)
+* [Secret Generator](secret-generator.md)
 
 ## Kustomize vs. CLI
 
