@@ -6,6 +6,7 @@
 * [Jsonnet Generator](jsonnet-generator.md)
 * [Label Transformer](labels-transformer.md)
 * [Secret Generator](secret-generator.md)
+* [Secret Generator - GPG](secret-generator-gpg.md)
 
 ## Kustomize vs. CLI
 
