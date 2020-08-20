@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/carbonrelay/konjure/internal/kustomize"
+	"github.com/carbonrelay/konjure/internal/secrets"
 	"github.com/spf13/cobra"
 )
 
@@ -38,6 +39,7 @@ func NewSecretGeneratorCommand() *cobra.Command {
 	cmd.Use = "secret"
 	cmd.Short = "Generate secrets"
 	cmd.Flags().StringVar(&p.Name, "name", "", "name of the secret to generate")
+	cmd.Flags().StringToStringVar(&f.passPhrases, "passphrase", nil, "GPG pass phrases for encrypted keys, e.g. 'my_secret.json=env:SECRETKEY'")
 	cmd.Flags().StringToStringVar(&f.literals, "literal", nil, "literal `name=value` pair")
 	cmd.Flags().StringArrayVar(&p.FileSources, "file", nil, "file `path` to include")
 	cmd.Flags().StringArrayVar(&p.EnvSources, "env", nil, "env `file` to read")
@@ -49,6 +51,7 @@ func NewSecretGeneratorCommand() *cobra.Command {
 }
 
 type secretFlags struct {
+	passPhrases          map[string]string
 	literals             map[string]string
 	passwords            map[string]string
 	secretManagerSecrets map[string]string
@@ -57,6 +60,10 @@ type secretFlags struct {
 // withPreRun will apply the stored flags to a plugin instance
 func (f *secretFlags) withPreRun(p *plugin) kustomize.RunnerOption {
 	return kustomize.WithPreRunE(func(cmd *cobra.Command, args []string) error {
+		p.PassPhrases = make(map[string]secrets.PassPhrase, len(f.passPhrases))
+		for k, v := range f.passPhrases {
+			p.PassPhrases[k] = secrets.PassPhrase(v)
+		}
 		for k, v := range f.literals {
 			p.LiteralSources = append(p.LiteralSources, fmt.Sprintf("%s=%s", k, v))
 		}

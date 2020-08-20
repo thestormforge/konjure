@@ -33,8 +33,9 @@ type plugin struct {
 	h *resmap.PluginHelpers
 
 	types.GeneratorArgs
-	Type            string                   `json:"type,omitempty"`
-	PasswordOptions *password.GeneratorInput `json:"passwordOptions,omitempty"`
+	Type            string                        `json:"type,omitempty"`
+	PasswordOptions *password.GeneratorInput      `json:"passwordOptions,omitempty"`
+	PassPhrases     map[string]secrets.PassPhrase `json:"passPhrases,omitempty"`
 
 	PasswordSources      []PasswordRecipe         `json:"passwords,omitempty"`
 	UUIDSources          []string                 `json:"uuids,omitempty"`
@@ -45,7 +46,6 @@ type plugin struct {
 	// TODO 1Password (via CLI)
 	// TODO Vault
 	// TODO AWS?
-	// TODO GPG
 }
 
 //noinspection GoUnusedGlobalVariable
@@ -88,13 +88,16 @@ func (p *plugin) Generate() (resmap.ResMap, error) {
 		args.FileSources = append(args.FileSources, fileSources...)
 	}
 
-	// Determine what we need for a loader
+	// Create a secret loader for resolving external secret sources
 	sldr, err := secrets.NewLoader(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	ldr := secrets.NewKustomizeLoader(p.h.Loader(), sldr)
 
-	// Generate the secret using the standard implementation
-	return p.h.ResmapFactory().FromSecretArgs(kv.NewLoader(ldr, p.h.Validator()), args)
+	// Wrap the standard loaders with our secret aware implementations
+	ldr := secrets.NewKustomizeLoader(p.h.Loader(), sldr)
+	kvLdr := secrets.NewKvLoader(kv.NewLoader(ldr, p.h.Validator()), p.PassPhrases)
+
+	// Generate the secret using the standard resource map factory implementation
+	return p.h.ResmapFactory().FromSecretArgs(kvLdr, args)
 }

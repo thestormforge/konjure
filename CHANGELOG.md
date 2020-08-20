@@ -6,7 +6,7 @@ This file is used to track unreleased changes, for a complete history, check the
 
 ### ✨ Added
 
-* There is new consolidated secret generator
+* There is new consolidated Secret generator, it supports GCP Secret Manager and GPG encrypted secrets
 
 ### 🏗 Changed
 
@@ -23,3 +23,5 @@ This file is used to track unreleased changes, for a complete history, check the
 ### 🐛 Fixed
 
 ### 🗝 Security
+
+* When using GPG encrypted secrets, it is not recommended to use `pass:` pass phrases.
