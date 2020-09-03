@@ -17,14 +17,17 @@ limitations under the License.
 package transformer
 
 import (
-	"fmt"
 	"sort"
 
+	"sigs.k8s.io/kustomize/api/filters/fieldspec"
+	"sigs.k8s.io/kustomize/api/filters/filtersutil"
 	"sigs.k8s.io/kustomize/api/konfig/builtinpluginconsts"
 	"sigs.k8s.io/kustomize/api/resid"
 	"sigs.k8s.io/kustomize/api/resmap"
-	"sigs.k8s.io/kustomize/api/transform"
 	"sigs.k8s.io/kustomize/api/types"
+	kyamlfiltersutil "sigs.k8s.io/kustomize/kyaml/filtersutil"
+	"sigs.k8s.io/kustomize/kyaml/kio"
+	kyamlyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 	"sigs.k8s.io/yaml"
 )
 
@@ -63,34 +66,50 @@ func (p *plugin) Transform(m resmap.ResMap) error {
 	}
 
 	for _, r := range m.Resources() {
-		for _, path := range p.FieldSpecs {
-			if !r.OrgId().IsSelected(&path.Gvk) {
-				continue
-			}
-			err := transform.MutateField(r.Map(), path.PathSlice(), createIfNotPresent(r.GetGvk(), &path), p.addMap)
-			if err != nil {
-				return err
-			}
+		if err := kyamlfiltersutil.ApplyToJSON(p, r); err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-func (p *plugin) addMap(in interface{}) (interface{}, error) {
-	m, ok := in.(map[string]interface{})
-	if in == nil {
-		m = map[string]interface{}{}
-	} else if !ok {
-		return nil, fmt.Errorf("%#v is expected to be %T", in, m)
-	}
-	for k, v := range p.Labels {
-		m[k] = v
-	}
-	return m, nil
+func (p *plugin) Filter(nodes []*kyamlyaml.RNode) ([]*kyamlyaml.RNode, error) {
+	keys := filtersutil.SortedMapKeys(p.Labels)
+	return kio.FilterAll(kyamlyaml.FilterFunc(func(node *kyamlyaml.RNode) (*kyamlyaml.RNode, error) {
+		for _, k := range keys {
+			err := node.PipeE(p.setLabel(k, p.Labels[k]))
+			if err != nil {
+				return nil, err
+			}
+		}
+		return node, nil
+	})).Filter(nodes)
+}
+
+func (p *plugin) setLabel(key, value string) kyamlyaml.Filter {
+	return kyamlyaml.FilterFunc(func(node *kyamlyaml.RNode) (*kyamlyaml.RNode, error) {
+		rm, err := node.GetMeta()
+		if err != nil {
+			return nil, err
+		}
+		group, version := resid.ParseGroupVersion(rm.APIVersion)
+
+		for _, fs := range p.FieldSpecs {
+			// Override the field spec on each iteration
+			fs.CreateIfNotPresent = createIfNotPresent(group, version, &fs)
+			return (&fieldspec.Filter{
+				FieldSpec:  fs,
+				SetValue:   filtersutil.SetEntry(key, value, kyamlyaml.NodeTagString),
+				CreateKind: kyamlyaml.MappingNode,
+				CreateTag:  kyamlyaml.NodeTagMap,
+			}).Filter(node)
+		}
+		return node, nil
+	})
 }
 
 // This is the additional check not present in the built-in transformer
-func createIfNotPresent(x resid.Gvk, fs *types.FieldSpec) bool {
+func createIfNotPresent(group, version string, fs *types.FieldSpec) bool {
 	// If the value is already false we do not need to worry about changing it
 	if !fs.CreateIfNotPresent {
 		return false
@@ -102,12 +121,12 @@ func createIfNotPresent(x resid.Gvk, fs *types.FieldSpec) bool {
 	}
 
 	// We are only making changes to objects in the "apps" and "extensions" groups (we ignore the kind)
-	if x.Group != "apps" && x.Group != "extensions" {
+	if group != "apps" && group != "extensions" {
 		return true
 	}
 
 	// Only adjust create value for match labels on v1beta1 resources
-	if fs.Path != "spec/selector/matchLabels" || x.Version != "v1beta1" {
+	if fs.Path != "spec/selector/matchLabels" || version != "v1beta1" {
 		return true
 	}
 

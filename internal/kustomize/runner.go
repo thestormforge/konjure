@@ -96,8 +96,8 @@ func (k *PluginRunner) preRun(cmd *cobra.Command, args []string) error {
 	v := validator.NewKustValidator()
 
 	uf := kunstruct.NewKunstructuredFactoryImpl()
-	var tf resmap.PatchFactory // TODO The actual implementation is internal now...
-	rf := resmap.NewFactory(resource.NewFactory(uf), tf)
+	var pm resmap.Merginator // TODO The actual implementation is internal now...
+	rf := resmap.NewFactory(resource.NewFactory(uf), pm)
 
 	k.h = resmap.NewPluginHelpers(ldr, v, rf)
 

@@ -19,6 +19,7 @@ package env
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
@@ -74,7 +75,7 @@ func (c *command) Transform(m resmap.ResMap) error {
 		return err
 	}
 	for i := range cms {
-		data, err := cms[i].GetStringMap("data")
+		data, err := data(cms[i])
 		if err != nil {
 			return err
 		}
@@ -95,7 +96,7 @@ func (c *command) Transform(m resmap.ResMap) error {
 		return err
 	}
 	for i := range ss {
-		data, err := ss[i].GetMap("data")
+		data, err := data(ss[i])
 		if err != nil {
 			return err
 		}
@@ -236,4 +237,19 @@ func getByCurrentGvkn(m resmap.ResMap, id resid.ResId, optional *bool) (*resourc
 		return nil, fmt.Errorf("no matches for CurrentId %s", id)
 	}
 	return result[0], nil
+}
+
+func data(r *resource.Resource) (map[string]interface{}, error) {
+	// Trying to keep up with Kustomize in a way that won't break in the next release
+	b, err := r.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	dd := struct {
+		Data map[string]interface{} `json:"data"`
+	}{}
+	if err := json.Unmarshal(b, &dd); err != nil {
+		return nil, err
+	}
+	return dd.Data, nil
 }
