@@ -19,64 +19,169 @@ package transformer
 import (
 	"testing"
 
-	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/kustomize/api/resid"
 	"sigs.k8s.io/kustomize/api/types"
 )
 
 func Test_createIfNotPresent(t *testing.T) {
-	g := NewGomegaWithT(t)
+	cases := []struct {
+		desc     string
+		group    string
+		version  string
+		fs       *types.FieldSpec
+		expected bool
+	}{
+		// ReplicationController
 
-	// In all these cases the "fs" comes from the default built-in configuration
-	// The following configuration was used at the time this test was written:
-	// https://raw.githubusercontent.com/kubernetes-sigs/kustomize/077c7b2d20bfdb0de78e6873a4ae1ce08afa1c40/api/konfig/builtinpluginconsts/commonlabels.go
-	var fs *types.FieldSpec
+		{
+			desc:     "v1.ReplicationController",
+			version:  "v1",
+			fs:       fieldSpec("spec/selector", true, "", "v1", "ReplicationController"),
+			expected: false,
+		},
 
-	fs = fieldSpec("spec/selector", true, "", "v1", "ReplicationController")
-	g.Expect(createIfNotPresent(x("", "v1", "ReplicationController"), fs)).To(Equal(false))
+		// Deployment
 
-	fs = fieldSpec("spec/selector/matchLabels", true, "", "", "Deployment")
-	g.Expect(createIfNotPresent(x("apps", "v1", "Deployment"), fs)).To(Equal(true))
-	g.Expect(createIfNotPresent(x("apps", "v1beta2", "Deployment"), fs)).To(Equal(true))
-	g.Expect(createIfNotPresent(x("apps", "v1beta1", "Deployment"), fs)).To(Equal(false))
-	g.Expect(createIfNotPresent(x("extensions", "v1beta1", "Deployment"), fs)).To(Equal(false))
+		{
+			desc:     "apps.v1.Deployment",
+			group:    "apps",
+			version:  "v1",
+			fs:       fieldSpec("spec/selector/matchLabels", true, "", "", "Deployment"),
+			expected: true,
+		},
+		{
+			desc:     "apps.v1beta2.Deployment",
+			group:    "apps",
+			version:  "v1beta2",
+			fs:       fieldSpec("spec/selector/matchLabels", true, "", "", "Deployment"),
+			expected: true,
+		},
+		{
+			desc:     "apps.v1beta1.Deployment",
+			group:    "apps",
+			version:  "v1beta1",
+			fs:       fieldSpec("spec/selector/matchLabels", true, "", "", "Deployment"),
+			expected: false,
+		},
+		{
+			desc:     "extensions.v1beta1.Deployment",
+			group:    "extensions",
+			version:  "v1beta1",
+			fs:       fieldSpec("spec/selector/matchLabels", true, "", "", "Deployment"),
+			expected: false,
+		},
 
-	fs = fieldSpec("spec/selector/matchLabels", true, "", "", "ReplicaSet")
-	g.Expect(createIfNotPresent(x("apps", "v1", "ReplicaSet"), fs)).To(Equal(true))
-	g.Expect(createIfNotPresent(x("apps", "v1beta2", "ReplicaSet"), fs)).To(Equal(true))
-	g.Expect(createIfNotPresent(x("extensions", "v1beta1", "ReplicaSet"), fs)).To(Equal(false))
+		// ReplicaSet
 
-	fs = fieldSpec("spec/selector/matchLabels", true, "", "", "DaemonSet")
-	g.Expect(createIfNotPresent(x("apps", "v1", "DaemonSet"), fs)).To(Equal(true))
-	g.Expect(createIfNotPresent(x("apps", "v1beta2", "DaemonSet"), fs)).To(Equal(true))
-	g.Expect(createIfNotPresent(x("extensions", "v1beta1", "DaemonSet"), fs)).To(Equal(false))
+		{
+			desc:     "apps.v1.ReplicaSet",
+			group:    "apps",
+			version:  "v1",
+			fs:       fieldSpec("spec/selector/matchLabels", true, "", "", "ReplicaSet"),
+			expected: true,
+		},
+		{
+			desc:     "apps.v1beta2.ReplicaSet",
+			group:    "apps",
+			version:  "v1beta2",
+			fs:       fieldSpec("spec/selector/matchLabels", true, "", "", "ReplicaSet"),
+			expected: true,
+		},
+		{
+			desc:     "extensions.v1beta1.ReplicaSet",
+			group:    "extensions",
+			version:  "v1beta1",
+			fs:       fieldSpec("spec/selector/matchLabels", true, "", "", "ReplicaSet"),
+			expected: false,
+		},
 
-	fs = fieldSpec("spec/selector/matchLabels", true, "apps", "", "StatefulSet")
-	g.Expect(createIfNotPresent(x("apps", "v1", "StatefulSet"), fs)).To(Equal(true))
-	g.Expect(createIfNotPresent(x("apps", "v1beta2", "StatefulSet"), fs)).To(Equal(true))
-	g.Expect(createIfNotPresent(x("apps", "v1beta1", "StatefulSet"), fs)).To(Equal(false))
+		// DaemonSet
 
-	// These tests just confirm we aren't messing with stuff we shouldn't be
+		{
+			desc:     "apps.v1.DaemonSet",
+			group:    "apps",
+			version:  "v1",
+			fs:       fieldSpec("spec/selector/matchLabels", true, "", "", "DaemonSet"),
+			expected: true,
+		},
+		{
+			desc:     "apps.v1beta2.DaemonSet",
+			group:    "apps",
+			version:  "v1beta2",
+			fs:       fieldSpec("spec/selector/matchLabels", true, "", "", "DaemonSet"),
+			expected: true,
+		},
+		{
+			desc:     "extensions.v1beta1.DaemonSet",
+			group:    "extensions",
+			version:  "v1beta1",
+			fs:       fieldSpec("spec/selector/matchLabels", true, "", "", "DaemonSet"),
+			expected: false,
+		},
 
-	fs = fieldSpec("metadata/labels", true, "", "", "")
-	g.Expect(createIfNotPresent(x("apps", "v1beta2", "Deployment"), fs)).To(Equal(true))
-	g.Expect(createIfNotPresent(x("extensions", "v1beta1", "Deployment"), fs)).To(Equal(true))
+		// StatefulSet
 
-	fs = fieldSpec("spec/selector/matchLabels", false, "batch", "", "Job")
-	g.Expect(createIfNotPresent(x("batch", "v1", "Job"), fs)).To(Equal(false))
-}
+		{
+			desc:     "apps.v1.StatefulSet",
+			group:    "apps",
+			version:  "v1",
+			fs:       fieldSpec("spec/selector/matchLabels", true, "", "", "StatefulSet"),
+			expected: true,
+		},
+		{
+			desc:     "apps.v1beta2.StatefulSet",
+			group:    "apps",
+			version:  "v1beta2",
+			fs:       fieldSpec("spec/selector/matchLabels", true, "", "", "StatefulSet"),
+			expected: true,
+		},
+		{
+			desc:     "apps.v1beta1.StatefulSet",
+			group:    "apps",
+			version:  "v1beta1",
+			fs:       fieldSpec("spec/selector/matchLabels", true, "", "", "StatefulSet"),
+			expected: false,
+		},
 
-func x(group, version, kind string) resid.Gvk {
-	return resid.Gvk{
-		Group:   group,
-		Version: version,
-		Kind:    kind,
+		// These tests just confirm we aren't messing with stuff we shouldn't be
+
+		{
+			desc:     "apps.v1beta2 labels",
+			group:    "apps",
+			version:  "v1beta2",
+			fs:       fieldSpec("metadata/labels", true, "", "", ""),
+			expected: true,
+		},
+		{
+			desc:     "extensions.v1beta1 labels",
+			group:    "extensions",
+			version:  "v1beta1",
+			fs:       fieldSpec("metadata/labels", true, "", "", ""),
+			expected: true,
+		},
+		{
+			desc:     "batch.v1.Job selector",
+			group:    "batch",
+			version:  "v1",
+			fs:       fieldSpec("spec/selector/matchLabels", false, "batch", "", "Job"),
+			expected: false,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.desc, func(t *testing.T) {
+			assert.Equal(t, c.expected, createIfNotPresent(c.group, c.version, c.fs))
+		})
 	}
 }
 
 func fieldSpec(path string, create bool, group, version, kind string) *types.FieldSpec {
 	return &types.FieldSpec{
-		Gvk:                x(group, version, kind),
+		Gvk: resid.Gvk{
+			Group:   group,
+			Version: version,
+			Kind:    kind,
+		},
 		Path:               path,
 		CreateIfNotPresent: create,
 	}

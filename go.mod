@@ -12,7 +12,6 @@ require (
 	github.com/googleapis/gnostic v0.3.0 // indirect
 	github.com/jsonnet-bundler/jsonnet-bundler v0.3.1
 	github.com/oklog/ulid v1.3.1
-	github.com/onsi/gomega v1.7.0
 	github.com/sethvargo/go-password v0.1.3
 	github.com/slok/kubewebhook v0.3.0
 	github.com/spf13/cobra v1.0.0
