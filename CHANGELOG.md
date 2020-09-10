@@ -7,6 +7,7 @@ This file is used to track unreleased changes, for a complete history, check the
 ### ✨ Added
 
 * There is new consolidated Secret generator, it supports GCP Secret Manager and GPG encrypted secrets
+* The new Version Transformer will take `ref` parameters from configured resources and apply them as labels and image tags
 
 ### 🏗 Changed
 
@@ -24,4 +25,4 @@ This file is used to track unreleased changes, for a complete history, check the
 
 ### 🗝 Security
 
-* When using GPG encrypted secrets, it is not recommended to use `pass:` pass phrases.
+* When using GPG encrypted secrets, it is not recommended to use `pass:` pass phrases

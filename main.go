@@ -31,6 +31,7 @@ import (
 	"github.com/carbonrelay/konjure/plugin/label"
 	"github.com/carbonrelay/konjure/plugin/random"
 	"github.com/carbonrelay/konjure/plugin/secret"
+	versioncmd "github.com/carbonrelay/konjure/plugin/version"
 	"github.com/spf13/cobra"
 )
 
@@ -110,6 +111,7 @@ func addPlugins(rootCmd, kustomizeCmd *cobra.Command) {
 	rootCmd.AddCommand(label.NewLabelCommand())
 	rootCmd.AddCommand(random.NewRandomCommand())
 	rootCmd.AddCommand(secret.NewSecretCommand())
+	rootCmd.AddCommand(versioncmd.NewVersionCommand())
 
 	kustomizeCmd.AddCommand(berglas.NewBerglasGeneratorExecPlugin())
 	kustomizeCmd.AddCommand(berglas.NewBerglasTransformerExecPlugin())
@@ -119,4 +121,5 @@ func addPlugins(rootCmd, kustomizeCmd *cobra.Command) {
 	kustomizeCmd.AddCommand(label.NewLabelTransformerExecPlugin())
 	kustomizeCmd.AddCommand(random.NewRandomGeneratorExecPlugin())
 	kustomizeCmd.AddCommand(secret.NewSecretGeneratorExecPlugin())
+	kustomizeCmd.AddCommand(versioncmd.NewVersionTransformerExecPlugin())
 }
