@@ -7,6 +7,7 @@
 * [Label Transformer](labels-transformer.md)
 * [Secret Generator](secret-generator.md)
 * [Secret Generator - GPG](secret-generator-gpg.md)
+* [Version Transformer](version-transformer.md)
 
 ## Kustomize vs. CLI
 
