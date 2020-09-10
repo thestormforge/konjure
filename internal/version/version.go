@@ -114,6 +114,7 @@ type Filter struct {
 	// TODO Switch from "legacy" behavior to doing images based on field specs also?
 }
 
+// Filter applies the version information extracted from the origin to the supplied document nodes.
 func (f Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 	origin := ExtractInfo(f.Origin)
 	if origin == nil {

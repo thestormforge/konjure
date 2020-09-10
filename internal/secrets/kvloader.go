@@ -28,8 +28,10 @@ import (
 	"sigs.k8s.io/kustomize/api/types"
 )
 
+// PassPhrase is a specification of pass phrase indicating where the actual pass phrase should be loaded from.
 type PassPhrase string
 
+// Read in the actual pass phrase value.
 func (p PassPhrase) Read() ([]byte, error) {
 	// TODO if p == "" prompt with echo off
 	parts := strings.SplitN(string(p), ":", 2)

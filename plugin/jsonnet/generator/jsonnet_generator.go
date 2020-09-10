@@ -70,11 +70,11 @@ func (p *plugin) Config(h *resmap.PluginHelpers, c []byte) error {
 	p.h = h
 	p.fi = &jsonnet.FileImporter{}
 	p.bi = &berglas.SecretImporter{}
-	if l, err := secrets.NewLoader(context.Background()); err != nil {
+	l, err := secrets.NewLoader(context.Background())
+	if err != nil {
 		return err
-	} else {
-		p.l = l
 	}
+	p.l = l
 	return yaml.Unmarshal(c, p)
 }
 

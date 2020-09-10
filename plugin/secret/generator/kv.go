@@ -27,7 +27,7 @@ import (
 	"github.com/sethvargo/go-password/password"
 )
 
-// PasswordRecipe controls how passwords are generated
+// PasswordRecipe controls how passwords are generated.
 type PasswordRecipe struct {
 	Key         string `json:"key"`
 	Length      *int   `json:"length,omitempty"`
@@ -72,6 +72,7 @@ func (r *PasswordRecipe) Generate(gen password.PasswordGenerator) (string, error
 	return gen.Generate(length, numDigits, numSymbols, noUpper, allowRepeat)
 }
 
+// Parse reads a password recipe from a comma delimited string of `field:value` pairs.
 func (r *PasswordRecipe) Parse(spec string) {
 	for _, s := range strings.Split(spec, ",") {
 		p := strings.SplitN(s, ":", 2)
@@ -97,6 +98,7 @@ func (r *PasswordRecipe) Parse(spec string) {
 	}
 }
 
+// SecretManagerReference is a reference to a secret stored in Google Secret Manager.
 type SecretManagerReference struct {
 	Key     string `json:"key,omitempty"`
 	Project string `json:"project"`
@@ -104,6 +106,7 @@ type SecretManagerReference struct {
 	Version string `json:"version,omitempty"`
 }
 
+// Parse reads a reference from a string.
 func (r *SecretManagerReference) Parse(spec string) {
 	parts := strings.SplitN(spec, "/", 3)
 	r.Project = parts[0]

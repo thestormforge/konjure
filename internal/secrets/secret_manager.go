@@ -31,6 +31,7 @@ type SecretManagerLoader struct {
 	client *secretmanager.Client
 }
 
+// NewSecretManagerLoader creates a new Secret Manager loader.
 func NewSecretManagerLoader(ctx context.Context) (*SecretManagerLoader, error) {
 	client, err := secretmanager.NewClient(ctx)
 	if err != nil {
@@ -41,6 +42,7 @@ func NewSecretManagerLoader(ctx context.Context) (*SecretManagerLoader, error) {
 	}, nil
 }
 
+// Load the secret identified by the supplied URL.
 func (l *SecretManagerLoader) Load(ctx context.Context, u url.URL) ([]byte, error) {
 	if l == nil || l.client == nil {
 		return nil, fmt.Errorf("unavailable")
