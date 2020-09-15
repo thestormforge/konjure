@@ -16,6 +16,7 @@ require (
 	github.com/slok/kubewebhook v0.3.0
 	github.com/spf13/cobra v1.0.0
 	github.com/stretchr/testify v1.4.0
+	github.com/yujunz/go-getter v1.4.1-lite
 	google.golang.org/genproto v0.0.0-20200804151602-45615f50871c
 	k8s.io/api v0.17.0
 	k8s.io/apimachinery v0.17.0
