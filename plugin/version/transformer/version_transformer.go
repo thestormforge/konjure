@@ -41,13 +41,16 @@ func (p *plugin) Config(h *resmap.PluginHelpers, c []byte) error {
 
 func (p *plugin) Transform(m resmap.ResMap) error {
 	// The resources field is only populated by the CLI, otherwise we should list the resources
-	refs := p.resources
-	if len(refs) == 0 {
+	resources := make([]*version.Resource, 0, len(p.resources))
+	for _, target := range p.resources {
+		resources = append(resources, version.NewResource(target))
+	}
+	if len(resources) == 0 {
 		l, err := version.ListResources(p.h.Loader())
 		if err != nil {
 			return err
 		}
-		refs = l
+		resources = l
 	}
 
 	// Default the label field specifications only if they were explicitly omitted
@@ -57,14 +60,14 @@ func (p *plugin) Transform(m resmap.ResMap) error {
 
 	// Load the origin mappings for all the resources
 	// (it would be better if the YAML nodes or the ResMap had the URL associated with it)
-	origins, err := version.LoadOrigins(refs)
+	ids, err := version.LoadIdentifiers(resources)
 	if err != nil {
 		return err
 	}
 
 	for _, r := range m.Resources() {
 		err := filtersutil.ApplyToJSON(version.Filter{
-			Origin:          origins[r.CurId()],
+			Resource:        ids[r.CurId()],
 			LabelFieldSpecs: p.LabelFieldSpecs,
 		}, r)
 		if err != nil {
