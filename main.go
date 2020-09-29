@@ -71,10 +71,11 @@ func main() {
 
 func newRootCommand(arg0 string) *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:     "konjure",
-		Short:   "Manifest, appear!",
-		Example: rootExample,
-		Version: version,
+		Use:          "konjure",
+		Short:        "Manifest, appear!",
+		Example:      rootExample,
+		Version:      version,
+		SilenceUsage: true,
 	}
 
 	kustomizeCmd := &cobra.Command{
