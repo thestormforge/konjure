@@ -17,10 +17,10 @@ limitations under the License.
 package helm
 
 import (
-	"bytes"
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 // Value specifies the source for chart configurations
@@ -76,14 +76,12 @@ func (helm *Executor) Template(name, chart, version, namespace, repo string, val
 		args = values[i].AppendArgs(args)
 	}
 
-	b := &bytes.Buffer{}
 	cmd := helm.command(args...)
-	cmd.Stdout = b
-
-	if err := cmd.Run(); err != nil {
-		return nil, err
+	b, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("helm %w: %s", err, strings.TrimPrefix(string(b), "Error: "))
 	}
-	return b.Bytes(), nil
+	return b, nil
 }
 
 // AppendArgs adds the Helm command arguments corresponding to this value

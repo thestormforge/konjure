@@ -23,6 +23,8 @@ This file is used to track unreleased changes, for a complete history, check the
 
 ### 🐛 Fixed
 
+* Helm executable error messages are preserved 
+
 ### 🗝 Security
 
 * When using GPG encrypted secrets, it is not recommended to use `pass:` pass phrases
