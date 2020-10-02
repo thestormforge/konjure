@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/kustomize/api/krusty"
 	"sigs.k8s.io/kustomize/api/resid"
 	"sigs.k8s.io/kustomize/api/resmap"
+	"sigs.k8s.io/kustomize/api/resource"
 	"sigs.k8s.io/kustomize/api/types"
 	yyaml "sigs.k8s.io/yaml"
 )
@@ -74,11 +75,40 @@ func LoadIdentifiers(resources []*Resource) (map[resid.ResId]*Resource, error) {
 			return nil, err
 		}
 
-		for _, id := range rm.AllIds() {
-			identifiers[id] = r
+		for _, rmr := range rm.Resources() {
+			identifiers[rmr.OrgId()] = r
 		}
 	}
 	return identifiers, nil
+}
+
+// FindResource looks for resource information from the supplied map. If an exact match by resource original ID is
+// not present, an attempt is made to match the resource independent of the namespace.
+func FindResource(ids map[resid.ResId]*Resource, r *resource.Resource) *Resource {
+	id := r.OrgId()
+	res := ids[id]
+	if res != nil {
+		return res
+	}
+
+	// There are two possible reasons for this:
+	// 1. The version information for the resource URL came up empty and we never loaded the actual resources
+	// 2. The individual resource identifier was change via a transformation from the original
+
+	// We cannot detect #2 running as an exec plugin (though it seems like the original identifier could
+	// be propagated via annotation like the current identifier is).
+
+	// We can guess (e.g. ignore the namespace) but we cannot get too aggressive because we don't know which
+	// case we are looking at.
+
+	for k, v := range ids {
+		// If the original namespace was empty, allow a match excluding the new namespace
+		if k.Namespace == "" && k.GvknEquals(id) {
+			return v
+		}
+	}
+
+	return nil
 }
 
 // DefaultLabelFieldSpecs returns the default set of field specifications for version labels.

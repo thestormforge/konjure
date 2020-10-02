@@ -67,7 +67,7 @@ func (p *plugin) Transform(m resmap.ResMap) error {
 
 	for _, r := range m.Resources() {
 		err := filtersutil.ApplyToJSON(version.Filter{
-			Resource:        ids[r.CurId()],
+			Resource:        version.FindResource(ids, r),
 			LabelFieldSpecs: p.LabelFieldSpecs,
 		}, r)
 		if err != nil {
