@@ -1,6 +1,6 @@
 module github.com/carbonrelay/konjure
 
-go 1.13
+go 1.14
 
 require (
 	cloud.google.com/go v0.62.0

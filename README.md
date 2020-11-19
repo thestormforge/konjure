@@ -1,17 +1,17 @@
 # 🧙‍ Konjure
 
-![](https://github.com/carbonrelay/konjure/workflows/Main%20workflow/badge.svg)
-[![Go Report Card](https://goreportcard.com/badge/github.com/carbonrelay/konjure)](https://goreportcard.com/report/github.com/carbonrelay/konjure)
+![](https://github.com/thestormforge/konjure/workflows/Master/badge.svg)
+[![Go Report Card](https://goreportcard.com/badge/github.com/thestormforge/konjure)](https://goreportcard.com/report/github.com/thestormforge/konjure)
 
 Konjure generates and transforms Kubernetes resource definitions. It can be used as a standalone utility or can be integrated into your Kustomize workflow.
 
 ## Installation
 
-Download the [latest binary](https://github.com/carbonrelay/konjure/releases/latest) for your platform and put it on your path:
+Download the [latest binary](https://github.com/thestormforge/konjure/releases/latest) for your platform and put it on your path:
 
 ```sh
 os=linux # Or 'darwin'
-curl -s https://api.github.com/repos/carbonrelay/konjure/releases/latest |\
+curl -s https://api.github.com/repos/thestormforge/konjure/releases/latest |\
   grep browser_download_url | grep ${os:-linux} | cut -d '"' -f 4 |\
   xargs curl -L | tar xz
 sudo mv konjure /usr/local/bin/

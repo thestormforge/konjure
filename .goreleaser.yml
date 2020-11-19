@@ -18,11 +18,11 @@ release:
   draft: true
 brews:
   - github:
-      owner: redskyops
+      owner: thestormforge
       name: homebrew-tap
     commit_author:
       name: Butch Masters
-      email: butch@carbonrelay.com
+      email: butch@stormforge.io
     folder: Formula
-    homepage: "https://github.com/carbonrelay/konjure/"
+    homepage: "https://github.com/thestormforge/konjure/"
     description: Manifest appear!
