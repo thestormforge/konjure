@@ -16,8 +16,8 @@ jobs:
       - name: Test
         run: |
           go mod tidy
-          go vet
-          go test
+          go vet ./...
+          go test ./...
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v1
         with:
