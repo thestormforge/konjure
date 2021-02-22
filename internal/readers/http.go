@@ -49,7 +49,7 @@ func (r *HTTPReader) Read() ([]*yaml.RNode, error) {
 	}
 
 	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode <= 300 {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("invalid response code for %q: %d", r.HTTP.URL, resp.StatusCode)
 	}
 
