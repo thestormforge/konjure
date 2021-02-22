@@ -14,26 +14,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package filters
 
 import (
-	"context"
-	"os"
-
-	"github.com/spf13/cobra"
-	"github.com/thestormforge/konjure/internal/command"
+	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-func init() {
-	cobra.EnableCommandSorting = false
-}
+type HelmTestFilter struct{}
 
-func main() {
-	// TODO Wrap `http.DefaultTransport` so it includes the UA string
-
-	ctx := context.Background()
-	cmd := command.NewRootCommand()
-	if err := cmd.ExecuteContext(ctx); err != nil {
-		os.Exit(1)
+func (h *HelmTestFilter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
+	result := make([]*yaml.RNode, 0, len(nodes))
+	for _, n := range nodes {
+		isTest, err := n.MatchesAnnotationSelector("helm.sh/hook in (test-success, test-failure)")
+		if err != nil {
+			return nil, err
+		}
+		if !isTest {
+			result = append(result, n)
+		}
 	}
+
+	return result, nil
 }

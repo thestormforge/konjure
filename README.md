@@ -3,7 +3,7 @@
 ![](https://github.com/thestormforge/konjure/workflows/Master/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/thestormforge/konjure)](https://goreportcard.com/report/github.com/thestormforge/konjure)
 
-Konjure generates and transforms Kubernetes resource definitions. It can be used as a standalone utility or can be integrated into your Kustomize workflow.
+Konjure generates and transforms Kubernetes resource definitions. It can be used as a standalone utility or can be integrated into your GitOps workflows.
 
 ## Installation
 
@@ -17,16 +17,30 @@ curl -s https://api.github.com/repos/thestormforge/konjure/releases/latest |\
 sudo mv konjure /usr/local/bin/
 ```
 
-To enable the Kustomization integration, you can also run:
-
-```sh
-konjure kustomize init
-```
-
 ## Usage
 
-Konjure can be used as a standalone tool by invoking the `konjure` tool directly; all Konjure commands can also be accessed as Kustomize plugins, see the [examples](examples/) for more information.
+Konjure can be used to aggregate or generate Kubernetes manifests from a number of different sources. Simply invoke Konjure with a list of sources.
 
-## Getting Help
+### Konjure Sources
 
-Run `konjure --help` to get a list of the currently supported generators and transformations.
+Konjure supports pulling resources from the following sources:
+
+* Local files or directories
+* Git repositories
+* HTTP resources
+* Helm charts (via `helm template`)
+* Kustomize
+* Kubernetes
+* Jsonnet
+
+Konjure also has its own resource generators:
+
+* Secret generator
+
+Some sources can be specified using a URL: file system paths, HTTP URLs, and Git repository URLs can all be entered directly. Helm chart URLs can also be used when prefixed with `helm::`.
+
+### Konjure Resources
+
+Konjure defines several Kubernetes-like resources which will be expanded in place during execution. For example, if Konjure encounters a resource with the `apiVersion: konjure.stormforge.io/v1beta2` and the `kind: File` it will be replaced with the manifests found in the named file.
+
+The current (and evolving) definitions can be found in the [API source](api/core/v1beta2/types.go).
