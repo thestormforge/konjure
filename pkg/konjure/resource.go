@@ -30,9 +30,9 @@ import (
 // NOTE: By design this code uses reflection instead of switch statements to isolate type changes to the api package
 
 type Resource struct {
-	// Instead of the "Resource" type, we just keep a single (internal use) string representing a single resource spec.
 	str string
 
+	Resource   *konjurev1beta2.Resource   `json:"resource,omitempty" yaml:"resource,omitempty"`
 	Helm       *konjurev1beta2.Helm       `json:"helm,omitempty" yaml:"helm,omitempty"`
 	Jsonnet    *konjurev1beta2.Jsonnet    `json:"jsonnet,omitempty" yaml:"jsonnet,omitempty"`
 	Kubernetes *konjurev1beta2.Kubernetes `json:"kubernetes,omitempty" yaml:"kubernetes,omitempty"`
@@ -41,6 +41,12 @@ type Resource struct {
 	Git        *konjurev1beta2.Git        `json:"git,omitempty" yaml:"git,omitempty"`
 	HTTP       *konjurev1beta2.HTTP       `json:"http,omitempty" yaml:"http,omitempty"`
 	File       *konjurev1beta2.File       `json:"file,omitempty" yaml:"file,omitempty"`
+}
+
+// NewResource returns a resource for parsing the supplied resource specifications. This
+// is a convenience function for abstracting away gratuitous use of the word "resource".
+func NewResource(arg ...string) Resource {
+	return Resource{Resource: &konjurev1beta2.Resource{Resources: arg}} // Turtles...
 }
 
 func (r *Resource) UnmarshalJSON(bytes []byte) error {
