@@ -17,7 +17,7 @@ snapshot:
 release:
   draft: true
 brews:
-  - github:
+  - tap:
       owner: thestormforge
       name: homebrew-tap
     commit_author:
