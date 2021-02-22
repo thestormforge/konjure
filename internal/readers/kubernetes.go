@@ -48,10 +48,16 @@ func NewKubernetesReader(k *konjurev1beta2.Kubernetes) kio.Reader {
 			if ns != "" {
 				r.Args = append(r.Args, "--namespace", ns)
 			}
-			r.Args = append(r.Args, "get", "--ignore-not-found", "--output", "yaml")
 
-			r.Args = append(r.Args, strings.Join(s.Types, ","))
+			r.Args = append(r.Args, "get")
+			r.Args = append(r.Args, "--ignore-not-found")
+			r.Args = append(r.Args, "--output", "yaml")
 			r.Args = append(r.Args, "--selector", s.LabelSelector)
+			if len(s.Types) > 0 {
+				r.Args = append(r.Args, strings.Join(s.Types, ","))
+			} else {
+				r.Args = append(r.Args, "deployments,statefulsets,configmaps")
+			}
 
 			p.Inputs = append(p.Inputs, r)
 		}
