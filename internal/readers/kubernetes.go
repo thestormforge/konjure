@@ -31,36 +31,34 @@ import (
 func NewKubernetesReader(k *konjurev1beta2.Kubernetes) kio.Reader {
 	p := &Pipeline{}
 
-	for _, s := range k.Resources {
-		namespaces, err := namespaces(k, &s)
-		if err != nil {
-			return &ErrorReader{err: err}
+	namespaces, err := namespaces(k)
+	if err != nil {
+		return &ErrorReader{err: err}
+	}
+
+	for _, ns := range namespaces {
+		r := &ExecReader{Name: k.GetBin()}
+		if k.Kubeconfig != "" {
+			r.Args = append(r.Args, "--kubeconfig", k.Kubeconfig)
+		}
+		if k.Context != "" {
+			r.Args = append(r.Args, "--context", k.Context)
+		}
+		if ns != "" {
+			r.Args = append(r.Args, "--namespace", ns)
 		}
 
-		for _, ns := range namespaces {
-			r := &ExecReader{Name: k.GetBin()}
-			if k.Kubeconfig != "" {
-				r.Args = append(r.Args, "--kubeconfig", k.Kubeconfig)
-			}
-			if k.Context != "" {
-				r.Args = append(r.Args, "--context", k.Context)
-			}
-			if ns != "" {
-				r.Args = append(r.Args, "--namespace", ns)
-			}
-
-			r.Args = append(r.Args, "get")
-			r.Args = append(r.Args, "--ignore-not-found")
-			r.Args = append(r.Args, "--output", "yaml")
-			r.Args = append(r.Args, "--selector", s.LabelSelector)
-			if len(s.Types) > 0 {
-				r.Args = append(r.Args, strings.Join(s.Types, ","))
-			} else {
-				r.Args = append(r.Args, "deployments,statefulsets,configmaps")
-			}
-
-			p.Inputs = append(p.Inputs, r)
+		r.Args = append(r.Args, "get")
+		r.Args = append(r.Args, "--ignore-not-found")
+		r.Args = append(r.Args, "--output", "yaml")
+		r.Args = append(r.Args, "--selector", k.LabelSelector)
+		if len(k.Types) > 0 {
+			r.Args = append(r.Args, strings.Join(k.Types, ","))
+		} else {
+			r.Args = append(r.Args, "deployments,statefulsets,configmaps")
 		}
+
+		p.Inputs = append(p.Inputs, r)
 	}
 
 	p.Filters = append(p.Filters, kio.FilterAll(&filters.StripStatusFilter{}))
@@ -68,17 +66,16 @@ func NewKubernetesReader(k *konjurev1beta2.Kubernetes) kio.Reader {
 	return p
 }
 
-func namespaces(k *konjurev1beta2.Kubernetes, s *konjurev1beta2.KubernetesSelector) ([]string, error) {
-	if len(s.Namespaces) > 0 {
-		return s.Namespaces, nil
+func namespaces(k *konjurev1beta2.Kubernetes) ([]string, error) {
+	if len(k.Namespaces) > 0 {
+		return k.Namespaces, nil
 	}
 
-	if s.NamespaceSelector == "" {
-		// TODO This is the wrong behavior, we shouldn't leverage resource meta
-		return []string{k.Namespace}, nil
+	if k.NamespaceSelector == "" {
+		return []string{""}, nil
 	}
 
-	cmd := exec.Command(k.GetBin(), "get", "namespace", "--selector", s.NamespaceSelector, "--output", "name")
+	cmd := exec.Command(k.GetBin(), "get", "namespace", "--selector", k.NamespaceSelector, "--output", "name")
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, err

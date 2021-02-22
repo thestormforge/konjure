@@ -76,14 +76,6 @@ type Jsonnet struct {
 	JsonnetBundlerRefresh     bool   `json:"jbRefresh" yaml:"jbRefresh"`
 }
 
-// TODO Should we also have a namespace list?
-type KubernetesSelector struct {
-	Types             []string `json:"types,omitempty" yaml:"types,omitempty"`
-	Namespaces        []string `json:"namespaces,omitempty" yaml:"namespaces,omitempty"`
-	NamespaceSelector string   `json:"namespaceSelector,omitempty" yaml:"namespaceSelector,omitempty"`
-	LabelSelector     string   `json:"labelSelector,omitempty" yaml:"labelSelector,omitempty"`
-}
-
 type Kubernetes struct {
 	yaml.ResourceMeta `json:",inline" yaml:",inline"`
 
@@ -91,7 +83,10 @@ type Kubernetes struct {
 	Kubeconfig string `json:"kubeconfig,omitempty" yaml:"kubeconfig,omitempty"`
 	Context    string `json:"context,omitempty" yaml:"context,omitempty"`
 
-	Resources []KubernetesSelector `json:"resources" yaml:"resources"`
+	Namespaces        []string `json:"namespaces,omitempty" yaml:"namespaces,omitempty"`
+	NamespaceSelector string   `json:"namespaceSelector,omitempty" yaml:"namespaceSelector,omitempty"`
+	Types             []string `json:"types,omitempty" yaml:"types,omitempty"`
+	LabelSelector     string   `json:"labelSelector,omitempty" yaml:"labelSelector,omitempty"`
 }
 
 type Kustomize struct {
