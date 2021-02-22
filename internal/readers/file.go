@@ -73,9 +73,13 @@ func (r *FileReader) Read() ([]*yaml.RNode, error) {
 				return err
 			}
 
-			// Silently ignore errors if we cannot get any resources of this
+			// Silently ignore errors if we cannot get any valid resources of this
 			if nodes, err := kio.FromBytes(data); err == nil {
-				result = append(result, nodes...)
+				for _, n := range nodes {
+					if _, err := n.GetValidatedMetadata(); err == nil {
+						result = append(result, n)
+					}
+				}
 			}
 		}
 
