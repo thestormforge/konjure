@@ -24,6 +24,15 @@ func TestParser_Decode(t *testing.T) {
 			expected: &kio.ByteReader{Reader: strings.NewReader("test")},
 		},
 
+		{
+			desc: "postgres example",
+			spec: "github.com/thestormforge/examples/postgres/application",
+			expected: &konjurev1beta2.Git{
+				Repository: url.URL{Scheme: "https", Host: "github.com", Path: "/thestormforge/examples.git"},
+				Context:    "postgres/application",
+			},
+		},
+
 		// These are a bunch of test cases from Kustomize
 		{
 			desc: "kustomize-tc-0",

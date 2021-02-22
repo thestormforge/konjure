@@ -51,6 +51,11 @@ func (p *Parser) Decode(spec string) (interface{}, error) {
 
 	// Try to detect other valid URLs
 	if u, err := parseURL(spec); err == nil {
+		if strings.HasPrefix(u.Path, "github.com/") {
+			u.Host = "github.com"
+			spec = "https://" + spec
+		}
+
 		if u.Scheme == "ssh" || u.User.Username() == "git" || normalizeGitRepositoryURL(u) {
 			return p.parseGitSpec(spec)
 		} else if u.Scheme == "http" || u.Scheme == "https" {
