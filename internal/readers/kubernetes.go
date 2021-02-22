@@ -37,7 +37,10 @@ func NewKubernetesReader(k *konjurev1beta2.Kubernetes) kio.Reader {
 	}
 
 	for _, ns := range namespaces {
-		r := &ExecReader{Name: k.GetBin()}
+		r := &ExecReader{Name: k.Bin}
+		if r.Name == "" {
+			r.Name = "kubectl"
+		}
 		if k.Kubeconfig != "" {
 			r.Args = append(r.Args, "--kubeconfig", k.Kubeconfig)
 		}
@@ -75,7 +78,12 @@ func namespaces(k *konjurev1beta2.Kubernetes) ([]string, error) {
 		return []string{""}, nil
 	}
 
-	cmd := exec.Command(k.GetBin(), "get", "namespace", "--selector", k.NamespaceSelector, "--output", "name")
+	name := k.Bin
+	if name == "" {
+		name = "kubectl"
+	}
+
+	cmd := exec.Command(name, "get", "namespace", "--selector", k.NamespaceSelector, "--output", "name")
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, err

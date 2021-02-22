@@ -38,6 +38,11 @@ func (r *GitReader) Read() ([]*yaml.RNode, error) {
 		return nil, err
 	}
 
+	refspec := r.Refspec
+	if refspec == "" {
+		refspec = "HEAD"
+	}
+
 	// Fetch the into the temporary directory
 	if err := r.run("init"); err != nil {
 		return nil, err
@@ -45,7 +50,7 @@ func (r *GitReader) Read() ([]*yaml.RNode, error) {
 	if err := r.run("remote", "add", "origin", r.Repository); err != nil {
 		return nil, err
 	}
-	if err := r.run("fetch", "--depth=1", "origin", r.GetRefspec()); err != nil {
+	if err := r.run("fetch", "--depth=1", "origin", refspec); err != nil {
 		return nil, err
 	}
 	if err := r.run("checkout", "FETCH_HEAD"); err != nil {
@@ -78,7 +83,7 @@ func (r *GitReader) Clean() error {
 }
 
 func (r *GitReader) run(arg ...string) error {
-	cmd := exec.Command(r.GetBin(), arg...)
+	cmd := exec.Command("git", arg...)
 	cmd.Dir = r.path
 	return cmd.Run()
 }

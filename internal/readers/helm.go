@@ -26,7 +26,10 @@ import (
 )
 
 func NewHelmReader(helm *konjurev1beta2.Helm) kio.Reader {
-	r := &ExecReader{Name: helm.GetBin()}
+	r := &ExecReader{Name: helm.Helm.Bin}
+	if r.Name == "" {
+		r.Name = "helm"
+	}
 
 	if helm.Helm.RepositoryCache != "" {
 		r.Env = map[string]string{

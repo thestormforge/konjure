@@ -23,7 +23,7 @@ import (
 
 func NewKustomizeReader(kust *konjurev1beta2.Kustomize) kio.Reader {
 	return &ExecReader{
-		Name: kust.GetBin(),
+		Name: "kustomize",
 		Args: []string{"build", kust.Root},
 	}
 }
