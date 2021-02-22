@@ -78,14 +78,25 @@ func (r *Resource) MarshalJSON() ([]byte, error) {
 func (r *Resource) GetRNode() (*yaml.RNode, error) {
 	rv := reflect.Indirect(reflect.ValueOf(r))
 	for i := 0; i < rv.NumField(); i++ {
-		f := rv.Field(i)
-		if f.Kind() == reflect.String || f.IsNil() {
-			continue
+		if f := rv.Field(i); f.Kind() != reflect.String && !f.IsNil() {
+			return konjurev1beta2.GetRNode(rv.Field(i).Interface())
 		}
-		return konjurev1beta2.GetRNode(rv.Field(i).Interface())
 	}
 
 	return nil, fmt.Errorf("resource is missing definition")
+}
+
+func (r *Resource) DeepCopyInto(rout *Resource) {
+	rout.str = r.str
+
+	rvin := reflect.Indirect(reflect.ValueOf(r))
+	rvout := reflect.Indirect(reflect.ValueOf(rout))
+	for i := 0; i < rvin.NumField(); i++ {
+		if f := rvin.Field(i); f.Kind() != reflect.String && !f.IsNil() {
+			rvout.Field(i).Set(reflect.New(f.Elem().Type()))
+			rvout.Field(i).Elem().Set(f.Elem())
+		}
+	}
 }
 
 var _ kio.Reader = Resources{}

@@ -94,6 +94,16 @@ func TestResource_UnmarshalJSON(t *testing.T) {
 	}
 }
 
+func TestResource_DeepCopyInto(t *testing.T) {
+	// Quick sanity test to make sure we keep calm and don't panic
+	in := Resource{str: "test", File: &konjurev1beta2.File{Name: "test"}}
+	out := Resource{}
+	in.DeepCopyInto(&out)
+	assert.Equal(t, in.str, out.str)
+	assert.Equal(t, in.File, out.File)
+	assert.NotSame(t, in.File, out.File)
+}
+
 func mustRNode(obj interface{}) *yaml.RNode {
 	rn, err := konjurev1beta2.GetRNode(obj)
 	if err != nil {
