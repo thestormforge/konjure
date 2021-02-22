@@ -78,7 +78,8 @@ func (r *Resource) MarshalJSON() ([]byte, error) {
 func (r *Resource) GetRNode() (*yaml.RNode, error) {
 	rv := reflect.Indirect(reflect.ValueOf(r))
 	for i := 0; i < rv.NumField(); i++ {
-		if rv.Field(i).IsNil() {
+		f := rv.Field(i)
+		if f.Kind() == reflect.String || f.IsNil() {
 			continue
 		}
 		return konjurev1beta2.GetRNode(rv.Field(i).Interface())
