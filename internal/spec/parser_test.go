@@ -1,7 +1,6 @@
 package spec
 
 import (
-	"net/url"
 	"strings"
 	"testing"
 
@@ -28,7 +27,7 @@ func TestParser_Decode(t *testing.T) {
 			desc: "postgres example",
 			spec: "github.com/thestormforge/examples/postgres/application",
 			expected: &konjurev1beta2.Git{
-				Repository: url.URL{Scheme: "https", Host: "github.com", Path: "/thestormforge/examples.git"},
+				Repository: "https://github.com/thestormforge/examples.git",
 				Context:    "postgres/application",
 			},
 		},
@@ -38,7 +37,7 @@ func TestParser_Decode(t *testing.T) {
 			desc: "kustomize-tc-0",
 			spec: "https://git-codecommit.us-east-2.amazonaws.com/someorg/somerepo/somedir",
 			expected: &konjurev1beta2.Git{
-				Repository: url.URL{Scheme: "https", Host: "git-codecommit.us-east-2.amazonaws.com", Path: "/someorg/somerepo"},
+				Repository: "https://git-codecommit.us-east-2.amazonaws.com/someorg/somerepo",
 				Context:    "somedir",
 			},
 		},
@@ -46,7 +45,7 @@ func TestParser_Decode(t *testing.T) {
 			desc: "kustomize-tc-1",
 			spec: "https://git-codecommit.us-east-2.amazonaws.com/someorg/somerepo/somedir?ref=testbranch",
 			expected: &konjurev1beta2.Git{
-				Repository: url.URL{Scheme: "https", Host: "git-codecommit.us-east-2.amazonaws.com", Path: "/someorg/somerepo"},
+				Repository: "https://git-codecommit.us-east-2.amazonaws.com/someorg/somerepo",
 				Context:    "somedir",
 				Refspec:    "testbranch",
 			},
@@ -55,7 +54,7 @@ func TestParser_Decode(t *testing.T) {
 			desc: "kustomize-tc-2",
 			spec: "https://fabrikops2.visualstudio.com/someorg/somerepo?ref=master",
 			expected: &konjurev1beta2.Git{
-				Repository: url.URL{Scheme: "https", Host: "fabrikops2.visualstudio.com", Path: "/someorg/somerepo"},
+				Repository: "https://fabrikops2.visualstudio.com/someorg/somerepo",
 				Refspec:    "master",
 			},
 		},
@@ -63,7 +62,7 @@ func TestParser_Decode(t *testing.T) {
 			desc: "kustomize-tc-3",
 			spec: "http://github.com/someorg/somerepo/somedir",
 			expected: &konjurev1beta2.Git{
-				Repository: url.URL{Scheme: "https", Host: "github.com", Path: "/someorg/somerepo.git"},
+				Repository: "https://github.com/someorg/somerepo.git",
 				Context:    "somedir",
 			},
 		},
@@ -71,7 +70,7 @@ func TestParser_Decode(t *testing.T) {
 			desc: "kustomize-tc-4",
 			spec: "git@github.com:someorg/somerepo/somedir",
 			expected: &konjurev1beta2.Git{
-				Repository: url.URL{Scheme: "scp", User: url.User("git"), Host: "github.com", Path: "someorg/somerepo.git"},
+				Repository: "git@github.com:someorg/somerepo.git",
 				Context:    "somedir",
 			},
 		},
@@ -88,7 +87,7 @@ func TestParser_Decode(t *testing.T) {
 			desc: "kustomize-tc-6",
 			spec: "git@bitbucket.org:company/project.git//path?ref=branch",
 			expected: &konjurev1beta2.Git{
-				Repository: url.URL{Scheme: "scp", User: url.User("git"), Host: "bitbucket.org", Path: "company/project.git"},
+				Repository: "git@bitbucket.org:company/project.git",
 				Context:    "path",
 				Refspec:    "branch",
 			},
@@ -97,14 +96,14 @@ func TestParser_Decode(t *testing.T) {
 			desc: "kustomize-tc-7",
 			spec: "https://itfs.mycompany.com/collection/project/_git/somerepos",
 			expected: &konjurev1beta2.Git{
-				Repository: url.URL{Scheme: "https", Host: "itfs.mycompany.com", Path: "/collection/project/_git/somerepos"},
+				Repository: "https://itfs.mycompany.com/collection/project/_git/somerepos",
 			},
 		},
 		{
 			desc: "kustomize-tc-8",
 			spec: "https://itfs.mycompany.com/collection/project/_git/somerepos?version=v1.0.0",
 			expected: &konjurev1beta2.Git{
-				Repository: url.URL{Scheme: "https", Host: "itfs.mycompany.com", Path: "/collection/project/_git/somerepos"},
+				Repository: "https://itfs.mycompany.com/collection/project/_git/somerepos",
 				Refspec:    "v1.0.0",
 			},
 		},
@@ -112,7 +111,7 @@ func TestParser_Decode(t *testing.T) {
 			desc: "kustomize-tc-9",
 			spec: "https://itfs.mycompany.com/collection/project/_git/somerepos/somedir?version=v1.0.0",
 			expected: &konjurev1beta2.Git{
-				Repository: url.URL{Scheme: "https", Host: "itfs.mycompany.com", Path: "/collection/project/_git/somerepos"},
+				Repository: "https://itfs.mycompany.com/collection/project/_git/somerepos",
 				Context:    "somedir",
 				Refspec:    "v1.0.0",
 			},
@@ -121,7 +120,7 @@ func TestParser_Decode(t *testing.T) {
 			desc: "kustomize-tc-10",
 			spec: "git::https://itfs.mycompany.com/collection/project/_git/somerepos",
 			expected: &konjurev1beta2.Git{
-				Repository: url.URL{Scheme: "https", Host: "itfs.mycompany.com", Path: "/collection/project/_git/somerepos"},
+				Repository: "https://itfs.mycompany.com/collection/project/_git/somerepos",
 			},
 		},
 	}

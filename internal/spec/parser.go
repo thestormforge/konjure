@@ -50,7 +50,7 @@ func (p *Parser) Decode(spec string) (interface{}, error) {
 	}
 
 	// Try to detect other valid URLs
-	if u, err := parseURL(spec); err == nil {
+	if u, err := ParseURL(spec); err == nil {
 		if strings.HasPrefix(u.Path, "github.com/") {
 			u.Host = "github.com"
 			spec = "https://" + spec
@@ -69,25 +69,27 @@ func (p *Parser) Decode(spec string) (interface{}, error) {
 }
 
 func (p *Parser) parseGitSpec(spec string) (interface{}, error) {
-	u, err := parseURL(spec)
+	u, err := ParseURL(spec)
 	if err != nil {
 		return nil, err
 	}
 
 	// TODO What if it comes back opaque?
 
-	g := &konjurev1beta2.Git{Repository: *u}
+	q := u.Query()
+	u.RawQuery = ""
 
-	q := g.Repository.Query()
-	g.Repository.RawQuery = ""
-	g.Refspec = q.Get("ref")
+	g := &konjurev1beta2.Git{
+		Refspec: q.Get("ref"),
+		Context: normalizeGitRepositoryPath(u),
+	}
+
 	if g.Refspec == "" {
 		g.Refspec = q.Get("version")
 	}
 
-	g.Context = normalizeGitRepositoryPath(&g.Repository)
-
-	normalizeGitRepositoryURL(&g.Repository)
+	normalizeGitRepositoryURL(u)
+	g.Repository = u.String()
 
 	return g, nil
 }
@@ -178,27 +180,7 @@ func (p *Parser) parseKubernetesSpec(spec string) (interface{}, error) {
 	return k8s, nil
 }
 
-func parseURL(rawurl string) (*url.URL, error) {
-	// First use normal URL parsing
-	u, err := url.Parse(rawurl)
-	if err == nil {
-		return u, nil
-	}
-
-	// Try SCP-like (e.g. `[user@]host.xz:path/to/repo.git/`)
-	if p := strings.SplitN(rawurl, ":", 2); len(p) == 2 {
-		if scp, err := url.Parse("scp://" + p[0] + "/" + p[1]); err == nil {
-			// Remove the slash we injected to make the parser work
-			scp.Path = scp.Path[1:]
-			return scp, nil
-		}
-	}
-
-	// Return the original error
-	return nil, err
-}
-
-func normalizeGitRepositoryURL(repo *url.URL) bool {
+func normalizeGitRepositoryURL(repo *URL) bool {
 	h := strings.ToLower(repo.Hostname())
 	switch {
 
@@ -227,7 +209,7 @@ func normalizeGitRepositoryURL(repo *url.URL) bool {
 	return true
 }
 
-func normalizeGitRepositoryPath(repo *url.URL) string {
+func normalizeGitRepositoryPath(repo *URL) string {
 	var rp string
 
 	var trimSlash bool
@@ -258,4 +240,42 @@ func normalizeGitRepositoryPath(repo *url.URL) string {
 	}
 
 	return rp
+}
+
+type URL struct {
+	url.URL
+}
+
+func ParseURL(rawurl string) (*URL, error) {
+	// First use normal URL parsing
+	u, err := url.Parse(rawurl)
+	if err == nil {
+		return &URL{URL: *u}, nil
+	}
+
+	// Try SCP-like (e.g. `[user@]host.xz:path/to/repo.git/`)
+	if p := strings.SplitN(rawurl, ":", 2); len(p) == 2 {
+		if scp, err := url.Parse("scp://" + p[0] + "/" + p[1]); err == nil {
+			// Remove the slash we injected to make the parser work
+			scp.Path = scp.Path[1:]
+			return &URL{URL: *scp}, nil
+		}
+	}
+
+	// Return the original error
+	return nil, err
+}
+
+func (u *URL) String() string {
+	if u.Scheme == "scp" {
+		host := u.Hostname()
+
+		if user := u.User.String(); user != "" {
+			return user + "@" + host + ":" + u.Path
+		}
+
+		return host + ":" + u.Path
+	}
+
+	return u.URL.String()
 }

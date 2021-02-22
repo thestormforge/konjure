@@ -17,8 +17,6 @@ limitations under the License.
 package v1beta2
 
 import (
-	"net/url"
-
 	"github.com/sethvargo/go-password/password"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -122,9 +120,9 @@ type Secret struct {
 type Git struct {
 	yaml.ResourceMeta `json:",inline" yaml:",inline"`
 
-	Repository url.URL
-	Refspec    string
-	Context    string
+	Repository string `json:"repo,omitempty" yaml:"repo,omitempty"`
+	Refspec    string `json:"refspec,omitempty" yaml:"refspec,omitempty"`
+	Context    string `json:"context,omitempty" yaml:"context,omitempty"`
 }
 
 type HTTP struct {

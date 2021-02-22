@@ -38,21 +38,6 @@ func (g *Git) GetBin() string {
 	return "git"
 }
 
-func (g *Git) GetRepository() string {
-	if g.Repository.Scheme == "scp" {
-		user := g.Repository.User.String()
-		host := g.Repository.Hostname()
-		path := g.Repository.Path
-
-		if user != "" {
-			return user + "@" + host + ":" + path
-		}
-		return host + ":" + path
-	}
-
-	return g.Repository.String()
-}
-
 func (g *Git) GetRefspec() string {
 	if g.Refspec == "" {
 		return "HEAD"

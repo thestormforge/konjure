@@ -18,7 +18,6 @@ package konjure
 
 import (
 	"encoding/json"
-	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -42,9 +41,9 @@ func TestResource_GetRNode(t *testing.T) {
 		{
 			desc: "git",
 			resource: Resource{
-				Git: &konjurev1beta2.Git{Repository: url.URL{Scheme: "http", Host: "example.com", Path: "/repo"}},
+				Git: &konjurev1beta2.Git{Repository: "http://example.com/repo"},
 			},
-			expected: mustRNode(&konjurev1beta2.Git{Repository: url.URL{Scheme: "http", Host: "example.com", Path: "/repo"}}),
+			expected: mustRNode(&konjurev1beta2.Git{Repository: "http://example.com/repo"}),
 		},
 	}
 	for _, c := range cases {

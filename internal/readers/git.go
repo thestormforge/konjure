@@ -42,7 +42,7 @@ func (r *GitReader) Read() ([]*yaml.RNode, error) {
 	if err := r.run("init"); err != nil {
 		return nil, err
 	}
-	if err := r.run("remote", "add", "origin", r.GetRepository()); err != nil {
+	if err := r.run("remote", "add", "origin", r.Repository); err != nil {
 		return nil, err
 	}
 	if err := r.run("fetch", "--depth=1", "origin", r.GetRefspec()); err != nil {
