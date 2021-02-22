@@ -14,26 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package filters
 
-import (
-	"context"
-	"os"
+import "sigs.k8s.io/kustomize/kyaml/yaml"
 
-	"github.com/spf13/cobra"
-	"github.com/thestormforge/konjure/internal/command"
-)
+type StripStatusFilter struct{}
 
-func init() {
-	cobra.EnableCommandSorting = false
-}
-
-func main() {
-	// TODO Wrap `http.DefaultTransport` so it includes the UA string
-
-	ctx := context.Background()
-	cmd := command.NewRootCommand()
-	if err := cmd.ExecuteContext(ctx); err != nil {
-		os.Exit(1)
+func (s StripStatusFilter) Filter(node *yaml.RNode) (*yaml.RNode, error) {
+	if _, err := yaml.Clear("status").Filter(node); err != nil {
+		return nil, err
 	}
+	return node, nil
 }

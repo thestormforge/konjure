@@ -14,26 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package readers
 
 import (
-	"context"
-	"os"
-
-	"github.com/spf13/cobra"
-	"github.com/thestormforge/konjure/internal/command"
+	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
+	"sigs.k8s.io/kustomize/kyaml/kio"
 )
 
-func init() {
-	cobra.EnableCommandSorting = false
-}
-
-func main() {
-	// TODO Wrap `http.DefaultTransport` so it includes the UA string
-
-	ctx := context.Background()
-	cmd := command.NewRootCommand()
-	if err := cmd.ExecuteContext(ctx); err != nil {
-		os.Exit(1)
+func NewKustomizeReader(kust *konjurev1beta2.Kustomize) kio.Reader {
+	return &ExecReader{
+		Name: kust.GetBin(),
+		Args: []string{"build", kust.Root},
 	}
 }
