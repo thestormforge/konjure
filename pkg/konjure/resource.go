@@ -17,12 +17,12 @@ limitations under the License.
 package konjure
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 
 	"github.com/thestormforge/konjure/internal/spec"
 	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
-	"k8s.io/apimachinery/pkg/util/json"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )

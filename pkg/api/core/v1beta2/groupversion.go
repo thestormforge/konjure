@@ -19,34 +19,37 @@ package v1beta2
 import (
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-var GroupVersion = schema.GroupVersion{Group: "konjure.stormforge.io", Version: "v1beta2"}
+var (
+	Group      = "konjure.stormforge.io"
+	Version    = "v1beta2"
+	APIVersion = Group + "/" + Version
+)
 
 // AddTypeInfo overwrites the type information on the supplied instance if it is a pointer to one
 // of our types.
 func AddTypeInfo(obj interface{}) error {
 	switch r := obj.(type) {
 	case *Resource:
-		r.APIVersion, r.Kind = GroupVersion.WithKind("Resource").ToAPIVersionAndKind()
+		r.APIVersion, r.Kind = APIVersion, "Resource"
 	case *Helm:
-		r.APIVersion, r.Kind = GroupVersion.WithKind("Helm").ToAPIVersionAndKind()
+		r.APIVersion, r.Kind = APIVersion, "Helm"
 	case *Jsonnet:
-		r.APIVersion, r.Kind = GroupVersion.WithKind("Jsonnet").ToAPIVersionAndKind()
+		r.APIVersion, r.Kind = APIVersion, "Jsonnet"
 	case *Kubernetes:
-		r.APIVersion, r.Kind = GroupVersion.WithKind("Kubernetes").ToAPIVersionAndKind()
+		r.APIVersion, r.Kind = APIVersion, "Kubernetes"
 	case *Kustomize:
-		r.APIVersion, r.Kind = GroupVersion.WithKind("Kustomize").ToAPIVersionAndKind()
+		r.APIVersion, r.Kind = APIVersion, "Kustomize"
 	case *Secret:
-		r.APIVersion, r.Kind = GroupVersion.WithKind("Secret").ToAPIVersionAndKind()
+		r.APIVersion, r.Kind = APIVersion, "Secret"
 	case *Git:
-		r.APIVersion, r.Kind = GroupVersion.WithKind("Git").ToAPIVersionAndKind()
+		r.APIVersion, r.Kind = APIVersion, "Git"
 	case *HTTP:
-		r.APIVersion, r.Kind = GroupVersion.WithKind("HTTP").ToAPIVersionAndKind()
+		r.APIVersion, r.Kind = APIVersion, "HTTP"
 	case *File:
-		r.APIVersion, r.Kind = GroupVersion.WithKind("File").ToAPIVersionAndKind()
+		r.APIVersion, r.Kind = APIVersion, "File"
 	default:
 		return fmt.Errorf("unknown type: %T", obj)
 	}
@@ -55,7 +58,7 @@ func AddTypeInfo(obj interface{}) error {
 
 // NewForType returns a new instance of the typed object identified by the supplied type metadata.
 func NewForType(t *yaml.TypeMeta) (interface{}, error) {
-	if t.APIVersion != GroupVersion.String() {
+	if t.APIVersion != APIVersion {
 		return nil, fmt.Errorf("unknown API version: %s", t.APIVersion)
 	}
 

@@ -17,12 +17,12 @@ limitations under the License.
 package konjure
 
 import (
+	"encoding/json"
 	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
-	"k8s.io/apimachinery/pkg/util/json"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 

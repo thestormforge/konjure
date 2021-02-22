@@ -57,7 +57,7 @@ func (f *Filter) filterToDepth(nodes []*yaml.RNode, depth int) ([]*yaml.RNode, e
 		}
 
 		// Just include non-Konjure resources directly
-		if m.APIVersion != konjurev1beta2.GroupVersion.String() {
+		if m.APIVersion != konjurev1beta2.APIVersion {
 			result = append(result, n)
 			continue
 		}
