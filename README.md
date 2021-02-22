@@ -43,4 +43,4 @@ Some sources can be specified using a URL: file system paths, HTTP URLs, and Git
 
 Konjure defines several Kubernetes-like resources which will be expanded in place during execution. For example, if Konjure encounters a resource with the `apiVersion: konjure.stormforge.io/v1beta2` and the `kind: File` it will be replaced with the manifests found in the named file.
 
-The current (and evolving) definitions can be found in the [API source](api/core/v1beta2/types.go).
+The current (and evolving) definitions can be found in the [API source](pkg/api/core/v1beta2/types.go).
