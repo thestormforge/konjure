@@ -79,6 +79,7 @@ type Jsonnet struct {
 // TODO Should we also have a namespace list?
 type KubernetesSelector struct {
 	Types             []string `json:"types,omitempty" yaml:"types,omitempty"`
+	Namespaces        []string `json:"namespaces,omitempty" yaml:"namespaces,omitempty"`
 	NamespaceSelector string   `json:"namespaceSelector,omitempty" yaml:"namespaceSelector,omitempty"`
 	LabelSelector     string   `json:"labelSelector,omitempty" yaml:"labelSelector,omitempty"`
 }

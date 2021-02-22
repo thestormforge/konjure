@@ -69,6 +69,10 @@ func NewKubernetesReader(k *konjurev1beta2.Kubernetes) kio.Reader {
 }
 
 func namespaces(k *konjurev1beta2.Kubernetes, s *konjurev1beta2.KubernetesSelector) ([]string, error) {
+	if len(s.Namespaces) > 0 {
+		return s.Namespaces, nil
+	}
+
 	if s.NamespaceSelector == "" {
 		// TODO This is the wrong behavior, we shouldn't leverage resource meta
 		return []string{k.Namespace}, nil
