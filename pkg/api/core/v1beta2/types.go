@@ -18,13 +18,10 @@ package v1beta2
 
 import (
 	"github.com/sethvargo/go-password/password"
-	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 // Resource is used to expand a list of URL-like specifications into other Konjure resources.
 type Resource struct {
-	yaml.ResourceMeta `json:",inline" yaml:",inline"`
-
 	// The list of URL-like specifications to convert into Konjure resources.
 	Resources []string `json:"resources" yaml:"resources"`
 }
@@ -53,8 +50,6 @@ type HelmValue struct {
 
 // Helm is used to expand a Helm chart locally (using `helm template`).
 type Helm struct {
-	yaml.ResourceMeta `json:",inline" yaml:",inline"`
-
 	// Additional Helm configuration.
 	Helm HelmExecutor `json:"helm,omitempty" yaml:"helm,omitempty"`
 	// The release name to use when rendering the chart templates.
@@ -90,8 +85,6 @@ type JsonnetParameter struct {
 
 // Jsonnet is used to expand programmatically constructed resources.
 type Jsonnet struct {
-	yaml.ResourceMeta `json:",inline" yaml:",inline"`
-
 	// The Jsonnet file to evaluate.
 	Filename string `json:"filename,omitempty" yaml:"filename,omitempty"`
 	// An anonymous code snippet to evaluate.
@@ -111,8 +104,6 @@ type Jsonnet struct {
 
 // Kubernetes is used to expand resources found in a Kubernetes cluster.
 type Kubernetes struct {
-	yaml.ResourceMeta `json:",inline" yaml:",inline"`
-
 	// The path to the `kubectl` binary. Defaults to "kubectl".
 	Bin string `json:"bin,omitempty" yaml:"bin,omitempty"`
 	// Override the default path to the kubeconfig file.
@@ -132,8 +123,6 @@ type Kubernetes struct {
 
 // Kustomize is used to expand kustomizations.
 type Kustomize struct {
-	yaml.ResourceMeta `json:",inline" yaml:",inline"`
-
 	// The Kustomize root to build.
 	Root string `json:"root" yaml:"root"`
 }
@@ -156,8 +145,6 @@ type PasswordRecipe struct {
 
 // Secret is used to expand a Secret resource.
 type Secret struct {
-	yaml.ResourceMeta `json:",inline" yaml:",inline"`
-
 	// The name of the secret to generate.
 	SecretName string `json:"secretName" yaml:"secretName"`
 	// The type of secret to generate.
@@ -182,8 +169,6 @@ type Secret struct {
 
 // Git is used to expand full or partial Git repositories.
 type Git struct {
-	yaml.ResourceMeta `json:",inline" yaml:",inline"`
-
 	// The Git repository URL.
 	Repository string `json:"repo,omitempty" yaml:"repo,omitempty"`
 	// The refspec in the repository to checkout.
@@ -194,16 +179,12 @@ type Git struct {
 
 // HTTP is used to expand HTTP resources.
 type HTTP struct {
-	yaml.ResourceMeta `json:",inline" yaml:",inline"`
-
 	// The HTTP(S) URL to fetch.
 	URL string `json:"url" yaml:"url"`
 }
 
 // File is used to expand local file system resources.
 type File struct {
-	yaml.ResourceMeta `json:",inline" yaml:",inline"`
-
 	// The file (or directory) name to read.
 	Path string `json:"path" yaml:"path"`
 }

@@ -28,34 +28,6 @@ var (
 	APIVersion = Group + "/" + Version
 )
 
-// AddTypeInfo overwrites the type information on the supplied instance if it is a pointer to one
-// of our types.
-func AddTypeInfo(obj interface{}) error {
-	switch r := obj.(type) {
-	case *Resource:
-		r.APIVersion, r.Kind = APIVersion, "Resource"
-	case *Helm:
-		r.APIVersion, r.Kind = APIVersion, "Helm"
-	case *Jsonnet:
-		r.APIVersion, r.Kind = APIVersion, "Jsonnet"
-	case *Kubernetes:
-		r.APIVersion, r.Kind = APIVersion, "Kubernetes"
-	case *Kustomize:
-		r.APIVersion, r.Kind = APIVersion, "Kustomize"
-	case *Secret:
-		r.APIVersion, r.Kind = APIVersion, "Secret"
-	case *Git:
-		r.APIVersion, r.Kind = APIVersion, "Git"
-	case *HTTP:
-		r.APIVersion, r.Kind = APIVersion, "HTTP"
-	case *File:
-		r.APIVersion, r.Kind = APIVersion, "File"
-	default:
-		return fmt.Errorf("unknown type: %T", obj)
-	}
-	return nil
-}
-
 // NewForType returns a new instance of the typed object identified by the supplied type metadata.
 func NewForType(t *yaml.TypeMeta) (interface{}, error) {
 	if t.APIVersion != APIVersion {
@@ -91,11 +63,68 @@ func NewForType(t *yaml.TypeMeta) (interface{}, error) {
 
 // GetRNode converts the supplied object to a resource node.
 func GetRNode(obj interface{}) (*yaml.RNode, error) {
-	if err := AddTypeInfo(obj); err != nil {
-		return nil, err
+	m := &yaml.ResourceMeta{TypeMeta: yaml.TypeMeta{APIVersion: APIVersion}}
+	var node interface{}
+	switch s := obj.(type) {
+	case *Resource:
+		m.Kind = "Resource"
+		node = struct {
+			Meta *yaml.ResourceMeta `yaml:",inline"`
+			Spec *Resource          `yaml:",inline"`
+		}{Meta: m, Spec: s}
+	case *Helm:
+		m.Kind = "Helm"
+		node = struct {
+			Meta *yaml.ResourceMeta `yaml:",inline"`
+			Spec *Helm              `yaml:",inline"`
+		}{Meta: m, Spec: s}
+	case *Jsonnet:
+		m.Kind = "Jsonnet"
+		node = struct {
+			Meta *yaml.ResourceMeta `yaml:",inline"`
+			Spec *Jsonnet           `yaml:",inline"`
+		}{Meta: m, Spec: s}
+	case *Kubernetes:
+		m.Kind = "Kubernetes"
+		node = struct {
+			Meta *yaml.ResourceMeta `yaml:",inline"`
+			Spec *Kubernetes        `yaml:",inline"`
+		}{Meta: m, Spec: s}
+	case *Kustomize:
+		m.Kind = "Kustomize"
+		node = struct {
+			Meta *yaml.ResourceMeta `yaml:",inline"`
+			Spec *Kustomize         `yaml:",inline"`
+		}{Meta: m, Spec: s}
+	case *Secret:
+		m.Kind = "Secret"
+		node = struct {
+			Meta *yaml.ResourceMeta `yaml:",inline"`
+			Spec *Secret            `yaml:",inline"`
+		}{Meta: m, Spec: s}
+	case *Git:
+		m.Kind = "Git"
+		node = struct {
+			Meta *yaml.ResourceMeta `yaml:",inline"`
+			Spec *Git               `yaml:",inline"`
+		}{Meta: m, Spec: s}
+	case *HTTP:
+		m.Kind = "HTTP"
+		node = struct {
+			Meta *yaml.ResourceMeta `yaml:",inline"`
+			Spec *HTTP              `yaml:",inline"`
+		}{Meta: m, Spec: s}
+	case *File:
+		m.Kind = "File"
+		node = struct {
+			Meta *yaml.ResourceMeta `yaml:",inline"`
+			Spec *File              `yaml:",inline"`
+		}{Meta: m, Spec: s}
+	default:
+		return nil, fmt.Errorf("unknown type: %T", obj)
 	}
 
-	data, err := yaml.Marshal(obj)
+	data, err := yaml.Marshal(node)
 	if err != nil {
 		return nil, err
 	}
