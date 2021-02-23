@@ -77,8 +77,8 @@ func (r *Resource) MarshalJSON() ([]byte, error) {
 		return json.Marshal(r.str)
 	}
 
-	type rt *Resource
-	return json.Marshal(rt(r))
+	type rt Resource
+	return json.Marshal((*rt)(r))
 }
 
 func (r *Resource) GetRNode() (*yaml.RNode, error) {

@@ -93,6 +93,33 @@ func TestResource_UnmarshalJSON(t *testing.T) {
 	}
 }
 
+func TestResource_MarshalJSON(t *testing.T) {
+	cases := []struct {
+		desc     string
+		resource Resource
+		expected string
+	}{
+		{
+			desc:     "file string",
+			resource: Resource{str: "/this/is/a/test", File: &konjurev1beta2.File{Path: "/this/is/a/test"}},
+			expected: `"/this/is/a/test"`,
+		},
+		{
+			desc:     "file object",
+			resource: Resource{File: &konjurev1beta2.File{Path: "/this/is/a/test"}},
+			expected: `{"file":{"path":"/this/is/a/test"}}`,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.desc, func(t *testing.T) {
+			data, err := json.Marshal(&c.resource)
+			if assert.NoError(t, err) {
+				assert.JSONEq(t, c.expected, string(data))
+			}
+		})
+	}
+}
+
 func TestResource_DeepCopyInto(t *testing.T) {
 	// Quick sanity test to make sure we keep calm and don't panic
 	in := Resource{str: "test", File: &konjurev1beta2.File{Path: "test"}}
