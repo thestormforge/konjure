@@ -19,9 +19,16 @@ package main
 import (
 	"context"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/thestormforge/konjure/internal/command"
+)
+
+var (
+	version = ""
+	commit  = "HEAD"
+	date    = time.Now().String()
 )
 
 func init() {
@@ -32,7 +39,7 @@ func main() {
 	// TODO Wrap `http.DefaultTransport` so it includes the UA string
 
 	ctx := context.Background()
-	cmd := command.NewRootCommand()
+	cmd := command.NewRootCommand(version, commit, date)
 	if err := cmd.ExecuteContext(ctx); err != nil {
 		os.Exit(1)
 	}

@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/kio"
 )
 
-func NewRootCommand() *cobra.Command {
+func NewRootCommand(version, refspec, date string) *cobra.Command {
 	r := &readers.ResourceReader{}
 	f := &konjure.Filter{}
 	w := &konjure.Writer{}
@@ -34,8 +34,13 @@ func NewRootCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:              "konjure INPUT...",
 		Short:            "Manifest, appear!",
+		Version:          version,
 		SilenceUsage:     true,
 		TraverseChildren: true,
+		Annotations: map[string]string{
+			"BuildRefspec": refspec,
+			"BuildDate":    date,
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			r.Resources = args
 			r.Reader = cmd.InOrStdin()
