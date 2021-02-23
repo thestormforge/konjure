@@ -45,16 +45,7 @@ func (r *SecretReader) Read() ([]*yaml.RNode, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := n.PipeE(yaml.SetK8sName(r.Name)); err != nil {
-		return nil, err
-	}
-	if err := n.SetNamespace(r.Namespace); err != nil {
-		return nil, err
-	}
-	if err := n.SetLabels(r.Labels); err != nil {
-		return nil, err
-	}
-	if err := n.SetAnnotations(r.Annotations); err != nil {
+	if err := n.PipeE(yaml.SetK8sName(r.SecretName)); err != nil {
 		return nil, err
 	}
 	if r.Type != "" {

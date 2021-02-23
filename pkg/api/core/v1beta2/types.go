@@ -158,6 +158,8 @@ type PasswordRecipe struct {
 type Secret struct {
 	yaml.ResourceMeta `json:",inline" yaml:",inline"`
 
+	// The name of the secret to generate.
+	SecretName string `json:"secretName" yaml:"secretName"`
 	// The type of secret to generate.
 	Type string `json:"type,omitempty" yaml:"type,omitempty"`
 

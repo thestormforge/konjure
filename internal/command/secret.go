@@ -43,7 +43,7 @@ func NewSecretCommand() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&f.Name, "name", "", "name of the secret to generate")
+	cmd.Flags().StringVar(&f.SecretName, "name", "", "`name` of the secret to generate")
 	cmd.Flags().StringToStringVar(&f.literals, "literal", nil, "literal `name=value` pair")
 	cmd.Flags().StringArrayVar(&f.FileSources, "file", nil, "file `path` to include")
 	cmd.Flags().StringArrayVar(&f.EnvSources, "env", nil, "env `file` to read")
