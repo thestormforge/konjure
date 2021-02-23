@@ -67,17 +67,17 @@ func TestResource_UnmarshalJSON(t *testing.T) {
 			rawJSON: `"/this/is/a/test"`,
 			expected: Resource{
 				File: &konjurev1beta2.File{
-					Name: "/this/is/a/test",
+					Path: "/this/is/a/test",
 				},
 				str: "/this/is/a/test",
 			},
 		},
 		{
 			desc:    "file object",
-			rawJSON: `{"file":{"name":"/this/is/a/test"}}`,
+			rawJSON: `{"file":{"path":"/this/is/a/test"}}`,
 			expected: Resource{
 				File: &konjurev1beta2.File{
-					Name: "/this/is/a/test",
+					Path: "/this/is/a/test",
 				},
 			},
 		},
@@ -95,7 +95,7 @@ func TestResource_UnmarshalJSON(t *testing.T) {
 
 func TestResource_DeepCopyInto(t *testing.T) {
 	// Quick sanity test to make sure we keep calm and don't panic
-	in := Resource{str: "test", File: &konjurev1beta2.File{Name: "test"}}
+	in := Resource{str: "test", File: &konjurev1beta2.File{Path: "test"}}
 	out := Resource{}
 	in.DeepCopyInto(&out)
 	assert.Equal(t, in.str, out.str)

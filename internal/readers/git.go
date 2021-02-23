@@ -63,7 +63,7 @@ func (r *GitReader) Read() ([]*yaml.RNode, error) {
 	// This creates a single File resource for the subdirectory of the Git repository
 	// TODO Annotate the File resource with the Git information? (that should be whenever a Konjure resource creates another Konjure resource)
 	n, err := konjurev1beta2.GetRNode(&konjurev1beta2.File{
-		Name: filepath.Join(r.path, r.Context),
+		Path: filepath.Join(r.path, r.Context),
 	})
 	if err != nil {
 		return nil, err

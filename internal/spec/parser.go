@@ -34,7 +34,7 @@ func (p *Parser) Decode(spec string) (interface{}, error) {
 
 	// Absolute file path
 	if filepath.IsAbs(spec) {
-		return &konjurev1beta2.File{Name: spec}, nil
+		return &konjurev1beta2.File{Path: spec}, nil
 	}
 
 	// Process scheme overrides
@@ -65,7 +65,7 @@ func (p *Parser) Decode(spec string) (interface{}, error) {
 		}
 	}
 
-	return &konjurev1beta2.File{Name: spec}, nil
+	return &konjurev1beta2.File{Path: spec}, nil
 }
 
 func (p *Parser) parseGitSpec(spec string) (interface{}, error) {

@@ -33,7 +33,7 @@ type FileReader struct {
 
 func (r *FileReader) Read() ([]*yaml.RNode, error) {
 	var result []*yaml.RNode
-	err := filepath.Walk(r.File.Name, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(r.File.Path, func(path string, info os.FileInfo, err error) error {
 		// Just bubble walk errors back up
 		if err != nil {
 			// TODO Check the annotations on the File object to see if there is any context we can add to the error

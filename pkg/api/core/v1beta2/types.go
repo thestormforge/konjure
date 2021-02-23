@@ -203,5 +203,5 @@ type File struct {
 	yaml.ResourceMeta `json:",inline" yaml:",inline"`
 
 	// The file (or directory) name to read.
-	Name string `json:"name" yaml:"name"`
+	Path string `json:"path" yaml:"path"`
 }
