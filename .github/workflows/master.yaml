@@ -21,7 +21,7 @@ jobs:
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v1
         with:
-          args: release --rm-dist
+          args: release --rm-dist --release-notes .github/RELEASE_TEMPLATE.md
         env:
           GITHUB_TOKEN: ${{ secrets.BMASTERS_TOKEN }}
       - name: Clean up dist
