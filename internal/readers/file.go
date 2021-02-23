@@ -76,9 +76,24 @@ func (r *FileReader) Read() ([]*yaml.RNode, error) {
 			// Silently ignore errors if we cannot get any valid resources of this
 			if nodes, err := kio.FromBytes(data); err == nil {
 				for _, n := range nodes {
-					if _, err := n.GetValidatedMetadata(); err == nil {
-						result = append(result, n)
+					m, err := n.GetMeta()
+					if err != nil {
+						continue
 					}
+
+					// Kind is required
+					if m.Kind == "" {
+						continue
+					}
+
+					// Name may be required
+					if m.Name == "" &&
+						!strings.HasSuffix(m.Kind, "List") &&
+						m.APIVersion != konjurev1beta2.APIVersion {
+						continue
+					}
+
+					result = append(result, n)
 				}
 			}
 		}
