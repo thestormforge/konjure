@@ -59,6 +59,7 @@ func NewRootCommand(version, refspec, date string) *cobra.Command {
 	cmd.Flags().IntVarP(&f.Depth, "depth", "d", 100, "limit the number of times expansion can happen")
 	cmd.Flags().BoolVar(&f.KeepStatus, "keep-status", false, "retain status fields, if present")
 	cmd.Flags().BoolVar(&f.KeepComments, "keep-comments", true, "retain YAML comments")
+	cmd.Flags().BoolVar(&f.Format, "format", false, "format output to Kubernetes conventions")
 	cmd.Flags().StringVarP(&w.Format, "output", "o", "yaml", "set the output format")
 	cmd.Flags().BoolVar(&w.Sort, "sort", false, "sort output prior to writing")
 

@@ -32,6 +32,8 @@ type Filter struct {
 	KeepStatus bool
 	// Flag indicating that comments should not be stripped.
 	KeepComments bool
+	// Flag indicating that output should be formatted.
+	Format bool
 }
 
 // Filter expands all of the Konjure resources using the configured executors.
@@ -52,6 +54,13 @@ func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 
 	if !f.KeepComments {
 		nodes, err = (&kiofilters.StripCommentsFilter{}).Filter(nodes)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if f.Format {
+		nodes, err = (&kiofilters.FormatFilter{}).Filter(nodes)
 		if err != nil {
 			return nil, err
 		}
