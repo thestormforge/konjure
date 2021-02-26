@@ -29,7 +29,6 @@ func NewRootCommand(version, refspec, date string) *cobra.Command {
 	w := &konjure.Writer{}
 
 	// TODO We should have another filter that only keeps resources matching a labelSelector, annotationSelector, group, kind, version, etc.
-	// TODO What about other "utility" filters/output settings like striping comments?
 
 	cmd := &cobra.Command{
 		Use:              "konjure INPUT...",
@@ -57,6 +56,7 @@ func NewRootCommand(version, refspec, date string) *cobra.Command {
 	}
 
 	cmd.Flags().IntVarP(&f.Depth, "depth", "d", 100, "limit the number of times expansion can happen")
+	cmd.Flags().StringVarP(&f.LabelSelector, "selector", "l", "", "label query to filter on")
 	cmd.Flags().BoolVar(&f.KeepStatus, "keep-status", false, "retain status fields, if present")
 	cmd.Flags().BoolVar(&f.KeepComments, "keep-comments", true, "retain YAML comments")
 	cmd.Flags().BoolVar(&f.Format, "format", false, "format output to Kubernetes conventions")

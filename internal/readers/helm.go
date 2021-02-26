@@ -88,7 +88,10 @@ func NewHelmReader(helm *konjurev1beta2.Helm) kio.Reader {
 	p := &Pipeline{Inputs: []kio.Reader{r}}
 
 	if !helm.IncludeTests {
-		p.Filters = append(p.Filters, &filters.HelmTestFilter{})
+		p.Filters = append(p.Filters, &filters.SelectorFilter{
+			AnnotationSelector: "helm.sh/hook in (test-success, test-failure)",
+			Negate:             true,
+		})
 	}
 
 	return p

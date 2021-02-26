@@ -28,6 +28,10 @@ import (
 type Filter struct {
 	// The number of times to recursively filter the resource list.
 	Depth int
+	// Label selector of resources to retain.
+	LabelSelector string
+	// Annotation selector of resources to retain.
+	AnnotationSelector string
 	// Flag indicating that status fields should not be stripped.
 	KeepStatus bool
 	// Flag indicating that comments should not be stripped.
@@ -41,6 +45,11 @@ func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 	var err error
 
 	nodes, err = (&readers.ReadersFilter{Depth: f.Depth}).Filter(nodes)
+	if err != nil {
+		return nil, err
+	}
+
+	nodes, err = (&filters.SelectorFilter{LabelSelector: f.LabelSelector, AnnotationSelector: f.AnnotationSelector}).Filter(nodes)
 	if err != nil {
 		return nil, err
 	}

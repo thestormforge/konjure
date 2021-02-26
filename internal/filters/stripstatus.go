@@ -20,7 +20,7 @@ import "sigs.k8s.io/kustomize/kyaml/yaml"
 
 type StripStatusFilter struct{}
 
-func (s StripStatusFilter) Filter(node *yaml.RNode) (*yaml.RNode, error) {
+func (f *StripStatusFilter) Filter(node *yaml.RNode) (*yaml.RNode, error) {
 	if _, err := yaml.Clear("status").Filter(node); err != nil {
 		return nil, err
 	}
