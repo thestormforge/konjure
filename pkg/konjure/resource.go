@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/thestormforge/konjure/internal/readers"
 	"github.com/thestormforge/konjure/internal/spec"
 	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
 	"sigs.k8s.io/kustomize/kyaml/kio"
@@ -120,4 +121,16 @@ func (rs Resources) Read() ([]*yaml.RNode, error) {
 	}
 
 	return result, nil
+}
+
+// NewReader returns a KYAML reader for an individual Konjure resource
+// specification. If the object is not recognized, the resulting reader will
+// silently generate nothing.
+func NewReader(obj interface{}) kio.Reader {
+	if r := readers.New(obj); r != nil {
+		return r
+	}
+
+	// Use an empty RNode slice instead of returning nil
+	return kio.ResourceNodeSlice{}
 }
