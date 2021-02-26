@@ -22,7 +22,6 @@ func TestParser_Decode(t *testing.T) {
 			parser:   Parser{Reader: strings.NewReader("test")},
 			expected: &kio.ByteReader{Reader: strings.NewReader("test")},
 		},
-
 		{
 			desc: "postgres example",
 			spec: "github.com/thestormforge/examples/postgres/application",
@@ -31,8 +30,32 @@ func TestParser_Decode(t *testing.T) {
 				Context:    "postgres/application",
 			},
 		},
+		{
+			desc: "kubernetes default deployments of application 'test'",
+			spec: "k8s:default/deployments?labelSelector=app.kubernetes.io/name%3Dtest",
+			expected: &konjurev1beta2.Kubernetes{
+				Namespaces:    []string{"default"},
+				Types:         []string{"deployments"},
+				LabelSelector: "app.kubernetes.io/name=test",
+			},
+		},
+		{
+			desc: "kubernetes default namespace",
+			spec: "k8s:default",
+			expected: &konjurev1beta2.Kubernetes{
+				Namespaces: []string{"default"},
+			},
+		},
+		{
+			desc: "kubernetes all deployments",
+			spec: "k8s:/deployments",
+			expected: &konjurev1beta2.Kubernetes{
+				Namespaces: nil,
+				Types:      []string{"deployments"},
+			},
+		},
 
-		// These are a bunch of test cases from Kustomize
+		// These are a bunch of test cases from Kustomize for Git URLs
 		{
 			desc: "kustomize-tc-0",
 			spec: "https://git-codecommit.us-east-2.amazonaws.com/someorg/somerepo/somedir",

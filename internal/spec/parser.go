@@ -171,12 +171,24 @@ func (p *Parser) parseKubernetesSpec(spec string) (interface{}, error) {
 		return nil, fmt.Errorf("unexpected scheme: %s", spec)
 	}
 
-	ns, t := path.Split(u.Opaque)
+	var parts []string
+	if u.Opaque != "" {
+		parts = strings.Split(u.Opaque, "/")
+	} else {
+		parts = strings.Split(u.Path, "/")
+	}
+	if len(parts) > 2 {
+		return nil, fmt.Errorf("expected namespace/types: %s", spec)
+	}
 
 	k8s := &konjurev1beta2.Kubernetes{}
-	k8s.Namespaces = []string{strings.Trim(ns, "/")}
-	k8s.Types = []string{t}
 	k8s.LabelSelector = u.Query().Get("labelSelector")
+	if parts[0] != "" {
+		k8s.Namespaces = []string{parts[0]}
+	}
+	if len(parts) > 1 {
+		k8s.Types = []string{parts[1]}
+	}
 	return k8s, nil
 }
 
