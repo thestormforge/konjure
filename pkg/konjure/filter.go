@@ -20,6 +20,7 @@ import (
 	"github.com/thestormforge/konjure/internal/filters"
 	"github.com/thestormforge/konjure/internal/readers"
 	"sigs.k8s.io/kustomize/kyaml/kio"
+	kiofilters "sigs.k8s.io/kustomize/kyaml/kio/filters"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -29,6 +30,8 @@ type Filter struct {
 	Depth int
 	// Flag indicating that status fields should not be stripped.
 	KeepStatus bool
+	// Flag indicating that comments should not be stripped.
+	KeepComments bool
 }
 
 // Filter expands all of the Konjure resources using the configured executors.
@@ -42,6 +45,13 @@ func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 
 	if !f.KeepStatus {
 		nodes, err = kio.FilterAll(&filters.StripStatusFilter{}).Filter(nodes)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if !f.KeepComments {
+		nodes, err = (&kiofilters.StripCommentsFilter{}).Filter(nodes)
 		if err != nil {
 			return nil, err
 		}
