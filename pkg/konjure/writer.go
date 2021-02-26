@@ -49,7 +49,7 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 			// Do not set 'Sort' here so we can handle the sort for all writers
 		}
 
-	case "json":
+	case "ndjson", "json":
 		ww = &NDJSONWriter{
 			Writer: w.Writer,
 		}
