@@ -23,7 +23,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/thestormforge/konjure/internal/filters"
 	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 )
@@ -63,8 +62,6 @@ func NewKubernetesReader(k *konjurev1beta2.Kubernetes) kio.Reader {
 
 		p.Inputs = append(p.Inputs, r)
 	}
-
-	p.Filters = append(p.Filters, kio.FilterAll(&filters.StripStatusFilter{}))
 
 	return p
 }

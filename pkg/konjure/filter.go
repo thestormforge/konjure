@@ -17,7 +17,9 @@ limitations under the License.
 package konjure
 
 import (
+	"github.com/thestormforge/konjure/internal/filters"
 	"github.com/thestormforge/konjure/internal/readers"
+	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -25,9 +27,25 @@ import (
 type Filter struct {
 	// The number of times to recursively filter the resource list.
 	Depth int
+	// Flag indicating that status fields should not be stripped.
+	KeepStatus bool
 }
 
 // Filter expands all of the Konjure resources using the configured executors.
 func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
-	return (&readers.ReadersFilter{Depth: f.Depth}).Filter(nodes)
+	var err error
+
+	nodes, err = (&readers.ReadersFilter{Depth: f.Depth}).Filter(nodes)
+	if err != nil {
+		return nil, err
+	}
+
+	if !f.KeepStatus {
+		nodes, err = kio.FilterAll(&filters.StripStatusFilter{}).Filter(nodes)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return nodes, nil
 }
