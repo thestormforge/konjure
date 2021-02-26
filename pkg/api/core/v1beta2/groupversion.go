@@ -23,8 +23,11 @@ import (
 )
 
 var (
-	Group      = "konjure.stormforge.io"
-	Version    = "v1beta2"
+	// Group name for Konjure resources.
+	Group = "konjure.stormforge.io"
+	// Version is the current version number for Konjure resources.
+	Version = "v1beta2"
+	// APIVersion is the combined group and version string.
 	APIVersion = Group + "/" + Version
 )
 
