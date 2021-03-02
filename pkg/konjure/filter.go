@@ -17,6 +17,8 @@ limitations under the License.
 package konjure
 
 import (
+	"io"
+
 	"github.com/thestormforge/konjure/internal/filters"
 	"github.com/thestormforge/konjure/internal/readers"
 	"sigs.k8s.io/kustomize/kyaml/kio"
@@ -28,6 +30,8 @@ import (
 type Filter struct {
 	// The number of times to recursively filter the resource list.
 	Depth int
+	// The default reader to use, defaults to stdin.
+	DefaultReader io.Reader
 	// Label selector of resources to retain.
 	LabelSelector string
 	// Annotation selector of resources to retain.
@@ -44,7 +48,7 @@ type Filter struct {
 func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 	var err error
 
-	nodes, err = (&readers.ReadersFilter{Depth: f.Depth}).Filter(nodes)
+	nodes, err = (&readers.ReadersFilter{Depth: f.Depth, DefaultReader: f.DefaultReader}).Filter(nodes)
 	if err != nil {
 		return nil, err
 	}

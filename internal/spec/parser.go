@@ -26,10 +26,7 @@ type Parser struct {
 func (p *Parser) Decode(spec string) (interface{}, error) {
 	// Default reader
 	if spec == "-" {
-		if p.Reader != nil {
-			return &kio.ByteReader{Reader: p.Reader}, nil
-		}
-		return nil, nil
+		return &kio.ByteReader{Reader: p.Reader}, nil
 	}
 
 	// Absolute file path

@@ -18,6 +18,7 @@ package readers
 
 import (
 	"fmt"
+	"io"
 
 	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
 	"sigs.k8s.io/kustomize/kyaml/kio"
@@ -56,7 +57,10 @@ func New(obj interface{}) kio.Reader {
 // allowed recursive iterations) must be specified; the default value of 0 is
 // effectively a no-op.
 type ReadersFilter struct {
+	// The number of iterations to perform when expanding Kojure resources.
 	Depth int
+	// The reader to use for an empty specification, defaults to stdin.
+	DefaultReader io.Reader
 }
 
 var _ kio.Filter = &ReadersFilter{}
@@ -109,6 +113,11 @@ func (f *ReadersFilter) filterToDepth(nodes []*yaml.RNode, depth int) ([]*yaml.R
 		r := New(obj)
 		if r == nil {
 			return nil, fmt.Errorf("unable to read resources from type: %s", m.Kind)
+		}
+
+		// If the reader needs a default stream, set it
+		if rr, ok := r.(*ResourceReader); ok && rr.Reader == nil {
+			rr.Reader = f.DefaultReader
 		}
 
 		// If a reader requires clean up, add it to the list

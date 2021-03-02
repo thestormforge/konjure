@@ -18,6 +18,7 @@ package readers
 
 import (
 	"io"
+	"os"
 
 	"github.com/thestormforge/konjure/internal/spec"
 	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
@@ -30,7 +31,7 @@ type ResourceReader struct {
 	// The list of resource specifications to generate Konjure resources from.
 	Resources []string
 	// The byte stream of (possibly non-Konjure) resources to read give the
-	// resource specification of "-". Generally this should just be `os.Stdin`.
+	// resource specification of "-". Defaults to `os.Stdin`.
 	Reader io.Reader
 }
 
@@ -39,15 +40,15 @@ func (r *ResourceReader) Read() ([]*yaml.RNode, error) {
 	result := kio.ResourceNodeSlice{}
 
 	parser := spec.Parser{Reader: r.Reader}
+	if parser.Reader == nil {
+		parser.Reader = os.Stdin
+	}
+
 	for _, res := range r.Resources {
 		// Parse the resource specification and append the result
 		res, err := parser.Decode(res)
 		if err != nil {
 			return nil, err
-		}
-
-		if res == nil {
-			continue
 		}
 
 		switch rn := res.(type) {
