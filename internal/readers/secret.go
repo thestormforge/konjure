@@ -94,22 +94,27 @@ func (r *SecretReader) files(n *yaml.RNode) (*yaml.RNode, error) {
 	m := make(map[string]string)
 	for _, s := range r.FileSources {
 		items := strings.SplitN(s, "=", 3)
-		if len(items) == 1 {
+		switch len(items) {
+		case 1:
 			data, err := ioutil.ReadFile(items[0])
 			if err != nil {
 				return nil, err
 			}
 			m[path.Base(items[0])] = string(data)
-		} else if len(items) > 2 {
-			return nil, fmt.Errorf("key names or file paths cannot contain '='")
-		} else if items[0] == "" || items[1] == "" {
-			return nil, fmt.Errorf("key or file path is missing: %s", s)
-		} else {
+
+		case 2:
+			if items[0] == "" || items[1] == "" {
+				return nil, fmt.Errorf("key or file path is missing: %s", s)
+			}
+
 			data, err := ioutil.ReadFile(items[1])
 			if err != nil {
 				return nil, err
 			}
 			m[items[0]] = string(data)
+
+		default:
+			return nil, fmt.Errorf("key names or file paths cannot contain '='")
 		}
 	}
 
