@@ -74,25 +74,14 @@ func (r *FileReader) Read() ([]*yaml.RNode, error) {
 			}
 
 			// Silently ignore errors if we cannot get any valid resources of this
-			if nodes, err := kio.FromBytes(data); err == nil {
-				for _, n := range nodes {
-					m, err := n.GetMeta()
-					if err != nil {
-						continue
-					}
+			nodes, err := kio.FromBytes(data)
+			if err != nil {
+				return nil
+			}
 
-					// Kind is required
-					if m.Kind == "" {
-						continue
-					}
-
-					// Name may be required
-					if m.Name == "" &&
-						!strings.HasSuffix(m.Kind, "List") &&
-						m.APIVersion != konjurev1beta2.APIVersion {
-						continue
-					}
-
+			// Only keep things that appear to be Kube resources
+			for _, n := range nodes {
+				if keepNode(n) {
 					result = append(result, n)
 				}
 			}
@@ -106,6 +95,28 @@ func (r *FileReader) Read() ([]*yaml.RNode, error) {
 	}
 
 	return result, nil
+}
+
+// keepNode tests the supplied node to see if it should be included in the result.
+func keepNode(node *yaml.RNode) bool {
+	m, err := node.GetMeta()
+	if err != nil {
+		return false
+	}
+
+	// Kind is required
+	if m.Kind == "" {
+		return false
+	}
+
+	// Name may be required
+	if m.Name == "" &&
+		!strings.HasSuffix(m.Kind, "List") &&
+		m.APIVersion != konjurev1beta2.APIVersion {
+		return false
+	}
+
+	return true
 }
 
 // isKustomizeRoot tests to see if the specified directory can be used a Kustomize root.
