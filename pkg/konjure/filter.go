@@ -55,7 +55,7 @@ func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 	}
 
 	if !f.KeepStatus {
-		nodes, err = kio.FilterAll(&filters.StripStatusFilter{}).Filter(nodes)
+		nodes, err = kio.FilterAll(yaml.Clear("status")).Filter(nodes)
 		if err != nil {
 			return nil, err
 		}
