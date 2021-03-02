@@ -48,7 +48,7 @@ type Filter struct {
 func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 	var err error
 
-	nodes, err = (&readers.ReadersFilter{Depth: f.Depth, DefaultReader: f.DefaultReader}).Filter(nodes)
+	nodes, err = (&readers.Filter{Depth: f.Depth, DefaultReader: f.DefaultReader}).Filter(nodes)
 	if err != nil {
 		return nil, err
 	}

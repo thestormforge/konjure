@@ -51,28 +51,28 @@ func New(obj interface{}) kio.Reader {
 	}
 }
 
-// ReadersFilter is a KYAML Filter that maps Konjure resource specifications to
+// Filter is a KYAML Filter that maps Konjure resource specifications to
 // KYAML Readers, then reads and flattens the resulting RNodes into the final
 // result. Due to the recursive nature of this filter, the depth (number of
 // allowed recursive iterations) must be specified; the default value of 0 is
 // effectively a no-op.
-type ReadersFilter struct {
+type Filter struct {
 	// The number of iterations to perform when expanding Kojure resources.
 	Depth int
 	// The reader to use for an empty specification, defaults to stdin.
 	DefaultReader io.Reader
 }
 
-var _ kio.Filter = &ReadersFilter{}
+var _ kio.Filter = &Filter{}
 
 // Filter expands all of the Konjure resources using the configured executors.
-func (f *ReadersFilter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
+func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 	return f.filterToDepth(nodes, f.Depth)
 }
 
 // filterToDepth applies the expansion executors up to the specified depth (i.e. a File executor that produces a
 // Kustomize resource would be at a depth of 2).
-func (f *ReadersFilter) filterToDepth(nodes []*yaml.RNode, depth int) ([]*yaml.RNode, error) {
+func (f *Filter) filterToDepth(nodes []*yaml.RNode, depth int) ([]*yaml.RNode, error) {
 	if depth <= 0 {
 		return nodes, nil
 	}
