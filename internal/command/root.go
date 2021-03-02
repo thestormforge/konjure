@@ -45,6 +45,10 @@ func NewRootCommand(version, refspec, date string) *cobra.Command {
 			r.Reader = cmd.InOrStdin()
 			w.Writer = cmd.OutOrStdout()
 
+			if len(r.Resources) == 0 {
+				r.Resources = []string{"-"}
+			}
+
 			p := kio.Pipeline{
 				Inputs:  []kio.Reader{r},
 				Filters: []kio.Filter{f},
