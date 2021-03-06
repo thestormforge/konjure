@@ -53,10 +53,10 @@ func (cs Cleaners) CleanUp() error {
 	return errs
 }
 
-type ExecReader exec.Cmd
+type Executor func(cmd *exec.Cmd) ([]byte, error)
 
-func (cmd *ExecReader) Read() ([]*yaml.RNode, error) {
-	out, err := (*exec.Cmd)(cmd).Output()
+func FromCommand(cmd *exec.Cmd, output Executor) ([]*yaml.RNode, error) {
+	out, err := output(cmd)
 	if eerr, ok := err.(*exec.ExitError); ok {
 		msg := strings.TrimSpace(string(eerr.Stderr))
 		msg = strings.TrimPrefix(msg, "Error: ")
@@ -66,6 +66,14 @@ func (cmd *ExecReader) Read() ([]*yaml.RNode, error) {
 	}
 
 	return kio.FromBytes(out)
+}
+
+var defaultExecutor = func(cmd *exec.Cmd) ([]byte, error) { return cmd.Output() }
+
+type ExecReader exec.Cmd
+
+func (cmd *ExecReader) Read() ([]*yaml.RNode, error) {
+	return FromCommand((*exec.Cmd)(cmd), defaultExecutor)
 }
 
 type ErrorReader struct {
@@ -86,7 +94,7 @@ type Pipeline struct {
 func (p *Pipeline) Execute() ([]*yaml.RNode, error) {
 	var result []*yaml.RNode
 
-	err := kio.Pipeline{
+	pp := kio.Pipeline{
 		Inputs:                p.Inputs,
 		Filters:               p.Filters,
 		ContinueOnEmptyResult: p.ContinueOnEmptyResult,
@@ -94,9 +102,9 @@ func (p *Pipeline) Execute() ([]*yaml.RNode, error) {
 			result = nodes
 			return nil
 		})},
-	}.Execute()
+	}
 
-	if err != nil {
+	if err := pp.Execute(); err != nil {
 		return nil, err
 	}
 
@@ -106,4 +114,57 @@ func (p *Pipeline) Execute() ([]*yaml.RNode, error) {
 // Read allows this pipeline to become an input to a subsequent pipeline.
 func (p *Pipeline) Read() ([]*yaml.RNode, error) {
 	return p.Execute()
+}
+
+type ExecutorMux struct {
+	Git       Executor
+	Helm      Executor
+	Jsonnet   Executor
+	Kubectl   Executor
+	Kustomize Executor
+}
+
+func (e *ExecutorMux) HandleExecution(r kio.Reader) kio.Reader {
+	// If it is a pipeline, recursively decorate the inputs
+	if p, ok := r.(*Pipeline); ok {
+		for i := range p.Inputs {
+			p.Inputs[i] = e.HandleExecution(p.Inputs[i])
+		}
+		return p
+	}
+
+	// If it's not an exec reader, there is nothing we can do
+	er, ok := r.(*ExecReader)
+	if !ok {
+		return r
+	}
+
+	// Check to see if we have an executor registered, if not just leave it alone
+	exr := &executableReader{Command: (*exec.Cmd)(er)}
+	switch filepath.Base(er.Path) {
+	case "git":
+		exr.Executor = e.Git
+	case "helm":
+		exr.Executor = e.Helm
+	case "jsonnet":
+		exr.Executor = e.Jsonnet
+	case "kubectl":
+		exr.Executor = e.Kubectl
+	case "kustomize":
+		exr.Executor = e.Kustomize
+	}
+
+	if exr.Executor != nil {
+		return exr
+	}
+	return er
+}
+
+type executableReader struct {
+	Command  *exec.Cmd
+	Executor Executor
+}
+
+func (e *executableReader) Read() ([]*yaml.RNode, error) {
+	return FromCommand(e.Command, e.Executor)
 }

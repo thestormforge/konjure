@@ -61,6 +61,8 @@ type Filter struct {
 	Depth int
 	// The reader to use for an empty specification, defaults to stdin.
 	DefaultReader io.Reader
+	// Customize command execution.
+	Executors ExecutorMux
 }
 
 var _ kio.Filter = &Filter{}
@@ -124,6 +126,9 @@ func (f *Filter) filterToDepth(nodes []*yaml.RNode, depth int) ([]*yaml.RNode, e
 		if c, ok := r.(Cleaner); ok {
 			cleaners = append(cleaners, c)
 		}
+
+		// Wrap the reader using a custom executor if necessary
+		r = f.Executors.HandleExecution(r)
 
 		// Accumulate additional resource nodes
 		ns, err := r.Read()

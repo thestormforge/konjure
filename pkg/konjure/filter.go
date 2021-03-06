@@ -18,6 +18,7 @@ package konjure
 
 import (
 	"io"
+	"os/exec"
 
 	"github.com/thestormforge/konjure/internal/filters"
 	"github.com/thestormforge/konjure/internal/readers"
@@ -42,13 +43,23 @@ type Filter struct {
 	KeepComments bool
 	// Flag indicating that output should be formatted.
 	Format bool
+
+	// Override the default Kubectl executor.
+	KubectlExecutor func(cmd *exec.Cmd) ([]byte, error)
+	// Override the default Kustomize executor.
+	KustomizeExecutor func(cmd *exec.Cmd) ([]byte, error)
 }
 
 // Filter expands all of the Konjure resources using the configured executors.
 func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 	var err error
 
-	nodes, err = (&readers.Filter{Depth: f.Depth, DefaultReader: f.DefaultReader}).Filter(nodes)
+	em := readers.ExecutorMux{
+		Kubectl:   f.KubectlExecutor,
+		Kustomize: f.KustomizeExecutor,
+	}
+
+	nodes, err = (&readers.Filter{Depth: f.Depth, DefaultReader: f.DefaultReader, Executors: em}).Filter(nodes)
 	if err != nil {
 		return nil, err
 	}
