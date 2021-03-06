@@ -18,6 +18,7 @@ package readers
 
 import (
 	"fmt"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/thestormforge/konjure/internal/filters"
@@ -26,37 +27,38 @@ import (
 )
 
 func NewHelmReader(helm *konjurev1beta2.Helm) kio.Reader {
-	r := &ExecReader{Name: helm.Helm.Bin}
-	if r.Name == "" {
-		r.Name = "helm"
+	helmBin := helm.Helm.Bin
+	if helmBin == "" {
+		helmBin = "helm"
 	}
+	cmd := exec.Command(helmBin)
 
 	if helm.Helm.RepositoryCache != "" {
-		r.Env = map[string]string{
-			"HELM_REPOSITORY_CACHE": helm.Helm.RepositoryCache,
+		cmd.Env = []string{
+			"HELM_REPOSITORY_CACHE=" + helm.Helm.RepositoryCache,
 		}
 	}
 
-	r.Args = append(r.Args, "template")
+	cmd.Args = append(cmd.Args, "template")
 
 	if helm.ReleaseName != "" {
-		r.Args = append(r.Args, helm.ReleaseName)
+		cmd.Args = append(cmd.Args, helm.ReleaseName)
 	} else {
-		r.Args = append(r.Args, "--generate-name")
+		cmd.Args = append(cmd.Args, "--generate-name")
 	}
 
-	r.Args = append(r.Args, helm.Chart)
+	cmd.Args = append(cmd.Args, helm.Chart)
 
 	if helm.Version != "" {
-		r.Args = append(r.Args, "--version", helm.Version)
+		cmd.Args = append(cmd.Args, "--version", helm.Version)
 	}
 
 	if helm.ReleaseNamespace != "" {
-		r.Args = append(r.Args, "--namespace", helm.ReleaseNamespace)
+		cmd.Args = append(cmd.Args, "--namespace", helm.ReleaseNamespace)
 	}
 
 	if helm.Repository != "" {
-		r.Args = append(r.Args, "--repo", helm.Repository)
+		cmd.Args = append(cmd.Args, "--repo", helm.Repository)
 	}
 
 	for i := range helm.Values {
@@ -69,7 +71,7 @@ func NewHelmReader(helm *konjurev1beta2.Helm) kio.Reader {
 				valueFiles = matches
 			}
 			for _, f := range valueFiles {
-				r.Args = append(r.Args, "--values", f)
+				cmd.Args = append(cmd.Args, "--values", f)
 			}
 
 		case helm.Values[i].Name != "":
@@ -80,12 +82,12 @@ func NewHelmReader(helm *konjurev1beta2.Helm) kio.Reader {
 				setOpt = "--set-string"
 			}
 
-			r.Args = append(r.Args, setOpt, fmt.Sprintf("%s=%v", helm.Values[i].Name, helm.Values[i].Value))
+			cmd.Args = append(cmd.Args, setOpt, fmt.Sprintf("%s=%v", helm.Values[i].Name, helm.Values[i].Value))
 
 		}
 	}
 
-	p := &Pipeline{Inputs: []kio.Reader{r}}
+	p := &Pipeline{Inputs: []kio.Reader{(*ExecReader)(cmd)}}
 
 	if !helm.IncludeTests {
 		p.Filters = append(p.Filters, &filters.SelectorFilter{

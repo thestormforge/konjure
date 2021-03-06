@@ -36,31 +36,33 @@ func NewKubernetesReader(k *konjurev1beta2.Kubernetes) kio.Reader {
 	}
 
 	for _, ns := range namespaces {
-		r := &ExecReader{Name: k.Bin}
-		if r.Name == "" {
-			r.Name = "kubectl"
+		kubectlBin := k.Bin
+		if kubectlBin == "" {
+			kubectlBin = "kubectl"
 		}
+		cmd := exec.Command(kubectlBin)
+
 		if k.Kubeconfig != "" {
-			r.Args = append(r.Args, "--kubeconfig", k.Kubeconfig)
+			cmd.Args = append(cmd.Args, "--kubeconfig", k.Kubeconfig)
 		}
 		if k.Context != "" {
-			r.Args = append(r.Args, "--context", k.Context)
+			cmd.Args = append(cmd.Args, "--context", k.Context)
 		}
 		if ns != "" {
-			r.Args = append(r.Args, "--namespace", ns)
+			cmd.Args = append(cmd.Args, "--namespace", ns)
 		}
 
-		r.Args = append(r.Args, "get")
-		r.Args = append(r.Args, "--ignore-not-found")
-		r.Args = append(r.Args, "--output", "yaml")
-		r.Args = append(r.Args, "--selector", k.LabelSelector)
+		cmd.Args = append(cmd.Args, "get")
+		cmd.Args = append(cmd.Args, "--ignore-not-found")
+		cmd.Args = append(cmd.Args, "--output", "yaml")
+		cmd.Args = append(cmd.Args, "--selector", k.LabelSelector)
 		if len(k.Types) > 0 {
-			r.Args = append(r.Args, strings.Join(k.Types, ","))
+			cmd.Args = append(cmd.Args, strings.Join(k.Types, ","))
 		} else {
-			r.Args = append(r.Args, "deployments,statefulsets,configmaps")
+			cmd.Args = append(cmd.Args, "deployments,statefulsets,configmaps")
 		}
 
-		p.Inputs = append(p.Inputs, r)
+		p.Inputs = append(p.Inputs, (*ExecReader)(cmd))
 	}
 
 	return p

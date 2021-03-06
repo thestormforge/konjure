@@ -19,6 +19,7 @@ package readers
 import (
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"sigs.k8s.io/kustomize/kyaml/kio"
@@ -52,23 +53,14 @@ func (cs Cleaners) CleanUp() error {
 	return errs
 }
 
-type ExecReader struct {
-	Name string
-	Args []string
-	Env  map[string]string
-}
+type ExecReader exec.Cmd
 
-func (r *ExecReader) Read() ([]*yaml.RNode, error) {
-	cmd := exec.Command(r.Name, r.Args...)
-	for k, v := range r.Env {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
-	}
-
-	out, err := cmd.Output()
+func (cmd *ExecReader) Read() ([]*yaml.RNode, error) {
+	out, err := (*exec.Cmd)(cmd).Output()
 	if eerr, ok := err.(*exec.ExitError); ok {
 		msg := strings.TrimSpace(string(eerr.Stderr))
 		msg = strings.TrimPrefix(msg, "Error: ")
-		return nil, fmt.Errorf("%s %w: %s", r.Name, err, msg)
+		return nil, fmt.Errorf("%s %w: %s", filepath.Base(cmd.Path), err, msg)
 	} else if err != nil {
 		return nil, err
 	}

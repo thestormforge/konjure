@@ -17,13 +17,12 @@ limitations under the License.
 package readers
 
 import (
+	"os/exec"
+
 	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 )
 
 func NewKustomizeReader(kust *konjurev1beta2.Kustomize) kio.Reader {
-	return &ExecReader{
-		Name: "kustomize",
-		Args: []string{"build", kust.Root},
-	}
+	return (*ExecReader)(exec.Command("kustomize", "build", kust.Root))
 }
