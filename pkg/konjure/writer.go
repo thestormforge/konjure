@@ -30,10 +30,14 @@ import (
 
 // Writer is a multi-format writer for emitting resource nodes.
 type Writer struct {
-	// The output stream to write to.
-	Writer io.Writer
 	// The desired format.
 	Format string
+	// The output stream to write to.
+	Writer io.Writer
+	// Flag to keep the intermediate annotations introduced during reading.
+	KeepReaderAnnotations bool
+	// List of annotations to clear
+	ClearAnnotations []string
 	// Flag indicating nodes should be sorted before writing.
 	Sort bool
 }
@@ -45,13 +49,18 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 
 	case "yaml", "":
 		ww = &kio.ByteWriter{
-			Writer: w.Writer,
-			// Do not set 'Sort' here so we can handle the sort for all writers
+			Writer:                w.Writer,
+			KeepReaderAnnotations: w.KeepReaderAnnotations,
+			ClearAnnotations:      w.ClearAnnotations,
+			Sort:                  w.Sort,
 		}
 
 	case "ndjson", "json":
 		ww = &NDJSONWriter{
-			Writer: w.Writer,
+			Writer:                w.Writer,
+			KeepReaderAnnotations: w.KeepReaderAnnotations,
+			ClearAnnotations:      w.ClearAnnotations,
+			Sort:                  w.Sort,
 		}
 
 	case "env":
@@ -63,25 +72,41 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 		return fmt.Errorf("unknown format: %s", w.Format)
 	}
 
-	// Sort the nodes prior to writing if necessary
+	return ww.Write(nodes)
+}
+
+// NDJSONWriter is a writer which emits JSON instead of YAML. This is useful if you like jq.
+type NDJSONWriter struct {
+	Writer                io.Writer
+	KeepReaderAnnotations bool
+	ClearAnnotations      []string
+	Sort                  bool
+}
+
+// Write encodes each node as a single line of JSON.
+func (w *NDJSONWriter) Write(nodes []*yaml.RNode) error {
 	if w.Sort {
 		if err := kioutil.SortNodes(nodes); err != nil {
 			return err
 		}
 	}
 
-	return ww.Write(nodes)
-}
-
-// NDJSONWriter is a writer which emits JSON instead of YAML. This is useful if you like jq.
-type NDJSONWriter struct {
-	Writer io.Writer
-}
-
-// Write encodes each node as a single line of JSON.
-func (w *NDJSONWriter) Write(nodes []*yaml.RNode) error {
 	enc := json.NewEncoder(w.Writer)
 	for _, n := range nodes {
+		// This is to be consistent with ByteWriter
+		if !w.KeepReaderAnnotations {
+			_, err := n.Pipe(yaml.ClearAnnotation(kioutil.IndexAnnotation))
+			if err != nil {
+				return err
+			}
+		}
+		for _, a := range w.ClearAnnotations {
+			_, err := n.Pipe(yaml.ClearAnnotation(a))
+			if err != nil {
+				return err
+			}
+		}
+
 		if err := enc.Encode(n); err != nil {
 			return err
 		}
