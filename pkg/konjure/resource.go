@@ -50,7 +50,11 @@ type Resource struct {
 // NewResource returns a resource for parsing the supplied resource specifications. This
 // is a convenience function for abstracting away gratuitous use of the word "resource".
 func NewResource(arg ...string) Resource {
-	return Resource{Resource: &konjurev1beta2.Resource{Resources: arg}} // Turtles...
+	r := Resource{Resource: &konjurev1beta2.Resource{Resources: arg}} // Turtles...
+	if len(arg) == 1 {
+		r.str = arg[0]
+	}
+	return r
 }
 
 // GetRNode returns a KYAML resource node representing this Konjure resource.
@@ -94,10 +98,19 @@ func (r *Resource) UnmarshalJSON(bytes []byte) error {
 // from a string, the string representation is used, however changes made to the
 // object will not be reflected.
 func (r *Resource) MarshalJSON() ([]byte, error) {
-	// TODO Should we have a formatter (opposite of parser) and if it _can_ always generate the string?
-
 	if r.str != "" {
 		return json.Marshal(r.str)
+	}
+
+	rv := reflect.Indirect(reflect.ValueOf(r))
+	for i := 0; i < rv.NumField(); i++ {
+		if !rv.Field(i).IsNil() {
+			str, err := (&spec.Formatter{}).Encode(rv.Field(i).Interface())
+			if err != nil {
+				break
+			}
+			return json.Marshal(str)
+		}
 	}
 
 	type rt Resource

@@ -107,7 +107,7 @@ func TestResource_MarshalJSON(t *testing.T) {
 		{
 			desc:     "file object",
 			resource: Resource{File: &konjurev1beta2.File{Path: "/this/is/a/test"}},
-			expected: `{"file":{"path":"/this/is/a/test"}}`,
+			expected: `"/this/is/a/test"`,
 		},
 	}
 	for _, c := range cases {
