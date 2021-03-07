@@ -17,6 +17,7 @@ limitations under the License.
 package readers
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -24,6 +25,7 @@ import (
 
 	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
 	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -73,8 +75,15 @@ func (r *FileReader) Read() ([]*yaml.RNode, error) {
 				return err
 			}
 
+			br := &kio.ByteReader{
+				Reader: bytes.NewReader(data),
+				SetAnnotations: map[string]string{
+					kioutil.PathAnnotation: path,
+				},
+			}
+
 			// Silently ignore errors if we cannot get any valid resources of this
-			nodes, err := kio.FromBytes(data)
+			nodes, err := br.Read()
 			if err != nil {
 				return nil
 			}

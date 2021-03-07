@@ -44,6 +44,10 @@ type Writer struct {
 
 // Write delegates to the format specific writer.
 func (w *Writer) Write(nodes []*yaml.RNode) error {
+	if !w.KeepReaderAnnotations {
+		w.ClearAnnotations = append(w.ClearAnnotations, kioutil.PathAnnotation)
+	}
+
 	var ww kio.Writer
 	switch strings.ToLower(w.Format) {
 

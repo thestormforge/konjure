@@ -30,6 +30,7 @@ import (
 	"github.com/jsonnet-bundler/jsonnet-bundler/pkg/jsonnetfile"
 	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
 	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -165,11 +166,13 @@ func (r *JsonnetReader) parseJSON(j string) ([]*yaml.RNode, error) {
 		return nil, err
 	}
 
+	// Setup a byte reader
+	br := &kio.ByteReader{SetAnnotations: map[string]string{}}
+
 	// If it looks like a JSON list, trick the parser it by wrapping it with an items field
 	if t == json.Delim('[') {
-		return (&kio.ByteReader{
-			Reader: strings.NewReader(`{"kind":"List","items":` + j + `}`),
-		}).Read()
+		br.Reader = strings.NewReader(`{"kind":"List","items":` + j + `}`)
+		return br.Read()
 	}
 
 	if t != json.Delim('{') {
@@ -177,10 +180,8 @@ func (r *JsonnetReader) parseJSON(j string) ([]*yaml.RNode, error) {
 	}
 
 	// Parse the JSON output as YAML
-	result, err := (&kio.ByteReader{
-		OmitReaderAnnotations: true,
-		Reader:                strings.NewReader(j),
-	}).Read()
+	br.Reader = strings.NewReader(j)
+	result, err := br.Read()
 
 	// Either an error, an empty document, or a `kind: List` that was unwrapped
 	if err != nil || len(result) != 1 {
