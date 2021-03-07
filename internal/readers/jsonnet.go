@@ -30,7 +30,6 @@ import (
 	"github.com/jsonnet-bundler/jsonnet-bundler/pkg/jsonnetfile"
 	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
 	"sigs.k8s.io/kustomize/kyaml/kio"
-	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
