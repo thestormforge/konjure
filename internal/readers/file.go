@@ -82,10 +82,9 @@ func (r *FileReader) Read() ([]*yaml.RNode, error) {
 				},
 			}
 
-			// Silently ignore errors if we cannot get any valid resources of this
 			nodes, err := br.Read()
 			if err != nil {
-				return nil
+				return err
 			}
 
 			// Only keep things that appear to be Kube resources
