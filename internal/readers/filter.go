@@ -19,6 +19,7 @@ package readers
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
 	"sigs.k8s.io/kustomize/kyaml/kio"
@@ -50,6 +51,15 @@ func New(obj interface{}) kio.Reader {
 		return nil
 	}
 }
+
+// ErrorReader is kio.Reader which immediately fails, this can be used to defer
+// reporting of an error from a reader factory.
+type ErrorReader struct {
+	error
+}
+
+// Read returns the deferred error.
+func (r *ErrorReader) Read() ([]*yaml.RNode, error) { return nil, r.error }
 
 // Filter is a KYAML Filter that maps Konjure resource specifications to
 // KYAML Readers, then reads and flattens the resulting RNodes into the final
@@ -139,4 +149,37 @@ func (f *Filter) filterToDepth(nodes []*yaml.RNode, depth int) ([]*yaml.RNode, e
 	}
 
 	return f.filterToDepth(result, depthNext)
+}
+
+// CleanUpError is an aggregation of errors that occur during clean up.
+type CleanUpError []error
+
+// Error returns the newline delimited error strings of all the aggregated errors.
+func (e CleanUpError) Error() string {
+	var errStrings []string
+	for _, err := range e {
+		errStrings = append(errStrings, err.Error())
+	}
+	return strings.Join(errStrings, "\n")
+}
+
+// Cleaner is an interface for readers that may need to perform clean up of temporary resources.
+type Cleaner interface {
+	Clean() error
+}
+
+// Cleaners is a collection of cleaners that can be invoked together.
+type Cleaners []Cleaner
+
+// CleanUp invokes all of the cleaners, individual failures are aggregated and
+// will not prevent other clean up tasks from being executed.
+func (cs Cleaners) CleanUp() error {
+	var errs CleanUpError
+	for _, c := range cs {
+		if err := c.Clean(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errs
 }

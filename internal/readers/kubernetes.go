@@ -32,7 +32,7 @@ func NewKubernetesReader(k *konjurev1beta2.Kubernetes) kio.Reader {
 
 	namespaces, err := namespaces(k)
 	if err != nil {
-		return &ErrorReader{err: err}
+		return &ErrorReader{error: err}
 	}
 
 	for _, ns := range namespaces {

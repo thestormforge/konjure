@@ -26,62 +26,40 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-type Cleaner interface {
-	Clean() error
-}
-
-type CleanUpError []error
-
-func (e CleanUpError) Error() string {
-	var errStrings []string
-	for _, err := range e {
-		errStrings = append(errStrings, err.Error())
-	}
-	return strings.Join(errStrings, "\n")
-}
-
-type Cleaners []Cleaner
-
-func (cs Cleaners) CleanUp() error {
-	var errs CleanUpError
-	for _, c := range cs {
-		if err := c.Clean(); err != nil {
-			errs = append(errs, err)
-		}
-	}
-
-	return errs
-}
-
+// Executor is function that returns the output of a command.
 type Executor func(cmd *exec.Cmd) ([]byte, error)
 
-func FromCommand(cmd *exec.Cmd, output Executor) ([]*yaml.RNode, error) {
-	out, err := output(cmd)
+// FromCommand returns the resource nodes parsed from the output of an executable
+// command. If the supplied executor is nil, cmd.Output will be used.
+func FromCommand(cmd *exec.Cmd, executor Executor) ([]*yaml.RNode, error) {
+	var out []byte
+	var err error
+	if executor != nil {
+		out, err = executor(cmd)
+	} else {
+		out, err = cmd.Output()
+	}
+
+	// Try to clean up exit errors with a little bit of context
 	if eerr, ok := err.(*exec.ExitError); ok {
 		msg := strings.TrimSpace(string(eerr.Stderr))
 		msg = strings.TrimPrefix(msg, "Error: ")
 		return nil, fmt.Errorf("%s %w: %s", filepath.Base(cmd.Path), err, msg)
-	} else if err != nil {
+	}
+
+	if err != nil {
 		return nil, err
 	}
 
 	return kio.FromBytes(out)
 }
 
-var defaultExecutor = func(cmd *exec.Cmd) ([]byte, error) { return cmd.Output() }
-
+// ExecReader allows an executable command to be used as a kio.Reader
 type ExecReader exec.Cmd
 
+// Read will buffer the output of the supplied command and parse it as resource nodes.
 func (cmd *ExecReader) Read() ([]*yaml.RNode, error) {
-	return FromCommand((*exec.Cmd)(cmd), defaultExecutor)
-}
-
-type ErrorReader struct {
-	err error
-}
-
-func (r *ErrorReader) Read() ([]*yaml.RNode, error) {
-	return nil, r.err
+	return FromCommand((*exec.Cmd)(cmd), nil)
 }
 
 type Pipeline struct {
