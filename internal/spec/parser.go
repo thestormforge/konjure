@@ -75,6 +75,8 @@ func (p *Parser) Decode(spec string) (interface{}, error) {
 			return p.parseHTTPSpec(spec)
 		} else if u.Scheme == "k8s" {
 			return p.parseKubernetesSpec(spec)
+		} else if u.Scheme == "file" {
+			return &konjurev1beta2.File{Path: filepath.Join(path.Split(u.Path))}, nil
 		}
 	}
 

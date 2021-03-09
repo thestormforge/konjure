@@ -70,6 +70,20 @@ func TestParser_Decode(t *testing.T) {
 				Types:      []string{"deployments"},
 			},
 		},
+		{
+			desc: "file plain URI",
+			spec: "file:/foo/bar/",
+			expected: &konjurev1beta2.File{
+				Path: "/foo/bar",
+			},
+		},
+		{
+			desc: "file host URI",
+			spec: "file://localhost/foo/bar",
+			expected: &konjurev1beta2.File{
+				Path: "/foo/bar",
+			},
+		},
 
 		// These are a bunch of test cases from Kustomize for Git URLs
 		{
