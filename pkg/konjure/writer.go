@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/kio/filters"
 	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -36,7 +37,7 @@ type Writer struct {
 	Writer io.Writer
 	// Flag to keep the intermediate annotations introduced during reading.
 	KeepReaderAnnotations bool
-	// List of annotations to clear
+	// List of additional annotations to clear.
 	ClearAnnotations []string
 	// Flag indicating nodes should be sorted before writing.
 	Sort bool
@@ -44,8 +45,13 @@ type Writer struct {
 
 // Write delegates to the format specific writer.
 func (w *Writer) Write(nodes []*yaml.RNode) error {
+	var clearAnnotations []string
+	clearAnnotations = append(clearAnnotations, w.ClearAnnotations...)
 	if !w.KeepReaderAnnotations {
-		w.ClearAnnotations = append(w.ClearAnnotations, kioutil.PathAnnotation)
+		clearAnnotations = append(clearAnnotations,
+			kioutil.PathAnnotation,
+			filters.FmtAnnotation,
+		)
 	}
 
 	var ww kio.Writer
@@ -55,7 +61,7 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 		ww = &kio.ByteWriter{
 			Writer:                w.Writer,
 			KeepReaderAnnotations: w.KeepReaderAnnotations,
-			ClearAnnotations:      w.ClearAnnotations,
+			ClearAnnotations:      clearAnnotations,
 			Sort:                  w.Sort,
 		}
 
@@ -63,7 +69,7 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 		ww = &NDJSONWriter{
 			Writer:                w.Writer,
 			KeepReaderAnnotations: w.KeepReaderAnnotations,
-			ClearAnnotations:      w.ClearAnnotations,
+			ClearAnnotations:      clearAnnotations,
 			Sort:                  w.Sort,
 		}
 
