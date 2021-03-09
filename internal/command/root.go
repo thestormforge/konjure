@@ -20,13 +20,12 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/thestormforge/konjure/internal/readers"
 	"github.com/thestormforge/konjure/pkg/konjure"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 )
 
 func NewRootCommand(version, refspec, date string) *cobra.Command {
-	r := &readers.ResourceReader{}
+	r := konjure.Resources{}
 	f := &konjure.Filter{}
 	w := &konjure.Writer{}
 
@@ -43,25 +42,24 @@ func NewRootCommand(version, refspec, date string) *cobra.Command {
 			"BuildDate":    date,
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
+			w.Writer = cmd.OutOrStdout()
+			f.DefaultReader = cmd.InOrStdin()
+
+			if len(args) > 0 {
+				r = append(r, konjure.NewResource(args...))
+			} else {
+				r = append(r, konjure.NewResource("-"))
+			}
+
 			f.WorkingDirectory, err = os.Getwd()
 			return
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			r.Resources = args
-			r.Reader = cmd.InOrStdin()
-			w.Writer = cmd.OutOrStdout()
-
-			if len(r.Resources) == 0 {
-				r.Resources = []string{"-"}
-			}
-
-			p := kio.Pipeline{
+			return kio.Pipeline{
 				Inputs:  []kio.Reader{r},
 				Filters: []kio.Filter{f},
 				Outputs: []kio.Writer{w},
-			}
-
-			return p.Execute()
+			}.Execute()
 		},
 	}
 
