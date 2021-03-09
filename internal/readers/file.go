@@ -54,6 +54,11 @@ func (r *FileReader) Read() ([]*yaml.RNode, error) {
 		}
 
 		if info.IsDir() {
+			// Determine if we are allowed to recurse into the directory
+			if !r.Recurse && path != root {
+				return filepath.SkipDir
+			}
+
 			// Check to see if a directory is a Kustomize root
 			if isKustomizeRoot(path) {
 				n, err := konjurev1beta2.GetRNode(&konjurev1beta2.Kustomize{Root: path})
@@ -62,11 +67,6 @@ func (r *FileReader) Read() ([]*yaml.RNode, error) {
 				}
 
 				result = append(result, n)
-				return filepath.SkipDir
-			}
-
-			// Determine if we are allowed to recurse into the directory
-			if !r.Recurse && path != root {
 				return filepath.SkipDir
 			}
 
