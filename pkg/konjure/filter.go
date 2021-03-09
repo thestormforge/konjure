@@ -44,6 +44,8 @@ type Filter struct {
 	// Flag indicating that output should be formatted.
 	Format bool
 
+	// The explicit working directory used to resolve relative paths.
+	WorkingDirectory string
 	// Override the default Kubectl executor.
 	KubectlExecutor func(cmd *exec.Cmd) ([]byte, error)
 	// Override the default Kustomize executor.
@@ -56,6 +58,7 @@ func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 
 	opts := []readers.Option{
 		readers.WithDefaultInputStream(f.DefaultReader),
+		readers.WithWorkingDirectory(f.WorkingDirectory),
 		readers.WithCommandExecutor("kubectl", f.KubectlExecutor),
 		readers.WithCommandExecutor("kustomize", f.KustomizeExecutor),
 	}

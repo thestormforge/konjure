@@ -18,6 +18,7 @@ package readers
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -31,11 +32,19 @@ import (
 
 type FileReader struct {
 	konjurev1beta2.File
+
+	// Function used to determine an absolute path.
+	Abs func(path string) (string, error)
 }
 
 func (r *FileReader) Read() ([]*yaml.RNode, error) {
+	root, err := r.root()
+	if err != nil {
+		return nil, err
+	}
+
 	var result []*yaml.RNode
-	err := filepath.Walk(r.File.Path, func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		// Just bubble walk errors back up
 		if err != nil {
 			// TODO Check the annotations on the File object to see if there is any context we can add to the error
@@ -103,6 +112,26 @@ func (r *FileReader) Read() ([]*yaml.RNode, error) {
 	}
 
 	return result, nil
+}
+
+// root returns the root path, failing if it cannot be made into an absolute path.
+func (r *FileReader) root() (path string, err error) {
+	path = r.Path
+
+	// If available, use the path resolver
+	if r.Abs != nil {
+		path, err = r.Abs(path)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	// Even if we used Abs, make sure the result is actually absolute
+	if !filepath.IsAbs(path) {
+		return "", fmt.Errorf("unable to resolve relative path %s", r.Path)
+	}
+
+	return path, nil
 }
 
 // keepNode tests the supplied node to see if it should be included in the result.

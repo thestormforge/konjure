@@ -17,6 +17,8 @@ limitations under the License.
 package command
 
 import (
+	"os"
+
 	"github.com/spf13/cobra"
 	"github.com/thestormforge/konjure/internal/readers"
 	"github.com/thestormforge/konjure/pkg/konjure"
@@ -28,7 +30,7 @@ func NewRootCommand(version, refspec, date string) *cobra.Command {
 	f := &konjure.Filter{}
 	w := &konjure.Writer{}
 
-	// TODO We should have another filter that only keeps resources matching a labelSelector, annotationSelector, group, kind, version, etc.
+	// TODO We should have another filter that only keeps resources matching an annotationSelector, group, kind, version, etc.
 
 	cmd := &cobra.Command{
 		Use:              "konjure INPUT...",
@@ -39,6 +41,10 @@ func NewRootCommand(version, refspec, date string) *cobra.Command {
 		Annotations: map[string]string{
 			"BuildRefspec": refspec,
 			"BuildDate":    date,
+		},
+		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
+			f.WorkingDirectory, err = os.Getwd()
+			return
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			r.Resources = args

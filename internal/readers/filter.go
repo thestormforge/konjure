@@ -19,6 +19,7 @@ package readers
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 
 	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
@@ -69,6 +70,23 @@ func WithDefaultInputStream(defaultReader io.Reader) Option {
 	return func(r kio.Reader) kio.Reader {
 		if rr, ok := r.(*ResourceReader); ok && rr.Reader == nil {
 			rr.Reader = defaultReader
+		}
+		return r
+	}
+}
+
+// WithWorkingDirectory sets the base directory to resolve relative paths against.
+func WithWorkingDirectory(dir string) Option {
+	abs := func(path string) (string, error) {
+		if filepath.IsAbs(path) {
+			return filepath.Clean(path), nil
+		}
+		return filepath.Join(dir, path), nil
+	}
+
+	return func(r kio.Reader) kio.Reader {
+		if fr, ok := r.(*FileReader); ok {
+			fr.Abs = abs
 		}
 		return r
 	}
