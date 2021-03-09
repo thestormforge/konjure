@@ -92,6 +92,16 @@ func WithWorkingDirectory(dir string) Option {
 	}
 }
 
+// WithRecursiveDirectories controls the behavior for traversing directories.
+func WithRecursiveDirectories(recurse bool) Option {
+	return func(r kio.Reader) kio.Reader {
+		if fr, ok := r.(*FileReader); ok {
+			fr.Recurse = recurse
+		}
+		return r
+	}
+}
+
 // ErrorReader is kio.Reader which immediately fails, this can be used to defer
 // reporting of an error from a reader factory.
 type ErrorReader struct {
