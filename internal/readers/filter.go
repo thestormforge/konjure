@@ -27,28 +27,50 @@ import (
 )
 
 // New returns a resource node reader or nil if the input is not recognized.
-func New(obj interface{}) kio.Reader {
-	switch r := obj.(type) {
+func New(obj interface{}, opts ...Option) kio.Reader {
+	// Construct a new reader based on the input type
+	var r kio.Reader
+	switch res := obj.(type) {
 	case *konjurev1beta2.Resource:
-		return &ResourceReader{Resources: r.Resources}
+		r = &ResourceReader{Resources: res.Resources}
 	case *konjurev1beta2.Helm:
-		return NewHelmReader(r)
+		r = NewHelmReader(res)
 	case *konjurev1beta2.Jsonnet:
-		return NewJsonnetReader(r)
+		r = NewJsonnetReader(res)
 	case *konjurev1beta2.Kubernetes:
-		return NewKubernetesReader(r)
+		r = NewKubernetesReader(res)
 	case *konjurev1beta2.Kustomize:
-		return NewKustomizeReader(r)
+		r = NewKustomizeReader(res)
 	case *konjurev1beta2.Secret:
-		return &SecretReader{Secret: *r}
+		r = &SecretReader{Secret: *res}
 	case *konjurev1beta2.Git:
-		return &GitReader{Git: *r}
+		r = &GitReader{Git: *res}
 	case *konjurev1beta2.HTTP:
-		return &HTTPReader{HTTP: *r}
+		r = &HTTPReader{HTTP: *res}
 	case *konjurev1beta2.File:
-		return &FileReader{File: *r}
+		r = &FileReader{File: *res}
 	default:
 		return nil
+	}
+
+	// Apply reader options
+	for _, opt := range opts {
+		r = opt(r)
+	}
+
+	return r
+}
+
+// Option is used to configure or decorate a reader.
+type Option func(r kio.Reader) kio.Reader
+
+// WithDefaultInputStream overrides the default input stream of stdin.
+func WithDefaultInputStream(defaultReader io.Reader) Option {
+	return func(r kio.Reader) kio.Reader {
+		if rr, ok := r.(*ResourceReader); ok && rr.Reader == nil {
+			rr.Reader = defaultReader
+		}
+		return r
 	}
 }
 
@@ -67,12 +89,10 @@ func (r *ErrorReader) Read() ([]*yaml.RNode, error) { return nil, r.error }
 // allowed recursive iterations) must be specified; the default value of 0 is
 // effectively a no-op.
 type Filter struct {
-	// The number of iterations to perform when expanding Kojure resources.
+	// The number of iterations to perform when expanding Konjure resources.
 	Depth int
-	// The reader to use for an empty specification, defaults to stdin.
-	DefaultReader io.Reader
-	// Customize command execution.
-	Executors ExecutorMux
+	// Configuration options for the readers.
+	ReaderOptions []Option
 }
 
 var _ kio.Filter = &Filter{}
@@ -89,11 +109,13 @@ func (f *Filter) filterToDepth(nodes []*yaml.RNode, depth int) ([]*yaml.RNode, e
 		return nodes, nil
 	}
 
+	// Create a new cleaner for this iteration of expansion
 	var cleaners Cleaners
 	defer func() {
 		// TODO This should produce warnings, maybe the errors can be accumulated on the filer itself
 		cleaners.CleanUp()
 	}()
+	opts := append([]Option{cleaners.Register}, f.ReaderOptions...)
 
 	var result []*yaml.RNode
 	var depthNext int
@@ -121,24 +143,11 @@ func (f *Filter) filterToDepth(nodes []*yaml.RNode, depth int) ([]*yaml.RNode, e
 			return nil, err
 		}
 
-		// Create a reader
-		r := New(obj)
+		// Create a new reader
+		r := New(obj, opts...)
 		if r == nil {
 			return nil, fmt.Errorf("unable to read resources from type: %s", m.Kind)
 		}
-
-		// If the reader needs a default stream, set it
-		if rr, ok := r.(*ResourceReader); ok && rr.Reader == nil {
-			rr.Reader = f.DefaultReader
-		}
-
-		// If a reader requires clean up, add it to the list
-		if c, ok := r.(Cleaner); ok {
-			cleaners = append(cleaners, c)
-		}
-
-		// Wrap the reader using a custom executor if necessary
-		r = f.Executors.HandleExecution(r)
 
 		// Accumulate additional resource nodes
 		ns, err := r.Read()
@@ -170,6 +179,14 @@ type Cleaner interface {
 
 // Cleaners is a collection of cleaners that can be invoked together.
 type Cleaners []Cleaner
+
+// Register the supplied reader with this cleaner.
+func (cs *Cleaners) Register(r kio.Reader) kio.Reader {
+	if c, ok := r.(Cleaner); ok {
+		*cs = append(*cs, c)
+	}
+	return r
+}
 
 // CleanUp invokes all of the cleaners, individual failures are aggregated and
 // will not prevent other clean up tasks from being executed.

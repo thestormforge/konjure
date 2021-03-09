@@ -29,6 +29,36 @@ import (
 // Executor is function that returns the output of a command.
 type Executor func(cmd *exec.Cmd) ([]byte, error)
 
+// WithCommandExecutor allows execution of an external process to be controlled
+// by the specified alternate executor.
+func WithCommandExecutor(cmd string, executor Executor) Option {
+	return func(r kio.Reader) kio.Reader {
+		return useExecutor(r, cmd, executor)
+	}
+}
+
+// useExecutor wraps executable readers matching the supplied base command name
+// with an explicit executor.
+func useExecutor(r kio.Reader, cmd string, executor Executor) kio.Reader {
+	switch er := r.(type) {
+
+	case *Pipeline:
+		for i := range er.Inputs {
+			er.Inputs[i] = useExecutor(er.Inputs[i], cmd, executor)
+		}
+
+	case *ExecReader:
+		if filepath.Base(er.Path) == cmd {
+			return &executableReader{
+				Command:  (*exec.Cmd)(er),
+				Executor: executor,
+			}
+		}
+	}
+
+	return r
+}
+
 // FromCommand returns the resource nodes parsed from the output of an executable
 // command. If the supplied executor is nil, cmd.Output will be used.
 func FromCommand(cmd *exec.Cmd, executor Executor) ([]*yaml.RNode, error) {
@@ -62,6 +92,21 @@ func (cmd *ExecReader) Read() ([]*yaml.RNode, error) {
 	return FromCommand((*exec.Cmd)(cmd), nil)
 }
 
+// executableReader is like ExecReader but with an explicit executor.
+type executableReader struct {
+	Command  *exec.Cmd
+	Executor Executor
+}
+
+// Read will buffer the output of the supplied command and parse it as resource nodes.
+func (e *executableReader) Read() ([]*yaml.RNode, error) {
+	return FromCommand(e.Command, e.Executor)
+}
+
+// Pipeline wraps a KYAML pipeline but doesn't allow writers: instead the
+// resulting resource nodes are returned directly. This is useful for applying
+// filters to readers in memory. A pipeline can also be used as a reader in
+// larger pipelines.
 type Pipeline struct {
 	Inputs                []kio.Reader
 	Filters               []kio.Filter
@@ -92,57 +137,4 @@ func (p *Pipeline) Execute() ([]*yaml.RNode, error) {
 // Read allows this pipeline to become an input to a subsequent pipeline.
 func (p *Pipeline) Read() ([]*yaml.RNode, error) {
 	return p.Execute()
-}
-
-type ExecutorMux struct {
-	Git       Executor
-	Helm      Executor
-	Jsonnet   Executor
-	Kubectl   Executor
-	Kustomize Executor
-}
-
-func (e *ExecutorMux) HandleExecution(r kio.Reader) kio.Reader {
-	// If it is a pipeline, recursively decorate the inputs
-	if p, ok := r.(*Pipeline); ok {
-		for i := range p.Inputs {
-			p.Inputs[i] = e.HandleExecution(p.Inputs[i])
-		}
-		return p
-	}
-
-	// If it's not an exec reader, there is nothing we can do
-	er, ok := r.(*ExecReader)
-	if !ok {
-		return r
-	}
-
-	// Check to see if we have an executor registered, if not just leave it alone
-	exr := &executableReader{Command: (*exec.Cmd)(er)}
-	switch filepath.Base(er.Path) {
-	case "git":
-		exr.Executor = e.Git
-	case "helm":
-		exr.Executor = e.Helm
-	case "jsonnet":
-		exr.Executor = e.Jsonnet
-	case "kubectl":
-		exr.Executor = e.Kubectl
-	case "kustomize":
-		exr.Executor = e.Kustomize
-	}
-
-	if exr.Executor != nil {
-		return exr
-	}
-	return er
-}
-
-type executableReader struct {
-	Command  *exec.Cmd
-	Executor Executor
-}
-
-func (e *executableReader) Read() ([]*yaml.RNode, error) {
-	return FromCommand(e.Command, e.Executor)
 }

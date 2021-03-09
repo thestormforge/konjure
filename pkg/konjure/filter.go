@@ -54,12 +54,13 @@ type Filter struct {
 func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 	var err error
 
-	em := readers.ExecutorMux{
-		Kubectl:   f.KubectlExecutor,
-		Kustomize: f.KustomizeExecutor,
+	opts := []readers.Option{
+		readers.WithDefaultInputStream(f.DefaultReader),
+		readers.WithCommandExecutor("kubectl", f.KubectlExecutor),
+		readers.WithCommandExecutor("kustomize", f.KustomizeExecutor),
 	}
 
-	nodes, err = (&readers.Filter{Depth: f.Depth, DefaultReader: f.DefaultReader, Executors: em}).Filter(nodes)
+	nodes, err = (&readers.Filter{Depth: f.Depth, ReaderOptions: opts}).Filter(nodes)
 	if err != nil {
 		return nil, err
 	}
