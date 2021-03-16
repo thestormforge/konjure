@@ -17,6 +17,7 @@ limitations under the License.
 package spec
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 
@@ -82,6 +83,13 @@ func TestParser_Decode(t *testing.T) {
 			spec: "file://localhost/foo/bar",
 			expected: &konjurev1beta2.File{
 				Path: "/foo/bar",
+			},
+		},
+		{
+			desc: "data URI",
+			spec: "data:,Hello%2C%20World!",
+			expected: &kio.ByteReader{
+				Reader: bytes.NewReader([]byte("Hello, World!")),
 			},
 		},
 		{

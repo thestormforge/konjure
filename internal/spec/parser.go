@@ -17,6 +17,8 @@ limitations under the License.
 package spec
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -89,6 +91,8 @@ func (p *Parser) Decode(spec string) (interface{}, error) {
 			return p.parseHelmSpec(spec)
 		case "k8s":
 			return p.parseKubernetesSpec(spec)
+		case "data":
+			return p.parseDataSpec(spec)
 		case "file":
 			return &konjurev1beta2.File{Path: filepath.Join(path.Split(u.Path))}, nil
 		}
@@ -244,6 +248,35 @@ func (p *Parser) parseKubernetesSpec(spec string) (interface{}, error) {
 		k8s.Types = []string{parts[1]}
 	}
 	return k8s, nil
+}
+
+func (p *Parser) parseDataSpec(spec string) (interface{}, error) {
+	u, err := url.Parse(spec)
+	if err != nil {
+		return nil, err
+	} else if u.Scheme != "data" {
+		return nil, fmt.Errorf("unexpected scheme: %s", spec)
+	}
+
+	var data []byte
+
+	if pos := strings.IndexRune(u.Opaque, ','); pos >= 0 {
+		if strings.HasSuffix(u.Opaque[0:pos], ";base64") {
+			var err error
+			data, err = base64.StdEncoding.DecodeString(u.Opaque[pos+1:])
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			value, err := url.QueryUnescape(u.Opaque[pos+1:])
+			if err != nil {
+				return nil, err
+			}
+			data = []byte(value)
+		}
+	}
+
+	return &kio.ByteReader{Reader: bytes.NewReader(data)}, nil
 }
 
 func normalizeGitRepositoryURL(repo *URL) bool {
