@@ -22,6 +22,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -29,12 +30,17 @@ import (
 
 	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
 	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 var schemeOverride = regexp.MustCompile(`^[a-zA-Z](?:[a-zA-Z0-9+\-.])*::`)
 
 type Parser struct {
+	// Reader to use for the "-" specification.
 	Reader io.Reader
+
+	// Configuration of Helm repositories to consider when processing "helm://" URLs.
+	HelmRepositoryConfig HelmRepositoryConfig
 }
 
 // Decode converts a string into a resource. The goal here is to be compatible with Kustomize where we overlap,
@@ -69,13 +75,21 @@ func (p *Parser) Decode(spec string) (interface{}, error) {
 			spec = "https://" + spec
 		}
 
-		if u.Scheme == "ssh" || u.User.Username() == "git" || normalizeGitRepositoryURL(u) {
+		// Look for Git repositories before checking the scheme
+		if u.User.Username() == "git" || normalizeGitRepositoryURL(u) {
 			return p.parseGitSpec(spec)
-		} else if u.Scheme == "http" || u.Scheme == "https" {
+		}
+
+		switch u.Scheme {
+		case "ssh":
+			return p.parseGitSpec(spec)
+		case "http", "https":
 			return p.parseHTTPSpec(spec)
-		} else if u.Scheme == "k8s" {
+		case "helm":
+			return p.parseHelmSpec(spec)
+		case "k8s":
 			return p.parseKubernetesSpec(spec)
-		} else if u.Scheme == "file" {
+		case "file":
 			return &konjurev1beta2.File{Path: filepath.Join(path.Split(u.Path))}, nil
 		}
 	}
@@ -117,6 +131,31 @@ func (p *Parser) parseHelmSpec(spec string) (interface{}, error) {
 
 	helm := &konjurev1beta2.Helm{}
 
+	// There are two flavors of Helm URL: it can be forced with a scheme override
+	// or it can be the "helm:" scheme:
+
+	// This is an example where an HTTPS URL is forced to be a Helm spec:
+	// helm::https://artifacthub.io/packages/helm/example/foobar
+
+	// This is an example where forcing wasn't necessary (the scheme _is_ "helm"):
+	// helm://stable/foobar
+
+	// If the scheme is Helm we need to resolve the repository URL by name
+	if u.Scheme == "helm" {
+		if err := p.HelmRepositoryConfig.Load(); err != nil {
+			return nil, err
+		}
+
+		repo, err := p.HelmRepositoryConfig.LookupURL(u.Host)
+		if err != nil {
+			return nil, err
+		}
+
+		u.Scheme = repo.Scheme
+		u.Host = repo.Host
+		u.Path = path.Join(repo.Path, u.Path)
+	}
+
 	// The fragment shouldn't be used for anything so let it be the release name
 	helm.ReleaseName = u.Fragment
 	u.Fragment = ""
@@ -150,10 +189,10 @@ func (p *Parser) parseHelmSpec(spec string) (interface{}, error) {
 			}
 		}
 
-	case path.Ext(u.Path) == ".tgz":
+	default:
 		// If this looks like an actual chart URL, assume the index is in the same place
 		u.Path, helm.Chart = path.Split(strings.TrimSuffix(u.Path, path.Ext(u.Path)))
-		helm.Repository = u.String()
+		helm.Repository = strings.TrimSuffix(u.String(), "/")
 		if pos := strings.LastIndexByte(helm.Chart, '-'); pos > 0 {
 			helm.Version = helm.Chart[pos+1:]
 			helm.Chart = helm.Chart[0:pos]
@@ -305,4 +344,49 @@ func (u *URL) String() string {
 	}
 
 	return u.URL.String()
+}
+
+// HelmRepositoryConfig is a container for Helm repository configurations.
+type HelmRepositoryConfig struct {
+	Repositories []HelmRepository `yaml:"repositories"`
+}
+
+// HelmRepository is an individual repository entry in the Helm repository configuration.
+type HelmRepository struct {
+	Name string `yaml:"name"`
+	URL  string `yaml:"url"`
+}
+
+// Load attempts to load the current Helm repository configuration.
+func (c *HelmRepositoryConfig) Load() error {
+	if c.Repositories != nil {
+		return nil
+	}
+
+	if helm, err := exec.LookPath("helm"); err == nil {
+		data, err := exec.Command(helm, "repo", "list", "--output", "yaml").Output()
+		if err == nil {
+			// NOTE: The command emits a raw array
+			if err := yaml.Unmarshal(data, &c.Repositories); err != nil {
+				return err
+			}
+		}
+	}
+
+	// It's not worth it to look for the file without the binary
+	// https://github.com/helm/helm/tree/master/pkg/helmpath
+
+	// Even if we didn't load anything, return nil and let the failure occur on lookup
+	return nil
+}
+
+// LookupURL returns the repository URL for the specified name or an error if cannot be found.
+func (c *HelmRepositoryConfig) LookupURL(name string) (*url.URL, error) {
+	for i := range c.Repositories {
+		if c.Repositories[i].Name == name {
+			return url.Parse(c.Repositories[i].URL)
+		}
+	}
+
+	return nil, fmt.Errorf("unable to find Helm repository %q", name)
 }

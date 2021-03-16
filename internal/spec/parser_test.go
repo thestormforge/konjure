@@ -84,6 +84,37 @@ func TestParser_Decode(t *testing.T) {
 				Path: "/foo/bar",
 			},
 		},
+		{
+			desc: "helm repo without path",
+			parser: Parser{HelmRepositoryConfig: HelmRepositoryConfig{Repositories: []HelmRepository{
+				{Name: "stable", URL: "https://kubernetes-charts.storage.googleapis.com"},
+			}}},
+			spec: "helm://stable/elasticsearch",
+			expected: &konjurev1beta2.Helm{
+				Chart:      "elasticsearch",
+				Repository: "https://kubernetes-charts.storage.googleapis.com",
+			},
+		},
+		{
+			desc: "helm repo with path",
+			parser: Parser{HelmRepositoryConfig: HelmRepositoryConfig{Repositories: []HelmRepository{
+				{Name: "bitnami", URL: "https://charts.bitnami.com/bitnami"},
+			}}},
+			spec: "helm://bitnami/nginx",
+			expected: &konjurev1beta2.Helm{
+				Chart:      "nginx",
+				Repository: "https://charts.bitnami.com/bitnami",
+			},
+		},
+		{
+			desc: "helm download link",
+			spec: "helm::https://charts.bitnami.com/bitnami/nginx-8.7.1.tgz",
+			expected: &konjurev1beta2.Helm{
+				Chart:      "nginx",
+				Version:    "8.7.1",
+				Repository: "https://charts.bitnami.com/bitnami",
+			},
+		},
 
 		// These are a bunch of test cases from Kustomize for Git URLs
 		{
