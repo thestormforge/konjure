@@ -22,15 +22,11 @@ import "sigs.k8s.io/kustomize/kyaml/yaml"
 type SelectorFilter struct {
 	LabelSelector      string
 	AnnotationSelector string
-	Negate             bool
 }
 
 func (f *SelectorFilter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 	// Optimization if both selectors are empty
 	if f.LabelSelector == "" && f.AnnotationSelector == "" {
-		if f.Negate {
-			return nil, nil
-		}
 		return nodes, nil
 	}
 
@@ -40,7 +36,7 @@ func (f *SelectorFilter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 		if f.LabelSelector != "" {
 			if matches, err := n.MatchesLabelSelector(f.LabelSelector); err != nil {
 				return nil, err
-			} else if matches == f.Negate {
+			} else if !matches {
 				continue
 			}
 		}
@@ -48,7 +44,7 @@ func (f *SelectorFilter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 		if f.AnnotationSelector != "" {
 			if matches, err := n.MatchesAnnotationSelector(f.AnnotationSelector); err != nil {
 				return nil, err
-			} else if matches == f.Negate {
+			} else if !matches {
 				continue
 			}
 		}

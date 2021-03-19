@@ -55,8 +55,7 @@ func TestSelectorFilter_Filter(t *testing.T) {
 		{
 			desc: "match annotation negate",
 			selector: SelectorFilter{
-				AnnotationSelector: "test=testing",
-				Negate:             true,
+				AnnotationSelector: "test!=testing",
 			},
 			input: []*yaml.RNode{
 				rmNode("test", nil, nil),

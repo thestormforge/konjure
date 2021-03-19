@@ -91,8 +91,7 @@ func NewHelmReader(helm *konjurev1beta2.Helm) kio.Reader {
 
 	if !helm.IncludeTests {
 		p.Filters = append(p.Filters, &filters.SelectorFilter{
-			AnnotationSelector: "helm.sh/hook in (test-success, test-failure)",
-			Negate:             true,
+			AnnotationSelector: "helm.sh/hook notin (test-success, test-failure)",
 		})
 	}
 
