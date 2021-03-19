@@ -71,7 +71,7 @@ func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 		return nil, err
 	}
 
-	nodes, err = (&filters.SelectorFilter{LabelSelector: f.LabelSelector, AnnotationSelector: f.AnnotationSelector}).Filter(nodes)
+	nodes, err = (&filters.ResourceMetaFilter{LabelSelector: f.LabelSelector, AnnotationSelector: f.AnnotationSelector}).Filter(nodes)
 	if err != nil {
 		return nil, err
 	}

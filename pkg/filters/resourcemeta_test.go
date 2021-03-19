@@ -23,10 +23,10 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-func TestSelectorFilter_Filter(t *testing.T) {
+func TestResourceMetaFilter_Filter(t *testing.T) {
 	cases := []struct {
 		desc     string
-		selector SelectorFilter
+		filter   ResourceMetaFilter
 		input    []*yaml.RNode
 		expected []*yaml.RNode
 	}{
@@ -40,8 +40,21 @@ func TestSelectorFilter_Filter(t *testing.T) {
 			},
 		},
 		{
+			desc: "match name",
+			filter: ResourceMetaFilter{
+				Name: "foo.*",
+			},
+			input: []*yaml.RNode{
+				rmNode("foobar", nil, nil),
+				rmNode("barfoo", nil, nil),
+			},
+			expected: []*yaml.RNode{
+				rmNode("foobar", nil, nil),
+			},
+		},
+		{
 			desc: "match annotation",
-			selector: SelectorFilter{
+			filter: ResourceMetaFilter{
 				AnnotationSelector: "test=testing",
 			},
 			input: []*yaml.RNode{
@@ -54,7 +67,7 @@ func TestSelectorFilter_Filter(t *testing.T) {
 		},
 		{
 			desc: "match annotation negate",
-			selector: SelectorFilter{
+			filter: ResourceMetaFilter{
 				AnnotationSelector: "test!=testing",
 			},
 			input: []*yaml.RNode{
@@ -68,7 +81,7 @@ func TestSelectorFilter_Filter(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.desc, func(t *testing.T) {
-			actual, err := c.selector.Filter(c.input)
+			actual, err := c.filter.Filter(c.input)
 			if assert.NoError(t, err) {
 				assert.Equal(t, c.expected, actual)
 			}
