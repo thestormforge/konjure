@@ -29,7 +29,7 @@ func NewRootCommand(version, refspec, date string) *cobra.Command {
 	f := &konjure.Filter{}
 	w := &konjure.Writer{}
 
-	// TODO We should have another filter that only keeps resources matching an annotationSelector, group, kind, version, etc.
+	// TODO We should have another filter that only keeps resources matching an group, kind, version, etc.
 
 	cmd := &cobra.Command{
 		Use:              "konjure INPUT...",

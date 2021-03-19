@@ -20,8 +20,8 @@ import (
 	"io"
 	"os/exec"
 
-	"github.com/thestormforge/konjure/internal/filters"
 	"github.com/thestormforge/konjure/internal/readers"
+	"github.com/thestormforge/konjure/pkg/filters"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	kiofilters "sigs.k8s.io/kustomize/kyaml/kio/filters"
 	"sigs.k8s.io/kustomize/kyaml/yaml"

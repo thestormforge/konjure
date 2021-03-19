@@ -21,8 +21,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/thestormforge/konjure/internal/filters"
 	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
+	"github.com/thestormforge/konjure/pkg/filters"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 )
 
