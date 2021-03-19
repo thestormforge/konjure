@@ -33,10 +33,8 @@ type Filter struct {
 	Depth int
 	// The default reader to use, defaults to stdin.
 	DefaultReader io.Reader
-	// Label selector of resources to retain.
-	LabelSelector string
-	// Annotation selector of resources to retain.
-	AnnotationSelector string
+	// Filter to determine which resources are retained.
+	filters.ResourceMetaFilter
 	// Flag indicating that status fields should not be stripped.
 	KeepStatus bool
 	// Flag indicating that comments should not be stripped.
@@ -71,7 +69,7 @@ func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 		return nil, err
 	}
 
-	nodes, err = (&filters.ResourceMetaFilter{LabelSelector: f.LabelSelector, AnnotationSelector: f.AnnotationSelector}).Filter(nodes)
+	nodes, err = f.ResourceMetaFilter.Filter(nodes)
 	if err != nil {
 		return nil, err
 	}
