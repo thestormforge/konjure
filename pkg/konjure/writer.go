@@ -24,7 +24,6 @@ import (
 	"strings"
 
 	"sigs.k8s.io/kustomize/kyaml/kio"
-	"sigs.k8s.io/kustomize/kyaml/kio/filters"
 	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -45,15 +44,6 @@ type Writer struct {
 
 // Write delegates to the format specific writer.
 func (w *Writer) Write(nodes []*yaml.RNode) error {
-	var clearAnnotations []string
-	clearAnnotations = append(clearAnnotations, w.ClearAnnotations...)
-	if !w.KeepReaderAnnotations {
-		clearAnnotations = append(clearAnnotations,
-			kioutil.PathAnnotation,
-			filters.FmtAnnotation,
-		)
-	}
-
 	var ww kio.Writer
 	switch strings.ToLower(w.Format) {
 
@@ -61,7 +51,7 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 		ww = &kio.ByteWriter{
 			Writer:                w.Writer,
 			KeepReaderAnnotations: w.KeepReaderAnnotations,
-			ClearAnnotations:      clearAnnotations,
+			ClearAnnotations:      w.ClearAnnotations,
 			Sort:                  w.Sort,
 		}
 
@@ -69,7 +59,7 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 		ww = &NDJSONWriter{
 			Writer:                w.Writer,
 			KeepReaderAnnotations: w.KeepReaderAnnotations,
-			ClearAnnotations:      clearAnnotations,
+			ClearAnnotations:      w.ClearAnnotations,
 			Sort:                  w.Sort,
 		}
 

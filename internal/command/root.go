@@ -22,6 +22,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/thestormforge/konjure/pkg/konjure"
 	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/kio/filters"
+	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 )
 
 func NewRootCommand(version, refspec, date string) *cobra.Command {
@@ -50,6 +52,14 @@ func NewRootCommand(version, refspec, date string) *cobra.Command {
 			}
 
 			f.WorkingDirectory, err = os.Getwd()
+
+			if !w.KeepReaderAnnotations {
+				w.ClearAnnotations = append(w.ClearAnnotations,
+					kioutil.PathAnnotation,
+					filters.FmtAnnotation,
+				)
+			}
+
 			return
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
