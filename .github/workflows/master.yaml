@@ -24,10 +24,7 @@ jobs:
           args: release --rm-dist --release-notes .github/RELEASE_TEMPLATE.md
         env:
           GITHUB_TOKEN: ${{ secrets.BMASTERS_TOKEN }}
-      - name: Clean up dist
-        run: 'rm dist/config.yaml dist/*.tar.gz'
       - name: Upload artifacts
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v2
         with:
-          name: dist
-          path: dist
+          path: dist/*.tar.gz
