@@ -124,6 +124,26 @@ func TestParser_Decode(t *testing.T) {
 			},
 		},
 
+		// URLs to web blobs of YAML files shouldn't require a full clone
+		{
+			desc: "GitHub file web blob",
+			spec: "https://github.com/someorg/somerepo/blob/master/somedir/somefile.yaml",
+			expected: &konjurev1beta2.HTTP{
+				URL: "https://raw.githubusercontent.com/someorg/somerepo/master/somedir/somefile.yaml",
+			},
+		},
+
+		// Other web blobs do
+		{
+			desc: "GitHub web blob",
+			spec: "https://github.com/someorg/somerepo/blob/master/somedir",
+			expected: &konjurev1beta2.Git{
+				Repository: "https://github.com/someorg/somerepo.git",
+				Context:    "somedir",
+				Refspec:    "master",
+			},
+		},
+
 		// These are a bunch of test cases from Kustomize for Git URLs
 		{
 			desc: "kustomize-tc-0",
