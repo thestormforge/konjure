@@ -255,7 +255,7 @@ func (p *Parser) parseKubernetesSpec(spec string) (interface{}, error) {
 	}
 
 	k8s := &konjurev1beta2.Kubernetes{}
-	k8s.LabelSelector = u.Query().Get("labelSelector")
+	k8s.Selector = u.Query().Get("labelSelector")
 	if parts[0] != "" {
 		k8s.Namespaces = []string{parts[0]}
 	}

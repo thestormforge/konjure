@@ -55,7 +55,7 @@ func NewKubernetesReader(k *konjurev1beta2.Kubernetes) kio.Reader {
 		cmd.Args = append(cmd.Args, "get")
 		cmd.Args = append(cmd.Args, "--ignore-not-found")
 		cmd.Args = append(cmd.Args, "--output", "yaml")
-		cmd.Args = append(cmd.Args, "--selector", k.LabelSelector)
+		cmd.Args = append(cmd.Args, "--selector", k.Selector)
 		if len(k.Types) > 0 {
 			cmd.Args = append(cmd.Args, strings.Join(k.Types, ","))
 		} else {

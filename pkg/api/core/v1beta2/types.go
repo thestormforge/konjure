@@ -118,7 +118,7 @@ type Kubernetes struct {
 	// The list of resource types to include. Defaults to "deployments,statefulsets,configmaps".
 	Types []string `json:"types,omitempty" yaml:"types,omitempty"`
 	// A label selector to limit which resources are included. Defaults to "" (match everything).
-	LabelSelector string `json:"labelSelector,omitempty" yaml:"labelSelector,omitempty"`
+	Selector string `json:"selector,omitempty" yaml:"selector,omitempty"`
 }
 
 // Kustomize is used to expand kustomizations.
