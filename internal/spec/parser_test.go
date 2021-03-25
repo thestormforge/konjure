@@ -124,19 +124,19 @@ func TestParser_Decode(t *testing.T) {
 			},
 		},
 
-		// URLs to web blobs of YAML files shouldn't require a full clone
+		// URLs to web blobs shouldn't require a full clone
 		{
-			desc: "GitHub file web blob",
+			desc: "GitHub web blob",
 			spec: "https://github.com/someorg/somerepo/blob/master/somedir/somefile.yaml",
 			expected: &konjurev1beta2.HTTP{
 				URL: "https://raw.githubusercontent.com/someorg/somerepo/master/somedir/somefile.yaml",
 			},
 		},
 
-		// Other web blobs do
+		// Web trees do
 		{
-			desc: "GitHub web blob",
-			spec: "https://github.com/someorg/somerepo/blob/master/somedir",
+			desc: "GitHub web blob tree",
+			spec: "https://github.com/someorg/somerepo/tree/master/somedir",
 			expected: &konjurev1beta2.Git{
 				Repository: "https://github.com/someorg/somerepo.git",
 				Context:    "somedir",

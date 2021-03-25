@@ -124,20 +124,18 @@ func (p *Parser) parseGitSpec(spec string) (interface{}, error) {
 	normalizeGitRepositoryURL(u)
 	g.Repository = u.String()
 
-	// Look for GitHub web blobs
-	if u.Scheme == "https" && u.Host == "github.com" && strings.HasPrefix(g.Context, "blob/") {
-		if p := strings.SplitN(strings.TrimPrefix(g.Context, "blob/"), "/", 2); len(p) == 2 {
-			g.Refspec = p[0]
-			g.Context = p[1]
-
-			// Further optimization for single files
-			switch strings.ToLower(path.Ext(g.Context)) {
-			case ".yaml", ".yml", ".json":
-				uc, _ := url.Parse(spec)
-				uc.Host = "raw.githubusercontent.com"
-				uc.Path = strings.Replace(uc.Path, "/blob/", "/", 1)
-				return &konjurev1beta2.HTTP{URL: uc.String()}, nil
-			}
+	// Look for GitHub web trees/blobs
+	parts := strings.SplitN(g.Context, "/", 3)
+	if len(parts) == 3 && u.Scheme == "https" && u.Host == "github.com" {
+		switch parts[0] {
+		case "blob":
+			uc, _ := url.Parse(spec)
+			uc.Host = "raw.githubusercontent.com"
+			uc.Path = strings.Replace(uc.Path, "/blob/", "/", 1)
+			return &konjurev1beta2.HTTP{URL: uc.String()}, nil
+		case "tree":
+			g.Refspec = parts[1]
+			g.Context = parts[2]
 		}
 	}
 
