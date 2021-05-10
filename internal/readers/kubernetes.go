@@ -69,6 +69,10 @@ func NewKubernetesReader(k *konjurev1beta2.Kubernetes) kio.Reader {
 }
 
 func namespaces(k *konjurev1beta2.Kubernetes) ([]string, error) {
+	if k.Namespace != "" {
+		return []string{k.Namespace}, nil
+	}
+
 	if len(k.Namespaces) > 0 {
 		return k.Namespaces, nil
 	}

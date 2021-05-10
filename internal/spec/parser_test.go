@@ -51,24 +51,23 @@ func TestParser_Decode(t *testing.T) {
 			desc: "kubernetes default deployments of application 'test'",
 			spec: "k8s:default/deployments?labelSelector=app.kubernetes.io/name%3Dtest",
 			expected: &konjurev1beta2.Kubernetes{
-				Namespaces: []string{"default"},
-				Types:      []string{"deployments"},
-				Selector:   "app.kubernetes.io/name=test",
+				Namespace: "default",
+				Types:     []string{"deployments"},
+				Selector:  "app.kubernetes.io/name=test",
 			},
 		},
 		{
 			desc: "kubernetes default namespace",
 			spec: "k8s:default",
 			expected: &konjurev1beta2.Kubernetes{
-				Namespaces: []string{"default"},
+				Namespace: "default",
 			},
 		},
 		{
 			desc: "kubernetes all deployments",
 			spec: "k8s:/deployments",
 			expected: &konjurev1beta2.Kubernetes{
-				Namespaces: nil,
-				Types:      []string{"deployments"},
+				Types: []string{"deployments"},
 			},
 		},
 		{

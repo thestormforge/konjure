@@ -111,6 +111,8 @@ type Kubernetes struct {
 	// Override the default kubeconfig context.
 	Context string `json:"context,omitempty" yaml:"context,omitempty"`
 
+	// The namespace to look for resources in.
+	Namespace string `json:"namespace,omitempty" yaml:"namespace,omitempty"`
 	// An explicit list of namespaces to look for resources in.
 	Namespaces []string `json:"namespaces,omitempty" yaml:"namespaces,omitempty"`
 	// A label selector matching namespaces to look for resources in.
