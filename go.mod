@@ -1,6 +1,6 @@
 module github.com/thestormforge/konjure
 
-go 1.15
+go 1.16
 
 require (
 	github.com/fatih/color v1.9.0
@@ -17,7 +17,6 @@ require (
 	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b // indirect
 	golang.org/x/sys v0.0.0-20201112073958-5cba982894dd // indirect
 	golang.org/x/text v0.3.4 // indirect
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.10.10
 )
