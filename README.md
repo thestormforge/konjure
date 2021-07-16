@@ -1,6 +1,6 @@
 # 🧙‍ Konjure
 
-![](https://github.com/thestormforge/konjure/workflows/Master/badge.svg)
+![](https://github.com/thestormforge/konjure/workflows/Main/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/thestormforge/konjure)](https://goreportcard.com/report/github.com/thestormforge/konjure)
 
 Konjure generates and transforms Kubernetes resource definitions. It can be used as a standalone utility or can be integrated into your GitOps workflows.
