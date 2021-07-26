@@ -84,7 +84,7 @@ func (r *FileReader) Read() ([]*yaml.RNode, error) {
 
 			result = append(result, n)
 
-		case ".json", ".yaml", ".yml":
+		case ".json", ".yaml", ".yml", "":
 			// Just read the data in, assume it must be manifests to slurp
 			data, err := ioutil.ReadFile(path)
 			if err != nil {
