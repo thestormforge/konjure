@@ -21,6 +21,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"sigs.k8s.io/kustomize/kyaml/kio"
@@ -125,6 +127,14 @@ type EnvWriter struct {
 
 // Write outputs the data pairings from the supplied list of resource nodes.
 func (w *EnvWriter) Write(nodes []*yaml.RNode) error {
+	// Detect the shell from the environment
+	sh := strings.ToLower(w.Shell)
+	if sh == "" {
+		if shell := os.Getenv("SHELL"); shell != "" {
+			sh = strings.ToLower(filepath.Base(shell))
+		}
+	}
+
 	for _, n := range nodes {
 		if ok, err := n.MatchesLabelSelector(w.Selector); err == nil && !ok {
 			continue
@@ -148,7 +158,7 @@ func (w *EnvWriter) Write(nodes []*yaml.RNode) error {
 			}
 
 			// TODO Should we print a comment with the ID of the node the first time this hits?
-			w.printEnvVar(k, v)
+			w.printEnvVar(sh, k, v)
 		}
 	}
 
@@ -156,16 +166,25 @@ func (w *EnvWriter) Write(nodes []*yaml.RNode) error {
 }
 
 // printEnvVar emits a single pair.
-func (w *EnvWriter) printEnvVar(k, v string) {
-	switch w.Shell {
-	case "":
+func (w *EnvWriter) printEnvVar(sh, k, v string) {
+	switch sh {
+	case "none", "":
 		if w.Unset {
 			_, _ = fmt.Fprintf(w.Writer, "%s=\n", k)
 		} else {
 			_, _ = fmt.Fprintf(w.Writer, "%s=%s\n", k, v)
 		}
 
-	default:
+	case "fish":
+		// e.g.: SHELL=fish konjure --output env ... | source
+		if w.Unset {
+			_, _ = fmt.Fprintf(w.Writer, "set -e %s;\n", k)
+		} else {
+			_, _ = fmt.Fprintf(w.Writer, "set -gx %s %q;\n", k, v)
+		}
+
+	default: // sh, bash, zsh, etc.
+		// e.g.: eval $(SHELL=zsh konjure --output env ...)
 		if w.Unset {
 			_, _ = fmt.Fprintf(w.Writer, "unset %s\n", k)
 		} else {
