@@ -92,6 +92,13 @@ func TestParser_Decode(t *testing.T) {
 			},
 		},
 		{
+			desc: "data URI base64",
+			spec: "data:;base64,SGVsbG8sIFdvcmxkIQ==",
+			expected: &kio.ByteReader{
+				Reader: bytes.NewReader([]byte("Hello, World!")),
+			},
+		},
+		{
 			desc: "helm repo without path",
 			parser: Parser{HelmRepositoryConfig: HelmRepositoryConfig{Repositories: []HelmRepository{
 				{Name: "stable", URL: "https://kubernetes-charts.storage.googleapis.com"},

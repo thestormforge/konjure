@@ -17,44 +17,53 @@ limitations under the License.
 package konjure
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
+	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-func TestResource_GetRNode(t *testing.T) {
+func TestResource_Read(t *testing.T) {
 	cases := []struct {
 		desc     string
 		resource Resource
-		expected *yaml.RNode
+		expected []*yaml.RNode
 	}{
 		{
 			desc: "helm",
 			resource: Resource{
 				Helm: &konjurev1beta2.Helm{Chart: "test"},
 			},
-			expected: mustRNode(&konjurev1beta2.Helm{Chart: "test"}),
+			expected: []*yaml.RNode{mustRNode(&konjurev1beta2.Helm{Chart: "test"})},
 		},
 		{
 			desc: "git",
 			resource: Resource{
 				Git: &konjurev1beta2.Git{Repository: "http://example.com/repo"},
 			},
-			expected: mustRNode(&konjurev1beta2.Git{Repository: "http://example.com/repo"}),
+			expected: []*yaml.RNode{mustRNode(&konjurev1beta2.Git{Repository: "http://example.com/repo"})},
 		},
 	}
 	for _, c := range cases {
 		t.Run(c.desc, func(t *testing.T) {
-			actual, err := c.resource.GetRNode()
+			actual, err := c.resource.Read()
 			if assert.NoError(t, err) {
 				assert.Equal(t, c.expected, actual)
 			}
 		})
 	}
 }
+
+const testResource = `apiVersion: invalid.example.com/v1
+kind: Test
+metadata:
+  name: this-is-a-test
+`
 
 func TestResource_UnmarshalJSON(t *testing.T) {
 	cases := []struct {
@@ -79,6 +88,14 @@ func TestResource_UnmarshalJSON(t *testing.T) {
 				File: &konjurev1beta2.File{
 					Path: "/this/is/a/test",
 				},
+			},
+		},
+		{
+			desc:    "data",
+			rawJSON: `"data:;base64,` + base64.URLEncoding.EncodeToString([]byte(testResource)) + `"`,
+			expected: Resource{
+				raw: &kio.ByteReader{Reader: bytes.NewReader([]byte(testResource))},
+				str: `data:;base64,` + base64.URLEncoding.EncodeToString([]byte(testResource)),
 			},
 		},
 	}
