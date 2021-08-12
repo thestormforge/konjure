@@ -21,6 +21,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"sigs.k8s.io/kustomize/kyaml/kio"
@@ -55,8 +57,18 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 			Sort:                  w.Sort,
 		}
 
-	case "ndjson", "json":
-		ww = &NDJSONWriter{
+	case "json":
+		ww = &JSONWriter{
+			Writer:                w.Writer,
+			KeepReaderAnnotations: w.KeepReaderAnnotations,
+			ClearAnnotations:      w.ClearAnnotations,
+			WrappingAPIVersion:    "v1",
+			WrappingKind:          "List",
+			Sort:                  w.Sort,
+		}
+
+	case "ndjson":
+		ww = &JSONWriter{
 			Writer:                w.Writer,
 			KeepReaderAnnotations: w.KeepReaderAnnotations,
 			ClearAnnotations:      w.ClearAnnotations,
@@ -75,16 +87,18 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 	return ww.Write(nodes)
 }
 
-// NDJSONWriter is a writer which emits JSON instead of YAML. This is useful if you like jq.
-type NDJSONWriter struct {
+// JSONWriter is a writer which emits JSON instead of YAML. This is useful if you like `jq`.
+type JSONWriter struct {
 	Writer                io.Writer
 	KeepReaderAnnotations bool
 	ClearAnnotations      []string
+	WrappingKind          string
+	WrappingAPIVersion    string
 	Sort                  bool
 }
 
 // Write encodes each node as a single line of JSON.
-func (w *NDJSONWriter) Write(nodes []*yaml.RNode) error {
+func (w *JSONWriter) Write(nodes []*yaml.RNode) error {
 	if w.Sort {
 		if err := kioutil.SortNodes(nodes); err != nil {
 			return err
@@ -106,13 +120,38 @@ func (w *NDJSONWriter) Write(nodes []*yaml.RNode) error {
 				return err
 			}
 		}
-
-		if err := enc.Encode(n); err != nil {
-			return err
-		}
 	}
 
-	return nil
+	if w.WrappingKind == "" {
+		for i := range nodes {
+			if err := enc.Encode(nodes[i]); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	items := &yaml.Node{Kind: yaml.SequenceNode}
+	for i := range nodes {
+		items.Content = append(items.Content, nodes[i].YNode())
+	}
+
+	return enc.Encode(yaml.NewRNode(&yaml.Node{
+		Kind: yaml.DocumentNode,
+		Content: []*yaml.Node{
+			{
+				Kind: yaml.MappingNode,
+				Content: []*yaml.Node{
+					{Kind: yaml.ScalarNode, Value: "apiVersion"},
+					{Kind: yaml.ScalarNode, Value: w.WrappingAPIVersion},
+					{Kind: yaml.ScalarNode, Value: "kind"},
+					{Kind: yaml.ScalarNode, Value: w.WrappingKind},
+					{Kind: yaml.ScalarNode, Value: "items"},
+					items,
+				},
+			},
+		},
+	}))
 }
 
 // EnvWriter is a writer which only emits name/value pairs found in the data of config maps and secrets.
@@ -125,6 +164,14 @@ type EnvWriter struct {
 
 // Write outputs the data pairings from the supplied list of resource nodes.
 func (w *EnvWriter) Write(nodes []*yaml.RNode) error {
+	// Detect the shell from the environment
+	sh := strings.ToLower(w.Shell)
+	if sh == "" {
+		if shell := os.Getenv("SHELL"); shell != "" {
+			sh = strings.ToLower(filepath.Base(shell))
+		}
+	}
+
 	for _, n := range nodes {
 		if ok, err := n.MatchesLabelSelector(w.Selector); err == nil && !ok {
 			continue
@@ -148,7 +195,7 @@ func (w *EnvWriter) Write(nodes []*yaml.RNode) error {
 			}
 
 			// TODO Should we print a comment with the ID of the node the first time this hits?
-			w.printEnvVar(k, v)
+			w.printEnvVar(sh, k, v)
 		}
 	}
 
@@ -156,16 +203,25 @@ func (w *EnvWriter) Write(nodes []*yaml.RNode) error {
 }
 
 // printEnvVar emits a single pair.
-func (w *EnvWriter) printEnvVar(k, v string) {
-	switch w.Shell {
-	case "":
+func (w *EnvWriter) printEnvVar(sh, k, v string) {
+	switch sh {
+	case "none", "":
 		if w.Unset {
 			_, _ = fmt.Fprintf(w.Writer, "%s=\n", k)
 		} else {
 			_, _ = fmt.Fprintf(w.Writer, "%s=%s\n", k, v)
 		}
 
-	default:
+	case "fish":
+		// e.g.: SHELL=fish konjure --output env ... | source
+		if w.Unset {
+			_, _ = fmt.Fprintf(w.Writer, "set -e %s;\n", k)
+		} else {
+			_, _ = fmt.Fprintf(w.Writer, "set -gx %s %q;\n", k, v)
+		}
+
+	default: // sh, bash, zsh, etc.
+		// e.g.: eval $(SHELL=zsh konjure --output env ...)
 		if w.Unset {
 			_, _ = fmt.Fprintf(w.Writer, "unset %s\n", k)
 		} else {
