@@ -53,6 +53,11 @@ func (p *Parser) Decode(spec string) (interface{}, error) {
 		return &kio.ByteReader{Reader: p.Reader}, nil
 	}
 
+	// Inline resources
+	if strings.ContainsRune(spec, '\n') {
+		return &kio.ByteReader{Reader: strings.NewReader(spec)}, nil
+	}
+
 	// Absolute file path
 	if filepath.IsAbs(spec) {
 		return &konjurev1beta2.File{Path: spec}, nil

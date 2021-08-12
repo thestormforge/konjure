@@ -43,6 +43,9 @@ type Resource struct {
 	HTTP       *konjurev1beta2.HTTP       `json:"http,omitempty" yaml:"http,omitempty"`
 	File       *konjurev1beta2.File       `json:"file,omitempty" yaml:"file,omitempty"`
 
+	// Some specs (default reader, `data:` URLs, inline resources) resolve to a stream.
+	raw kio.Reader // NOTE: when this is non-nil there MUST be a value for `str`!
+
 	// Original string representation this resource was parsed from.
 	str string
 }
@@ -57,12 +60,20 @@ func NewResource(arg ...string) Resource {
 	return r
 }
 
-// GetRNode returns a KYAML resource node representing this Konjure resource.
-func (r *Resource) GetRNode() (*yaml.RNode, error) {
+// Read returns a KYAML resource nodes representing this Konjure resource.
+func (r *Resource) Read() ([]*yaml.RNode, error) {
+	if r.raw != nil {
+		return r.raw.Read()
+	}
+
 	rv := reflect.Indirect(reflect.ValueOf(r))
 	for i := 0; i < rv.NumField(); i++ {
 		if f := rv.Field(i); f.Kind() != reflect.String && !f.IsNil() {
-			return konjurev1beta2.GetRNode(rv.Field(i).Interface())
+			n, err := konjurev1beta2.GetRNode(rv.Field(i).Interface())
+			if err != nil {
+				return nil, err
+			}
+			return []*yaml.RNode{n}, nil
 		}
 	}
 
@@ -76,6 +87,11 @@ func (r *Resource) UnmarshalJSON(bytes []byte) error {
 		rr, err := (&spec.Parser{}).Decode(r.str)
 		if err != nil {
 			return err
+		}
+
+		if raw, ok := rr.(kio.Reader); ok {
+			r.raw = raw
+			return nil
 		}
 
 		rv := reflect.Indirect(reflect.ValueOf(r))
@@ -143,11 +159,11 @@ var _ kio.Reader = Resources{}
 func (rs Resources) Read() ([]*yaml.RNode, error) {
 	result := make([]*yaml.RNode, 0, len(rs))
 	for i := range rs {
-		n, err := rs[i].GetRNode()
+		nodes, err := rs[i].Read()
 		if err != nil {
 			return nil, err
 		}
-		result = append(result, n)
+		result = append(result, nodes...)
 	}
 
 	return result, nil
