@@ -36,22 +36,7 @@ func NewKubernetesReader(k *konjurev1beta2.Kubernetes) kio.Reader {
 	}
 
 	for _, ns := range namespaces {
-		kubectlBin := k.Bin
-		if kubectlBin == "" {
-			kubectlBin = "kubectl"
-		}
-		cmd := exec.Command(kubectlBin)
-
-		if k.Kubeconfig != "" {
-			cmd.Args = append(cmd.Args, "--kubeconfig", k.Kubeconfig)
-		}
-		if k.Context != "" {
-			cmd.Args = append(cmd.Args, "--context", k.Context)
-		}
-		if ns != "" {
-			cmd.Args = append(cmd.Args, "--namespace", ns)
-		}
-
+		cmd := command(k, ns)
 		cmd.Args = append(cmd.Args, "get")
 		cmd.Args = append(cmd.Args, "--ignore-not-found")
 		cmd.Args = append(cmd.Args, "--output", "yaml")
@@ -68,6 +53,26 @@ func NewKubernetesReader(k *konjurev1beta2.Kubernetes) kio.Reader {
 	return p
 }
 
+func command(k *konjurev1beta2.Kubernetes, ns string) *exec.Cmd {
+	kubectlBin := k.Bin
+	if kubectlBin == "" {
+		kubectlBin = "kubectl"
+	}
+	cmd := exec.Command(kubectlBin)
+
+	if k.Kubeconfig != "" {
+		cmd.Args = append(cmd.Args, "--kubeconfig", k.Kubeconfig)
+	}
+	if k.Context != "" {
+		cmd.Args = append(cmd.Args, "--context", k.Context)
+	}
+	if ns != "" {
+		cmd.Args = append(cmd.Args, "--namespace", ns)
+	}
+
+	return cmd
+}
+
 func namespaces(k *konjurev1beta2.Kubernetes) ([]string, error) {
 	if k.Namespace != "" {
 		return []string{k.Namespace}, nil
@@ -81,12 +86,11 @@ func namespaces(k *konjurev1beta2.Kubernetes) ([]string, error) {
 		return []string{""}, nil
 	}
 
-	name := k.Bin
-	if name == "" {
-		name = "kubectl"
-	}
-
-	cmd := exec.Command(name, "get", "namespace", "--selector", k.NamespaceSelector, "--output", "name")
+	cmd := command(k, "")
+	cmd.Args = append(cmd.Args, "get")
+	cmd.Args = append(cmd.Args, "namespace")
+	cmd.Args = append(cmd.Args, "--selector", k.NamespaceSelector)
+	cmd.Args = append(cmd.Args, "--output", "name")
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, err
