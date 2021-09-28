@@ -17,12 +17,22 @@ limitations under the License.
 package readers
 
 import (
-	"os/exec"
-
 	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
-	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-func NewKustomizeReader(kust *konjurev1beta2.Kustomize) kio.Reader {
-	return (*ExecReader)(exec.Command("kustomize", "build", kust.Root))
+type KustomizeReader struct {
+	konjurev1beta2.Kustomize
+	Runtime
+}
+
+func (kustomize *KustomizeReader) Read() ([]*yaml.RNode, error) {
+	cmd := kustomize.command()
+	cmd.Args = append(cmd.Args, "build", kustomize.Root)
+	return cmd.Read()
+}
+
+func (kustomize *KustomizeReader) command() *command {
+	cmd := kustomize.Runtime.command("kustomize")
+	return cmd
 }

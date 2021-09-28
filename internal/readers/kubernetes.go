@@ -19,56 +19,64 @@ package readers
 import (
 	"bufio"
 	"bytes"
-	"os/exec"
 	"path"
 	"strings"
 
 	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
-	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-func NewKubernetesReader(k *konjurev1beta2.Kubernetes) kio.Reader {
+type KubernetesReader struct {
+	konjurev1beta2.Kubernetes
+	Runtime
+
+	// Override the default path to the kubeconfig file.
+	Kubeconfig string
+	// Override the default kubeconfig context.
+	Context string
+}
+
+func (k *KubernetesReader) Read() ([]*yaml.RNode, error) {
 	p := &Pipeline{}
 
-	namespaces, err := namespaces(k)
+	namespaces, err := k.namespaces()
 	if err != nil {
-		return &ErrorReader{error: err}
+		return nil, err
 	}
 
 	for _, ns := range namespaces {
-		kubectlBin := k.Bin
-		if kubectlBin == "" {
-			kubectlBin = "kubectl"
-		}
-		cmd := exec.Command(kubectlBin)
-
-		if k.Kubeconfig != "" {
-			cmd.Args = append(cmd.Args, "--kubeconfig", k.Kubeconfig)
-		}
-		if k.Context != "" {
-			cmd.Args = append(cmd.Args, "--context", k.Context)
-		}
-		if ns != "" {
-			cmd.Args = append(cmd.Args, "--namespace", ns)
-		}
-
+		cmd := k.command()
 		cmd.Args = append(cmd.Args, "get")
 		cmd.Args = append(cmd.Args, "--ignore-not-found")
 		cmd.Args = append(cmd.Args, "--output", "yaml")
 		cmd.Args = append(cmd.Args, "--selector", k.Selector)
+		if ns != "" {
+			cmd.Args = append(cmd.Args, "--namespace", ns)
+		}
 		if len(k.Types) > 0 {
 			cmd.Args = append(cmd.Args, strings.Join(k.Types, ","))
 		} else {
 			cmd.Args = append(cmd.Args, "deployments,statefulsets,configmaps")
 		}
 
-		p.Inputs = append(p.Inputs, (*ExecReader)(cmd))
+		p.Inputs = append(p.Inputs, cmd)
 	}
 
-	return p
+	return p.Read()
 }
 
-func namespaces(k *konjurev1beta2.Kubernetes) ([]string, error) {
+func (k *KubernetesReader) command() *command {
+	cmd := k.Runtime.command("kubectl")
+	if k.Kubeconfig != "" {
+		cmd.Args = append(cmd.Args, "--kubeconfig", k.Kubeconfig)
+	}
+	if k.Context != "" {
+		cmd.Args = append(cmd.Args, "--context", k.Context)
+	}
+	return cmd
+}
+
+func (k *KubernetesReader) namespaces() ([]string, error) {
 	if k.Namespace != "" {
 		return []string{k.Namespace}, nil
 	}
@@ -81,12 +89,11 @@ func namespaces(k *konjurev1beta2.Kubernetes) ([]string, error) {
 		return []string{""}, nil
 	}
 
-	name := k.Bin
-	if name == "" {
-		name = "kubectl"
-	}
-
-	cmd := exec.Command(name, "get", "namespace", "--selector", k.NamespaceSelector, "--output", "name")
+	cmd := k.command()
+	cmd.Args = append(cmd.Args, "get")
+	cmd.Args = append(cmd.Args, "namespace")
+	cmd.Args = append(cmd.Args, "--selector", k.NamespaceSelector)
+	cmd.Args = append(cmd.Args, "--output", "name")
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, err

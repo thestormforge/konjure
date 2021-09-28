@@ -35,13 +35,13 @@ func New(obj interface{}, opts ...Option) kio.Reader {
 	case *konjurev1beta2.Resource:
 		r = &ResourceReader{Resources: res.Resources}
 	case *konjurev1beta2.Helm:
-		r = NewHelmReader(res)
+		r = &HelmReader{Helm: *res}
 	case *konjurev1beta2.Jsonnet:
 		r = NewJsonnetReader(res)
 	case *konjurev1beta2.Kubernetes:
-		r = NewKubernetesReader(res)
+		r = &KubernetesReader{Kubernetes: *res}
 	case *konjurev1beta2.Kustomize:
-		r = NewKustomizeReader(res)
+		r = &KustomizeReader{Kustomize: *res}
 	case *konjurev1beta2.Secret:
 		r = &SecretReader{Secret: *res}
 	case *konjurev1beta2.Git:
@@ -102,14 +102,35 @@ func WithRecursiveDirectories(recurse bool) Option {
 	}
 }
 
-// ErrorReader is kio.Reader which immediately fails, this can be used to defer
-// reporting of an error from a reader factory.
-type ErrorReader struct {
-	error
+// WithKubeconfig controls the default path of the kubeconfig file.
+func WithKubeconfig(kubeconfig string) Option {
+	return func(r kio.Reader) kio.Reader {
+		if kr, ok := r.(*KubernetesReader); ok {
+			kr.Kubeconfig = kubeconfig
+		}
+		return r
+	}
 }
 
-// Read returns the deferred error.
-func (r *ErrorReader) Read() ([]*yaml.RNode, error) { return nil, r.error }
+// WithKubectlExecutor controls the alternate executor for kubectl.
+func WithKubectlExecutor(executor Executor) Option {
+	return func(r kio.Reader) kio.Reader {
+		if kr, ok := r.(*KubernetesReader); ok {
+			kr.Executor = executor
+		}
+		return r
+	}
+}
+
+// WithKustomizeExecutor controls the alternate executor for kustomize.
+func WithKustomizeExecutor(executor Executor) Option {
+	return func(r kio.Reader) kio.Reader {
+		if kr, ok := r.(*KustomizeReader); ok {
+			kr.Executor = executor
+		}
+		return r
+	}
+}
 
 // Filter is a KYAML Filter that maps Konjure resource specifications to
 // KYAML Readers, then reads and flattens the resulting RNodes into the final

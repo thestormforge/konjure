@@ -41,11 +41,12 @@ type Filter struct {
 	KeepComments bool
 	// Flag indicating that output should be formatted.
 	Format bool
-
 	// The explicit working directory used to resolve relative paths.
 	WorkingDirectory string
 	// Flag indicating we can process directories recursively.
 	RecursiveDirectories bool
+	// Override the default path to the kubeconfig file.
+	Kubeconfig string
 	// Override the default Kubectl executor.
 	KubectlExecutor func(cmd *exec.Cmd) ([]byte, error)
 	// Override the default Kustomize executor.
@@ -60,8 +61,9 @@ func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 		readers.WithDefaultInputStream(f.DefaultReader),
 		readers.WithWorkingDirectory(f.WorkingDirectory),
 		readers.WithRecursiveDirectories(f.RecursiveDirectories),
-		readers.WithCommandExecutor("kubectl", f.KubectlExecutor),
-		readers.WithCommandExecutor("kustomize", f.KustomizeExecutor),
+		readers.WithKubeconfig(f.Kubeconfig),
+		readers.WithKubectlExecutor(f.KubectlExecutor),
+		readers.WithKustomizeExecutor(f.KustomizeExecutor),
 	}
 
 	nodes, err = (&readers.Filter{Depth: f.Depth, ReaderOptions: opts}).Filter(nodes)
