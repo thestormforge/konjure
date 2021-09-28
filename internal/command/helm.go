@@ -34,7 +34,7 @@ func NewHelmCommand() *cobra.Command {
 		PreRun: f.preRun,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return kio.Pipeline{
-				Inputs:  []kio.Reader{readers.NewHelmReader(&f.Helm)},
+				Inputs:  []kio.Reader{&f.HelmReader},
 				Outputs: []kio.Writer{&konjure.Writer{Writer: cmd.OutOrStdout()}},
 			}.Execute()
 		},
@@ -45,7 +45,7 @@ func NewHelmCommand() *cobra.Command {
 	cmd.Flags().StringVar(&f.Helm.ReleaseName, "name", "RELEASE-NAME", "release `name`")
 	cmd.Flags().StringVarP(&f.Helm.ReleaseNamespace, "namespace", "n", "default", "release `namespace`")
 	cmd.Flags().StringVar(&f.Helm.Version, "version", "", "fetch a specific `version` of a chart; if empty, the latest version of the chart will be used")
-	cmd.Flags().StringVar(&f.Helm.Helm.RepositoryCache, "repository-cache", "", "override the `directory` of your cached Helm repository index")
+	cmd.Flags().StringVar(&f.RepositoryCache, "repository-cache", "", "override the `directory` of your cached Helm repository index")
 	cmd.Flags().StringToStringVar(&f.set, "set", nil, "set `value`s on the command line")
 	cmd.Flags().StringToStringVar(&f.setFile, "set-file", nil, "set values from `file`s on the command line")
 	cmd.Flags().StringToStringVar(&f.setString, "set-string", nil, "set string `value`s on the command line")
@@ -59,7 +59,7 @@ func NewHelmCommand() *cobra.Command {
 
 // helmFlags is an extra structure for storing command line options. Unlike real Helm, we don't preserve order of set flags!
 type helmFlags struct {
-	konjurev1beta2.Helm
+	readers.HelmReader
 	set       map[string]string
 	setFile   map[string]string
 	setString map[string]string

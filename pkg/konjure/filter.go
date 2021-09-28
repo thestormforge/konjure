@@ -60,8 +60,8 @@ func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 		readers.WithDefaultInputStream(f.DefaultReader),
 		readers.WithWorkingDirectory(f.WorkingDirectory),
 		readers.WithRecursiveDirectories(f.RecursiveDirectories),
-		readers.WithCommandExecutor("kubectl", f.KubectlExecutor),
-		readers.WithCommandExecutor("kustomize", f.KustomizeExecutor),
+		readers.WithKubectlExecutor(f.KubectlExecutor),
+		readers.WithKustomizeExecutor(f.KustomizeExecutor),
 	}
 
 	nodes, err = (&readers.Filter{Depth: f.Depth, ReaderOptions: opts}).Filter(nodes)

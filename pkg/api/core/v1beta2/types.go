@@ -26,14 +26,6 @@ type Resource struct {
 	Resources []string `json:"resources" yaml:"resources"`
 }
 
-// HelmExecutor contains additional configuration for the Helm binary.
-type HelmExecutor struct {
-	// The path to the Helm binary. Defaults to "helm".
-	Bin string `json:"bin,omitempty" yaml:"bin,omitempty"`
-	// The path to the Helm repository cache. Corresponds to the `helm --repository-cache` option.
-	RepositoryCache string `json:"repositoryCache,omitempty" yaml:"repositoryCache,omitempty"`
-}
-
 // HelmValue specifies a value or value file for configuring a Helm chart.
 type HelmValue struct {
 	// Path to a values.yaml file.
@@ -50,8 +42,6 @@ type HelmValue struct {
 
 // Helm is used to expand a Helm chart locally (using `helm template`).
 type Helm struct {
-	// Additional Helm configuration.
-	Helm HelmExecutor `json:"helm,omitempty" yaml:"helm,omitempty"`
 	// The release name to use when rendering the chart templates.
 	ReleaseName string `json:"releaseName,omitempty" yaml:"releaseName,omitempty"`
 	// The namespace to use when rendering the chart templates (this is particularly important for charts that
@@ -104,13 +94,6 @@ type Jsonnet struct {
 
 // Kubernetes is used to expand resources found in a Kubernetes cluster.
 type Kubernetes struct {
-	// The path to the `kubectl` binary. Defaults to "kubectl".
-	Bin string `json:"bin,omitempty" yaml:"bin,omitempty"`
-	// Override the default path to the kubeconfig file.
-	Kubeconfig string `json:"kubeconfig,omitempty" yaml:"kubeconfig,omitempty"`
-	// Override the default kubeconfig context.
-	Context string `json:"context,omitempty" yaml:"context,omitempty"`
-
 	// The namespace to look for resources in.
 	Namespace string `json:"namespace,omitempty" yaml:"namespace,omitempty"`
 	// An explicit list of namespaces to look for resources in.

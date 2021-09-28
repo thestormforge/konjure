@@ -18,26 +18,24 @@ package readers
 
 import (
 	"fmt"
-	"os/exec"
 	"path/filepath"
 
 	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
 	"github.com/thestormforge/konjure/pkg/filters"
 	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-func NewHelmReader(helm *konjurev1beta2.Helm) kio.Reader {
-	helmBin := helm.Helm.Bin
-	if helmBin == "" {
-		helmBin = "helm"
-	}
-	cmd := exec.Command(helmBin)
+type HelmReader struct {
+	konjurev1beta2.Helm
+	Runtime
 
-	if helm.Helm.RepositoryCache != "" {
-		cmd.Env = []string{
-			"HELM_REPOSITORY_CACHE=" + helm.Helm.RepositoryCache,
-		}
-	}
+	// The path to the Helm repository cache. Corresponds to the `helm --repository-cache` option.
+	RepositoryCache string
+}
+
+func (helm *HelmReader) Read() ([]*yaml.RNode, error) {
+	cmd := helm.command()
 
 	cmd.Args = append(cmd.Args, "template")
 
@@ -87,7 +85,7 @@ func NewHelmReader(helm *konjurev1beta2.Helm) kio.Reader {
 		}
 	}
 
-	p := &Pipeline{Inputs: []kio.Reader{(*ExecReader)(cmd)}}
+	p := &Pipeline{Inputs: []kio.Reader{cmd}}
 
 	if !helm.IncludeTests {
 		p.Filters = append(p.Filters, &filters.ResourceMetaFilter{
@@ -95,5 +93,13 @@ func NewHelmReader(helm *konjurev1beta2.Helm) kio.Reader {
 		})
 	}
 
-	return p
+	return p.Read()
+}
+
+func (helm *HelmReader) command() *command {
+	cmd := helm.Runtime.command("helm")
+	if helm.RepositoryCache != "" {
+		cmd.Env = append(cmd.Env, "HELM_REPOSITORY_CACHE="+helm.RepositoryCache)
+	}
+	return cmd
 }
