@@ -102,6 +102,16 @@ func WithRecursiveDirectories(recurse bool) Option {
 	}
 }
 
+// WithKubeconfig controls the default path of the kubeconfig file.
+func WithKubeconfig(kubeconfig string) Option {
+	return func(r kio.Reader) kio.Reader {
+		if kr, ok := r.(*KubernetesReader); ok {
+			kr.Kubeconfig = kubeconfig
+		}
+		return r
+	}
+}
+
 // WithKubectlExecutor controls the alternate executor for kubectl.
 func WithKubectlExecutor(executor Executor) Option {
 	return func(r kio.Reader) kio.Reader {
