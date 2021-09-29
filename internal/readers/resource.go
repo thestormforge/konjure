@@ -29,7 +29,7 @@ import (
 // ResourceReader generates Konjure resource nodes by parsing the configured resource specifications.
 type ResourceReader struct {
 	// The list of resource specifications to generate Konjure resources from.
-	Resources []string
+	konjurev1beta2.Resource
 	// The byte stream of (possibly non-Konjure) resources to read give the
 	// resource specification of "-". Defaults to `os.Stdin`.
 	Reader io.Reader

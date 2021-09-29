@@ -33,7 +33,7 @@ func New(res interface{}) kio.Reader {
 	// Construct a new reader based on the input type
 	switch res := res.(type) {
 	case *konjurev1beta2.Resource:
-		return &ResourceReader{Resources: res.Resources}
+		return &ResourceReader{Resource: *res}
 	case *konjurev1beta2.Helm:
 		return &HelmReader{Helm: *res}
 	case *konjurev1beta2.Jsonnet:
