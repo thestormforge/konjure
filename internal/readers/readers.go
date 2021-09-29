@@ -28,9 +28,6 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-// Option is used to configure or decorate a reader.
-type Option func(r kio.Reader) kio.Reader
-
 // New returns a resource node reader or nil if the input is not recognized.
 func New(obj interface{}, opts ...Option) kio.Reader {
 	// Construct a new reader based on the input type

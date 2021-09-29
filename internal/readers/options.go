@@ -23,6 +23,9 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/kio"
 )
 
+// Option is used to configure or decorate a reader.
+type Option func(r kio.Reader) kio.Reader
+
 // WithDefaultInputStream overrides the default input stream of stdin.
 func WithDefaultInputStream(defaultReader io.Reader) Option {
 	return func(r kio.Reader) kio.Reader {
