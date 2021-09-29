@@ -29,38 +29,29 @@ import (
 )
 
 // New returns a resource node reader or nil if the input is not recognized.
-func New(obj interface{}, opts ...Option) kio.Reader {
+func New(res interface{}) kio.Reader {
 	// Construct a new reader based on the input type
-	var r kio.Reader
-	switch res := obj.(type) {
+	switch res := res.(type) {
 	case *konjurev1beta2.Resource:
-		r = &ResourceReader{Resources: res.Resources}
+		return &ResourceReader{Resources: res.Resources}
 	case *konjurev1beta2.Helm:
-		r = &HelmReader{Helm: *res}
+		return &HelmReader{Helm: *res}
 	case *konjurev1beta2.Jsonnet:
-		r = NewJsonnetReader(res)
+		return NewJsonnetReader(res)
 	case *konjurev1beta2.Kubernetes:
-		r = &KubernetesReader{Kubernetes: *res}
+		return &KubernetesReader{Kubernetes: *res}
 	case *konjurev1beta2.Kustomize:
-		r = &KustomizeReader{Kustomize: *res}
+		return &KustomizeReader{Kustomize: *res}
 	case *konjurev1beta2.Secret:
-		r = &SecretReader{Secret: *res}
+		return &SecretReader{Secret: *res}
 	case *konjurev1beta2.Git:
-		r = &GitReader{Git: *res}
+		return &GitReader{Git: *res}
 	case *konjurev1beta2.HTTP:
-		r = &HTTPReader{HTTP: *res}
+		return &HTTPReader{HTTP: *res}
 	case *konjurev1beta2.File:
-		r = &FileReader{File: *res}
-	default:
-		return nil
+		return &FileReader{File: *res}
 	}
-
-	// Apply reader options
-	for _, opt := range opts {
-		r = opt(r)
-	}
-
-	return r
+	return nil
 }
 
 // Executor is function that returns the output of a command.
