@@ -38,3 +38,34 @@ func FilterOne(f kio.Filter) yaml.Filter {
 		return nil, nil
 	})
 }
+
+// Pipeline wraps a KYAML pipeline but doesn't allow writers: instead the
+// resulting resource nodes are returned directly. This is useful for applying
+// filters to readers in memory. A pipeline can also be used as a reader in
+// larger pipelines.
+type Pipeline struct {
+	Inputs                []kio.Reader
+	Filters               []kio.Filter
+	ContinueOnEmptyResult bool
+}
+
+// Execute this pipeline, returning the resulting resource nodes directly.
+func (p *Pipeline) Read() ([]*yaml.RNode, error) {
+	var result []*yaml.RNode
+
+	pp := kio.Pipeline{
+		Inputs:                p.Inputs,
+		Filters:               p.Filters,
+		ContinueOnEmptyResult: p.ContinueOnEmptyResult,
+		Outputs: []kio.Writer{kio.WriterFunc(func(nodes []*yaml.RNode) error {
+			result = nodes
+			return nil
+		})},
+	}
+
+	if err := pp.Execute(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}

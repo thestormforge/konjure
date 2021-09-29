@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
+	"github.com/thestormforge/konjure/pkg/filters"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -37,7 +38,7 @@ type KubernetesReader struct {
 }
 
 func (k *KubernetesReader) Read() ([]*yaml.RNode, error) {
-	p := &Pipeline{}
+	p := &filters.Pipeline{}
 
 	namespaces, err := k.namespaces()
 	if err != nil {
