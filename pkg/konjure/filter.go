@@ -53,49 +53,38 @@ type Filter struct {
 	KustomizeExecutor func(cmd *exec.Cmd) ([]byte, error)
 }
 
-// Filter expands all of the Konjure resources using the configured executors.
+// Filter evaluates Konjure resources according to the filter configuration.
 func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
-	var err error
+	p := &filters.Pipeline{
+		Inputs: []kio.Reader{kio.ResourceNodeSlice(nodes)},
+		Filters: []kio.Filter{
+			&readers.Filter{
+				Depth: f.Depth,
+				ReaderOptions: []readers.Option{
+					readers.WithDefaultInputStream(f.DefaultReader),
+					readers.WithWorkingDirectory(f.WorkingDirectory),
+					readers.WithRecursiveDirectories(f.RecursiveDirectories),
+					readers.WithKubeconfig(f.Kubeconfig),
+					readers.WithKubectlExecutor(f.KubectlExecutor),
+					readers.WithKustomizeExecutor(f.KustomizeExecutor),
+				},
+			},
 
-	opts := []readers.Option{
-		readers.WithDefaultInputStream(f.DefaultReader),
-		readers.WithWorkingDirectory(f.WorkingDirectory),
-		readers.WithRecursiveDirectories(f.RecursiveDirectories),
-		readers.WithKubeconfig(f.Kubeconfig),
-		readers.WithKubectlExecutor(f.KubectlExecutor),
-		readers.WithKustomizeExecutor(f.KustomizeExecutor),
-	}
-
-	nodes, err = (&readers.Filter{Depth: f.Depth, ReaderOptions: opts}).Filter(nodes)
-	if err != nil {
-		return nil, err
-	}
-
-	nodes, err = f.ResourceMetaFilter.Filter(nodes)
-	if err != nil {
-		return nil, err
+			&f.ResourceMetaFilter,
+		},
 	}
 
 	if !f.KeepStatus {
-		nodes, err = kio.FilterAll(yaml.Clear("status")).Filter(nodes)
-		if err != nil {
-			return nil, err
-		}
+		p.Filters = append(p.Filters, kio.FilterAll(yaml.Clear("status")))
 	}
 
 	if !f.KeepComments {
-		nodes, err = (&kiofilters.StripCommentsFilter{}).Filter(nodes)
-		if err != nil {
-			return nil, err
-		}
+		p.Filters = append(p.Filters, &kiofilters.StripCommentsFilter{})
 	}
 
 	if f.Format {
-		nodes, err = (&kiofilters.FormatFilter{}).Filter(nodes)
-		if err != nil {
-			return nil, err
-		}
+		p.Filters = append(p.Filters, &kiofilters.FormatFilter{})
 	}
 
-	return nodes, nil
+	return p.Read()
 }
