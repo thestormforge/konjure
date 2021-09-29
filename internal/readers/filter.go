@@ -18,119 +18,12 @@ package readers
 
 import (
 	"fmt"
-	"io"
-	"path/filepath"
 	"strings"
 
 	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
-
-// New returns a resource node reader or nil if the input is not recognized.
-func New(obj interface{}, opts ...Option) kio.Reader {
-	// Construct a new reader based on the input type
-	var r kio.Reader
-	switch res := obj.(type) {
-	case *konjurev1beta2.Resource:
-		r = &ResourceReader{Resources: res.Resources}
-	case *konjurev1beta2.Helm:
-		r = &HelmReader{Helm: *res}
-	case *konjurev1beta2.Jsonnet:
-		r = NewJsonnetReader(res)
-	case *konjurev1beta2.Kubernetes:
-		r = &KubernetesReader{Kubernetes: *res}
-	case *konjurev1beta2.Kustomize:
-		r = &KustomizeReader{Kustomize: *res}
-	case *konjurev1beta2.Secret:
-		r = &SecretReader{Secret: *res}
-	case *konjurev1beta2.Git:
-		r = &GitReader{Git: *res}
-	case *konjurev1beta2.HTTP:
-		r = &HTTPReader{HTTP: *res}
-	case *konjurev1beta2.File:
-		r = &FileReader{File: *res}
-	default:
-		return nil
-	}
-
-	// Apply reader options
-	for _, opt := range opts {
-		r = opt(r)
-	}
-
-	return r
-}
-
-// Option is used to configure or decorate a reader.
-type Option func(r kio.Reader) kio.Reader
-
-// WithDefaultInputStream overrides the default input stream of stdin.
-func WithDefaultInputStream(defaultReader io.Reader) Option {
-	return func(r kio.Reader) kio.Reader {
-		if rr, ok := r.(*ResourceReader); ok && rr.Reader == nil {
-			rr.Reader = defaultReader
-		}
-		return r
-	}
-}
-
-// WithWorkingDirectory sets the base directory to resolve relative paths against.
-func WithWorkingDirectory(dir string) Option {
-	abs := func(path string) (string, error) {
-		if filepath.IsAbs(path) {
-			return filepath.Clean(path), nil
-		}
-		return filepath.Join(dir, path), nil
-	}
-
-	return func(r kio.Reader) kio.Reader {
-		if fr, ok := r.(*FileReader); ok {
-			fr.Abs = abs
-		}
-		return r
-	}
-}
-
-// WithRecursiveDirectories controls the behavior for traversing directories.
-func WithRecursiveDirectories(recurse bool) Option {
-	return func(r kio.Reader) kio.Reader {
-		if fr, ok := r.(*FileReader); ok {
-			fr.Recurse = recurse
-		}
-		return r
-	}
-}
-
-// WithKubeconfig controls the default path of the kubeconfig file.
-func WithKubeconfig(kubeconfig string) Option {
-	return func(r kio.Reader) kio.Reader {
-		if kr, ok := r.(*KubernetesReader); ok {
-			kr.Kubeconfig = kubeconfig
-		}
-		return r
-	}
-}
-
-// WithKubectlExecutor controls the alternate executor for kubectl.
-func WithKubectlExecutor(executor Executor) Option {
-	return func(r kio.Reader) kio.Reader {
-		if kr, ok := r.(*KubernetesReader); ok {
-			kr.Executor = executor
-		}
-		return r
-	}
-}
-
-// WithKustomizeExecutor controls the alternate executor for kustomize.
-func WithKustomizeExecutor(executor Executor) Option {
-	return func(r kio.Reader) kio.Reader {
-		if kr, ok := r.(*KustomizeReader); ok {
-			kr.Executor = executor
-		}
-		return r
-	}
-}
 
 // Filter is a KYAML Filter that maps Konjure resource specifications to
 // KYAML Readers, then reads and flattens the resulting RNodes into the final

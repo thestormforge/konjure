@@ -23,9 +23,48 @@ import (
 	"path/filepath"
 	"strings"
 
+	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
+
+// Option is used to configure or decorate a reader.
+type Option func(r kio.Reader) kio.Reader
+
+// New returns a resource node reader or nil if the input is not recognized.
+func New(obj interface{}, opts ...Option) kio.Reader {
+	// Construct a new reader based on the input type
+	var r kio.Reader
+	switch res := obj.(type) {
+	case *konjurev1beta2.Resource:
+		r = &ResourceReader{Resources: res.Resources}
+	case *konjurev1beta2.Helm:
+		r = &HelmReader{Helm: *res}
+	case *konjurev1beta2.Jsonnet:
+		r = NewJsonnetReader(res)
+	case *konjurev1beta2.Kubernetes:
+		r = &KubernetesReader{Kubernetes: *res}
+	case *konjurev1beta2.Kustomize:
+		r = &KustomizeReader{Kustomize: *res}
+	case *konjurev1beta2.Secret:
+		r = &SecretReader{Secret: *res}
+	case *konjurev1beta2.Git:
+		r = &GitReader{Git: *res}
+	case *konjurev1beta2.HTTP:
+		r = &HTTPReader{HTTP: *res}
+	case *konjurev1beta2.File:
+		r = &FileReader{File: *res}
+	default:
+		return nil
+	}
+
+	// Apply reader options
+	for _, opt := range opts {
+		r = opt(r)
+	}
+
+	return r
+}
 
 // Executor is function that returns the output of a command.
 type Executor func(cmd *exec.Cmd) ([]byte, error)
