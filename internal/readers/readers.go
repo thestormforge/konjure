@@ -23,9 +23,36 @@ import (
 	"path/filepath"
 	"strings"
 
+	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
+
+// New returns a resource node reader or nil if the input is not recognized.
+func New(res interface{}) kio.Reader {
+	// Construct a new reader based on the input type
+	switch res := res.(type) {
+	case *konjurev1beta2.Resource:
+		return &ResourceReader{Resource: *res}
+	case *konjurev1beta2.Helm:
+		return &HelmReader{Helm: *res}
+	case *konjurev1beta2.Jsonnet:
+		return NewJsonnetReader(res)
+	case *konjurev1beta2.Kubernetes:
+		return &KubernetesReader{Kubernetes: *res}
+	case *konjurev1beta2.Kustomize:
+		return &KustomizeReader{Kustomize: *res}
+	case *konjurev1beta2.Secret:
+		return &SecretReader{Secret: *res}
+	case *konjurev1beta2.Git:
+		return &GitReader{Git: *res}
+	case *konjurev1beta2.HTTP:
+		return &HTTPReader{HTTP: *res}
+	case *konjurev1beta2.File:
+		return &FileReader{File: *res}
+	}
+	return nil
+}
 
 // Executor is function that returns the output of a command.
 type Executor func(cmd *exec.Cmd) ([]byte, error)
@@ -83,35 +110,4 @@ func (cmd *command) Read() ([]*yaml.RNode, error) {
 	}
 
 	return kio.FromBytes(out)
-}
-
-// Pipeline wraps a KYAML pipeline but doesn't allow writers: instead the
-// resulting resource nodes are returned directly. This is useful for applying
-// filters to readers in memory. A pipeline can also be used as a reader in
-// larger pipelines.
-type Pipeline struct {
-	Inputs                []kio.Reader
-	Filters               []kio.Filter
-	ContinueOnEmptyResult bool
-}
-
-// Execute this pipeline, returning the resulting resource nodes directly.
-func (p *Pipeline) Read() ([]*yaml.RNode, error) {
-	var result []*yaml.RNode
-
-	pp := kio.Pipeline{
-		Inputs:                p.Inputs,
-		Filters:               p.Filters,
-		ContinueOnEmptyResult: p.ContinueOnEmptyResult,
-		Outputs: []kio.Writer{kio.WriterFunc(func(nodes []*yaml.RNode) error {
-			result = nodes
-			return nil
-		})},
-	}
-
-	if err := pp.Execute(); err != nil {
-		return nil, err
-	}
-
-	return result, nil
 }

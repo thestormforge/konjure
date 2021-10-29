@@ -85,7 +85,7 @@ func (helm *HelmReader) Read() ([]*yaml.RNode, error) {
 		}
 	}
 
-	p := &Pipeline{Inputs: []kio.Reader{cmd}}
+	p := &filters.Pipeline{Inputs: []kio.Reader{cmd}}
 
 	if !helm.IncludeTests {
 		p.Filters = append(p.Filters, &filters.ResourceMetaFilter{
