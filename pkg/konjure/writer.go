@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
@@ -73,6 +74,12 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 			KeepReaderAnnotations: w.KeepReaderAnnotations,
 			ClearAnnotations:      w.ClearAnnotations,
 			Sort:                  w.Sort,
+		}
+
+	case "name":
+		ww = &TemplateWriter{
+			Writer:   w.Writer,
+			Template: "{{ lower .kind }}/{{ .metadata.name }}\n",
 		}
 
 	case "env":
@@ -131,27 +138,49 @@ func (w *JSONWriter) Write(nodes []*yaml.RNode) error {
 		return nil
 	}
 
-	items := &yaml.Node{Kind: yaml.SequenceNode}
-	for i := range nodes {
-		items.Content = append(items.Content, nodes[i].YNode())
+	return enc.Encode(wrap(w.WrappingAPIVersion, w.WrappingKind, nodes))
+}
+
+// TemplateWriter is a writer which emits each resource evaluated using a configured Go template.
+type TemplateWriter struct {
+	Writer             io.Writer
+	Template           string
+	WrappingKind       string
+	WrappingAPIVersion string
+}
+
+// Write evaluates the template using each resource.
+func (w *TemplateWriter) Write(nodes []*yaml.RNode) error {
+	tmpl, err := template.New("resource").
+		Funcs(map[string]interface{}{
+			"lower": strings.ToLower,
+		}).
+		Parse(w.Template)
+	if err != nil {
+		return err
 	}
 
-	return enc.Encode(yaml.NewRNode(&yaml.Node{
-		Kind: yaml.DocumentNode,
-		Content: []*yaml.Node{
-			{
-				Kind: yaml.MappingNode,
-				Content: []*yaml.Node{
-					{Kind: yaml.ScalarNode, Value: "apiVersion"},
-					{Kind: yaml.ScalarNode, Value: w.WrappingAPIVersion},
-					{Kind: yaml.ScalarNode, Value: "kind"},
-					{Kind: yaml.ScalarNode, Value: w.WrappingKind},
-					{Kind: yaml.ScalarNode, Value: "items"},
-					items,
-				},
-			},
-		},
-	}))
+	if w.WrappingKind != "" {
+		nodes = []*yaml.RNode{wrap(w.WrappingAPIVersion, w.WrappingKind, nodes)}
+	}
+
+	for _, n := range nodes {
+		b, err := n.MarshalJSON()
+		if err != nil {
+			return err
+		}
+
+		var data interface{}
+		if err := json.Unmarshal(b, &data); err != nil {
+			return err
+		}
+
+		if err := tmpl.Execute(w.Writer, data); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // EnvWriter is a writer which only emits name/value pairs found in the data of config maps and secrets.
@@ -228,4 +257,29 @@ func (w *EnvWriter) printEnvVar(sh, k, v string) {
 			_, _ = fmt.Fprintf(w.Writer, "export %s=%q\n", k, v)
 		}
 	}
+}
+
+// wrap is a helper that wraps a list of resource nodes into a single node.
+func wrap(apiVersion, kind string, nodes []*yaml.RNode) *yaml.RNode {
+	items := &yaml.Node{Kind: yaml.SequenceNode}
+	for i := range nodes {
+		items.Content = append(items.Content, nodes[i].YNode())
+	}
+
+	return yaml.NewRNode(&yaml.Node{
+		Kind: yaml.DocumentNode,
+		Content: []*yaml.Node{
+			{
+				Kind: yaml.MappingNode,
+				Content: []*yaml.Node{
+					{Kind: yaml.ScalarNode, Value: "apiVersion"},
+					{Kind: yaml.ScalarNode, Value: apiVersion},
+					{Kind: yaml.ScalarNode, Value: "kind"},
+					{Kind: yaml.ScalarNode, Value: kind},
+					{Kind: yaml.ScalarNode, Value: "items"},
+					items,
+				},
+			},
+		},
+	})
 }
