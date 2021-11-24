@@ -216,7 +216,7 @@ func columnsTemplate(f string) string {
 	for _, c := range strings.Split(cols, ",") {
 		c = strings.TrimSpace(c)
 		headers = append(headers, strings.ToUpper(c[strings.LastIndex(c, ".")+1:]))
-		columns = append(columns, fmt.Sprintf("{{ .%s }}", c))
+		columns = append(columns, fmt.Sprintf("{{ .%s }}", strings.TrimPrefix(c, ".")))
 	}
 
 	return "{{ if .items }}" + strings.Join(headers, "\t") +
