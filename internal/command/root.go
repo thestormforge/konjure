@@ -64,9 +64,10 @@ func NewRootCommand(version, refspec, date string) *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return kio.Pipeline{
-				Inputs:  []kio.Reader{r},
-				Filters: []kio.Filter{f},
-				Outputs: []kio.Writer{w},
+				Inputs:                []kio.Reader{r},
+				Filters:               []kio.Filter{f},
+				Outputs:               []kio.Writer{w},
+				ContinueOnEmptyResult: true,
 			}.Execute()
 		},
 	}
