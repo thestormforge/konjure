@@ -33,6 +33,8 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
+// TODO Make a writer that just dumps path expressions off the nodes (or at least better expose the TemplateWriter)
+
 // Writer is a multi-format writer for emitting resource nodes.
 type Writer struct {
 	// The desired format.
@@ -323,4 +325,99 @@ func wrap(apiVersion, kind string, nodes []*yaml.RNode) *yaml.RNode {
 			},
 		},
 	})
+}
+
+// GroupWriter writes nodes based on a functional grouping definition.
+type GroupWriter struct {
+	KeepReaderAnnotations bool
+	ClearAnnotations      []string
+	GroupNode             func(node *yaml.RNode) (group string, ordinal string, err error)
+	GroupWriter           func(name string) (io.Writer, error)
+}
+
+// Write sends all the output on the files back to where it came from.
+func (w *GroupWriter) Write(nodes []*yaml.RNode) error {
+	// Use the KYAML path/index annotations as the default grouping
+	clearAnnotations := w.ClearAnnotations
+	if w.GroupNode == nil {
+		w.GroupNode = kioutil.GetFileAnnotations
+		if !w.KeepReaderAnnotations {
+			clearAnnotations = append(
+				clearAnnotations,
+				kioutil.PathAnnotation,
+				kioutil.IndexAnnotation,
+			)
+		}
+	}
+
+	// Use os.Create for the default writer factory
+	if w.GroupWriter == nil {
+		w.GroupWriter = func(name string) (io.Writer, error) {
+			if name == "" {
+				return nil, nil
+			}
+
+			// This isn't very safe, but that's what file system permissions are for
+			return os.Create(name)
+		}
+	}
+
+	// Index the nodes
+	indexed, err := w.indexNodes(nodes)
+	if err != nil {
+		return err
+	}
+
+	// Write each group
+	for path, nodes := range indexed {
+		// Get an io.Writer for the group
+		out, err := w.GroupWriter(path)
+		if err != nil {
+			return err
+		}
+		if out == nil {
+			continue
+		}
+
+		ww := &kio.ByteWriter{
+			Writer:                out,
+			KeepReaderAnnotations: w.KeepReaderAnnotations,
+			ClearAnnotations:      clearAnnotations,
+		}
+
+		// Write the content out
+		err = ww.Write(nodes)
+		if c, ok := out.(io.Closer); ok {
+			_ = c.Close()
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// indexNodes returns a sorted list of nodes indexed by group.
+func (w *GroupWriter) indexNodes(nodes []*yaml.RNode) (map[string][]*yaml.RNode, error) {
+	result := make(map[string][]*yaml.RNode)
+	ordinal := make(map[string][]string)
+	for i := range nodes {
+		g, o, err := w.GroupNode(nodes[i])
+		if err != nil {
+			return nil, err
+		}
+
+		result[g] = append(result[g], nodes[i])
+		ordinal[g] = append(ordinal[g], o)
+	}
+
+	// Sort the nodes using the ordinals we extracted (trying to preserve order)
+	for group, nodes := range result {
+		sort.SliceStable(nodes, func(i, j int) bool {
+			return ordinal[group][i] < ordinal[group][j]
+		})
+	}
+
+	return result, nil
 }
