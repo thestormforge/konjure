@@ -51,7 +51,14 @@ type Writer struct {
 // Write delegates to the format specific writer.
 func (w *Writer) Write(nodes []*yaml.RNode) error {
 	var ww kio.Writer
-	switch strings.ToLower(w.Format) {
+
+	format := strings.ToLower(w.Format)
+	templateStart := strings.IndexRune(format, '=') + 1
+	if templateStart > 0 {
+		format = format[0 : templateStart-1]
+	}
+
+	switch format {
 
 	case "yaml", "":
 		ww = &kio.ByteWriter{
@@ -79,26 +86,40 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 			Sort:                  w.Sort,
 		}
 
+	case "env":
+		ww = &EnvWriter{
+			Writer: w.Writer,
+		}
+
 	case "name":
 		ww = &TemplateWriter{
 			Writer:   w.Writer,
 			Template: "{{ lower .kind }}/{{ .metadata.name }}\n",
 		}
 
-	case "env":
-		ww = &EnvWriter{
-			Writer: w.Writer,
+	case "template", "go-template":
+		ww = &TemplateWriter{
+			Writer:   w.Writer,
+			Template: w.Format[templateStart:],
 		}
 
-	default:
-		if tmpl := columnsTemplate(w.Format); tmpl != "" {
-			ww = &TemplateWriter{
-				Writer:             tabwriter.NewWriter(w.Writer, 3, 0, 3, ' ', 0),
-				WrappingAPIVersion: "v1",
-				WrappingKind:       "List",
-				Template:           tmpl,
-			}
+	case "columns", "custom-columns":
+		var headers, columns []string
+		for _, c := range strings.Split(w.Format[templateStart:], ",") {
+			c = strings.TrimSpace(c)
+			headers = append(headers, strings.ToUpper(c[strings.LastIndex(c, ".")+1:]))
+			columns = append(columns, fmt.Sprintf("{{ .%s }}", strings.TrimPrefix(c, ".")))
 		}
+
+		ww = &TemplateWriter{
+			Writer:             tabwriter.NewWriter(w.Writer, 3, 0, 3, ' ', 0),
+			WrappingAPIVersion: "v1",
+			WrappingKind:       "List",
+			Template: "{{ if .items }}" + strings.Join(headers, "\t") +
+				"\n{{ range .items }}" + strings.Join(columns, "\t") +
+				"\n{{ end }}{{ else }}No results.\n{{ end }}",
+		}
+
 	}
 
 	if ww == nil {
@@ -200,29 +221,6 @@ func (w *TemplateWriter) Write(nodes []*yaml.RNode) error {
 	}
 
 	return nil
-}
-
-// columnsTemplate transforms a format string into a Go template for generating a table,
-// returns an empty string if conversion is not possible.
-// NOTE: the resulting template is written against a "v1.List" wrapper.
-func columnsTemplate(f string) string {
-	cols := f
-	cols = strings.TrimPrefix(cols, "columns=")
-	cols = strings.TrimPrefix(cols, "cols=")
-	if cols == f {
-		return ""
-	}
-
-	var headers, columns []string
-	for _, c := range strings.Split(cols, ",") {
-		c = strings.TrimSpace(c)
-		headers = append(headers, strings.ToUpper(c[strings.LastIndex(c, ".")+1:]))
-		columns = append(columns, fmt.Sprintf("{{ .%s }}", strings.TrimPrefix(c, ".")))
-	}
-
-	return "{{ if .items }}" + strings.Join(headers, "\t") +
-		"\n{{ range .items }}" + strings.Join(columns, "\t") +
-		"\n{{ end }}{{ else }}No results.\n{{ end }}"
 }
 
 // EnvWriter is a writer which only emits name/value pairs found in the data of config maps and secrets.

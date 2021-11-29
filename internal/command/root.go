@@ -80,7 +80,7 @@ func NewRootCommand(version, refspec, date string) *cobra.Command {
 	cmd.Flags().BoolVar(&f.Format, "format", false, "format output to Kubernetes conventions")
 	cmd.Flags().BoolVarP(&f.RecursiveDirectories, "recurse", "r", false, "recursively process directories")
 	cmd.Flags().StringVar(&f.Kubeconfig, "kubeconfig", "", "path to the kubeconfig file")
-	cmd.Flags().StringVarP(&w.Format, "output", "o", "yaml", "set the output format (yaml, json, ndjson, name, env, columns=)")
+	cmd.Flags().StringVarP(&w.Format, "output", "o", "yaml", "set the output format (yaml, json, ndjson, env, name, columns=, template=)")
 	cmd.Flags().BoolVar(&w.KeepReaderAnnotations, "keep-annotations", false, "retain annotations used for processing")
 	cmd.Flags().BoolVar(&w.Sort, "sort", false, "sort output prior to writing")
 
