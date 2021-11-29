@@ -39,6 +39,26 @@ func FilterOne(f kio.Filter) yaml.Filter {
 	})
 }
 
+// FilterAll is similar to `kio.FilterAll` except instead of evaluating for side
+// effects, only the non-nil nodes returned by the filter are preserved.
+func FilterAll(f yaml.Filter) kio.Filter {
+	return kio.FilterFunc(func(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
+		var result []*yaml.RNode
+		for i := range nodes {
+			n, err := f.Filter(nodes[i])
+			if err != nil {
+				return nil, err
+			}
+			if yaml.IsMissingOrNull(n) {
+				continue
+			}
+
+			result = append(result, n)
+		}
+		return result, nil
+	})
+}
+
 // Pipeline wraps a KYAML pipeline but doesn't allow writers: instead the
 // resulting resource nodes are returned directly. This is useful for applying
 // filters to readers in memory. A pipeline can also be used as a reader in
