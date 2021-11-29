@@ -23,7 +23,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
+	"text/tabwriter"
 	"text/template"
 
 	"sigs.k8s.io/kustomize/kyaml/kio"
@@ -88,9 +91,19 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 		}
 
 	default:
-		return fmt.Errorf("unknown format: %s", w.Format)
+		if tmpl := columnsTemplate(w.Format); tmpl != "" {
+			ww = &TemplateWriter{
+				Writer:             tabwriter.NewWriter(w.Writer, 3, 0, 3, ' ', 0),
+				WrappingAPIVersion: "v1",
+				WrappingKind:       "List",
+				Template:           tmpl,
+			}
+		}
 	}
 
+	if ww == nil {
+		return fmt.Errorf("unknown format: %s", w.Format)
+	}
 	return ww.Write(nodes)
 }
 
@@ -145,17 +158,22 @@ func (w *JSONWriter) Write(nodes []*yaml.RNode) error {
 type TemplateWriter struct {
 	Writer             io.Writer
 	Template           string
+	Functions          template.FuncMap
 	WrappingKind       string
 	WrappingAPIVersion string
 }
 
 // Write evaluates the template using each resource.
 func (w *TemplateWriter) Write(nodes []*yaml.RNode) error {
-	tmpl, err := template.New("resource").
-		Funcs(map[string]interface{}{
-			"lower": strings.ToLower,
-		}).
-		Parse(w.Template)
+	fns := map[string]interface{}{
+		"upper": strings.ToUpper,
+		"lower": strings.ToLower,
+	}
+	for k, v := range w.Functions {
+		fns[k] = v
+	}
+
+	tmpl, err := template.New("resource").Funcs(fns).Parse(w.Template)
 	if err != nil {
 		return err
 	}
@@ -165,13 +183,8 @@ func (w *TemplateWriter) Write(nodes []*yaml.RNode) error {
 	}
 
 	for _, n := range nodes {
-		b, err := n.MarshalJSON()
-		if err != nil {
-			return err
-		}
-
 		var data interface{}
-		if err := json.Unmarshal(b, &data); err != nil {
+		if err := n.YNode().Decode(&data); err != nil {
 			return err
 		}
 
@@ -180,7 +193,36 @@ func (w *TemplateWriter) Write(nodes []*yaml.RNode) error {
 		}
 	}
 
+	if f, ok := w.Writer.(interface{ Flush() error }); ok {
+		if err := f.Flush(); err != nil {
+			return err
+		}
+	}
+
 	return nil
+}
+
+// columnsTemplate transforms a format string into a Go template for generating a table,
+// returns an empty string if conversion is not possible.
+// NOTE: the resulting template is written against a "v1.List" wrapper.
+func columnsTemplate(f string) string {
+	cols := f
+	cols = strings.TrimPrefix(cols, "columns=")
+	cols = strings.TrimPrefix(cols, "cols=")
+	if cols == f {
+		return ""
+	}
+
+	var headers, columns []string
+	for _, c := range strings.Split(cols, ",") {
+		c = strings.TrimSpace(c)
+		headers = append(headers, strings.ToUpper(c[strings.LastIndex(c, ".")+1:]))
+		columns = append(columns, fmt.Sprintf("{{ .%s }}", strings.TrimPrefix(c, ".")))
+	}
+
+	return "{{ if .items }}" + strings.Join(headers, "\t") +
+		"\n{{ range .items }}" + strings.Join(columns, "\t") +
+		"\n{{ end }}{{ else }}No results.\n{{ end }}"
 }
 
 // EnvWriter is a writer which only emits name/value pairs found in the data of config maps and secrets.
@@ -282,4 +324,107 @@ func wrap(apiVersion, kind string, nodes []*yaml.RNode) *yaml.RNode {
 			},
 		},
 	})
+}
+
+// GroupWriter writes nodes based on a functional grouping definition.
+type GroupWriter struct {
+	KeepReaderAnnotations bool
+	ClearAnnotations      []string
+	GroupNode             func(node *yaml.RNode) (group string, ordinal string, err error)
+	GroupWriter           func(name string) (io.Writer, error)
+}
+
+// Write sends all the output on the files back to where it came from.
+func (w *GroupWriter) Write(nodes []*yaml.RNode) error {
+	// Use the KYAML path/index annotations as the default grouping
+	clearAnnotations := w.ClearAnnotations
+	if w.GroupNode == nil {
+		w.GroupNode = kioutil.GetFileAnnotations
+		if !w.KeepReaderAnnotations {
+			clearAnnotations = append(
+				clearAnnotations,
+				kioutil.PathAnnotation,
+				kioutil.IndexAnnotation,
+			)
+		}
+	}
+
+	// Use os.Create for the default writer factory
+	if w.GroupWriter == nil {
+		w.GroupWriter = func(name string) (io.Writer, error) {
+			if name == "" {
+				return nil, nil
+			}
+
+			// This isn't very safe, but that's what file system permissions are for
+			return os.Create(name)
+		}
+	}
+
+	// Index the nodes
+	indexed, err := w.indexNodes(nodes)
+	if err != nil {
+		return err
+	}
+
+	// Write each group
+	for path, nodes := range indexed {
+		// Get an io.Writer for the group
+		out, err := w.GroupWriter(path)
+		if err != nil {
+			return err
+		}
+		if out == nil {
+			continue
+		}
+
+		ww := &kio.ByteWriter{
+			Writer:                out,
+			KeepReaderAnnotations: w.KeepReaderAnnotations,
+			ClearAnnotations:      clearAnnotations,
+		}
+
+		// Write the content out
+		err = ww.Write(nodes)
+		if c, ok := out.(io.Closer); ok {
+			_ = c.Close()
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// indexNodes returns a sorted list of nodes indexed by group.
+func (w *GroupWriter) indexNodes(nodes []*yaml.RNode) (map[string][]*yaml.RNode, error) {
+	result := make(map[string][]*yaml.RNode)
+	ordinal := make(map[string][]string)
+	for i := range nodes {
+		g, o, err := w.GroupNode(nodes[i])
+		if err != nil {
+			return nil, err
+		}
+
+		result[g] = append(result[g], nodes[i])
+		ordinal[g] = append(ordinal[g], o)
+	}
+
+	// Sort the nodes using the ordinals we extracted (trying to preserve order)
+	for group, nodes := range result {
+		sort.SliceStable(nodes, func(i, j int) bool {
+			// Try a pure numeric comparison first
+			oi, erri := strconv.Atoi(ordinal[group][i])
+			oj, errj := strconv.Atoi(ordinal[group][j])
+			if erri == nil && errj == nil {
+				return oi < oj
+			}
+
+			// Fall back to lexicographical ordering
+			return ordinal[group][i] < ordinal[group][j]
+		})
+	}
+
+	return result, nil
 }
