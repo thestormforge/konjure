@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"text/template"
@@ -32,8 +33,6 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
-
-// TODO Make a writer that just dumps path expressions off the nodes (or at least better expose the TemplateWriter)
 
 // Writer is a multi-format writer for emitting resource nodes.
 type Writer struct {
@@ -94,7 +93,7 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 	default:
 		if tmpl := columnsTemplate(w.Format); tmpl != "" {
 			ww = &TemplateWriter{
-				Writer:             tabwriter.NewWriter(w.Writer, 3, 3, 3, ' ', 0),
+				Writer:             tabwriter.NewWriter(w.Writer, 3, 0, 3, ' ', 0),
 				WrappingAPIVersion: "v1",
 				WrappingKind:       "List",
 				Template:           tmpl,
@@ -415,6 +414,14 @@ func (w *GroupWriter) indexNodes(nodes []*yaml.RNode) (map[string][]*yaml.RNode,
 	// Sort the nodes using the ordinals we extracted (trying to preserve order)
 	for group, nodes := range result {
 		sort.SliceStable(nodes, func(i, j int) bool {
+			// Try a pure numeric comparison first
+			oi, erri := strconv.Atoi(ordinal[group][i])
+			oj, errj := strconv.Atoi(ordinal[group][j])
+			if erri == nil && errj == nil {
+				return oi < oj
+			}
+
+			// Fall back to lexicographical ordering
 			return ordinal[group][i] < ordinal[group][j]
 		})
 	}
