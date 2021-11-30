@@ -153,14 +153,24 @@ func keepNode(node *yaml.RNode) bool {
 		return false
 	}
 
-	// Name may be required
-	if m.Name == "" &&
-		!strings.HasSuffix(m.Kind, "List") &&
-		m.APIVersion != konjurev1beta2.APIVersion {
-		return false
-	}
+	switch {
 
-	return true
+	case m.APIVersion == konjurev1beta2.APIVersion:
+		// Keep all Konjure resources
+		return true
+
+	case strings.HasPrefix(m.APIVersion, "kustomize.config.k8s.io/"):
+		// Keep all Kustomize resources (special case when the Kustomization wasn't expanded)
+		return true
+
+	case strings.HasSuffix(m.Kind, "List"):
+		// Keep list resources
+		return true
+
+	default:
+		// Keep other resources only if they have a name
+		return m.Name != ""
+	}
 }
 
 // isKustomizeRoot tests to see if the specified directory can be used a Kustomize root.
