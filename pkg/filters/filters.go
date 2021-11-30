@@ -17,6 +17,8 @@ limitations under the License.
 package filters
 
 import (
+	"strings"
+
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -95,3 +97,57 @@ type ReaderFunc func() ([]*yaml.RNode, error)
 
 // Read evaluates the typed function.
 func (f ReaderFunc) Read() ([]*yaml.RNode, error) { return f() }
+
+// RestoreVerticalWhiteSpace tries to put back blank lines eaten by the parser.
+// It's not perfect (it only restores blank lines on the top level), but it helps
+// prevent some changes to YAML sources that contain extra blank lines.
+func RestoreVerticalWhiteSpace() kio.Filter {
+	return kio.FilterAll(yaml.FilterFunc(func(node *yaml.RNode) (*yaml.RNode, error) {
+		n := node.YNode()
+		for i := range n.Content {
+			// No need to insert VWS if we are still on the same line
+			if i == 0 || n.Content[i].Line == n.Content[i-1].Line {
+				continue
+			}
+
+			// Assume all lines before this node's head comment are blank and work back from there
+			ll := n.Content[i].Line - 1
+			if len(n.Content[i].HeadComment) > 0 {
+				ll -= strings.Count(n.Content[i].HeadComment, "\n") + 1
+			}
+
+			// The previous node will have accounted for all the blanks above it
+			ll -= lastLine(n.Content[i-1])
+
+			// The foot comment will be stored two nodes back if this is a mapping node
+			footComment := n.Content[i-1].FootComment
+			if footComment == "" && n.Kind == yaml.MappingNode && i-2 >= 0 {
+				footComment = n.Content[i-2].FootComment
+			}
+			if len(footComment) > 0 {
+				ll -= strings.Count(footComment, "\n") + 2
+			}
+
+			// Check if all the lines are accounted for
+			if ll <= 0 {
+				continue
+			}
+
+			// Prefix the head comment with blank lines
+			n.Content[i].HeadComment = strings.Repeat("\n", ll) + n.Content[i].HeadComment
+		}
+
+		return node, nil
+	}))
+}
+
+// lastLine returns the largest line number from the supplied node.
+func lastLine(n *yaml.Node) int {
+	line := n.Line
+	for i := range n.Content {
+		if ll := lastLine(n.Content[i]); ll > line {
+			line = ll
+		}
+	}
+	return line
+}
