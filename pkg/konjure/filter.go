@@ -41,6 +41,9 @@ type Filter struct {
 	KeepComments bool
 	// Flag indicating that output should be formatted.
 	Format bool
+	// Flag indicating that an attempt should be made to restore vertical
+	// whitespace using line numbers when available.
+	RestoreVerticalWhiteSpace bool
 	// The explicit working directory used to resolve relative paths.
 	WorkingDirectory string
 	// Flag indicating we can process directories recursively.
@@ -84,6 +87,10 @@ func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 
 	if f.Format {
 		p.Filters = append(p.Filters, &kiofilters.FormatFilter{})
+	}
+
+	if f.RestoreVerticalWhiteSpace {
+		p.Filters = append(p.Filters, filters.RestoreVerticalWhiteSpace())
 	}
 
 	return p.Read()
