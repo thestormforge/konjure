@@ -46,6 +46,9 @@ type Writer struct {
 	ClearAnnotations []string
 	// Flag indicating nodes should be sorted before writing.
 	Sort bool
+	// Flag indicating we should attempt to restore vertical white space using
+	// line numbers prior to writing.
+	RestoreVerticalWhiteSpace bool
 }
 
 // Write delegates to the format specific writer.
@@ -61,6 +64,10 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 	switch format {
 
 	case "yaml", "":
+		if w.RestoreVerticalWhiteSpace {
+			restoreVerticalWhiteSpace(nodes)
+		}
+
 		ww = &kio.ByteWriter{
 			Writer:                w.Writer,
 			KeepReaderAnnotations: w.KeepReaderAnnotations,
@@ -425,4 +432,56 @@ func (w *GroupWriter) indexNodes(nodes []*yaml.RNode) (map[string][]*yaml.RNode,
 	}
 
 	return result, nil
+}
+
+// restoreVerticalWhiteSpace tries to put back blank lines eaten by the parser.
+// It's not perfect (it only restores blank lines on the top level), but it helps
+// prevent some changes to YAML sources that contain extra blank lines.
+func restoreVerticalWhiteSpace(nodes []*yaml.RNode) {
+	for _, node := range nodes {
+		n := node.YNode()
+		for i := range n.Content {
+			// No need to insert VWS if we are still on the same line
+			if i == 0 || n.Content[i].Line == n.Content[i-1].Line {
+				continue
+			}
+
+			// Assume all lines before this node's head comment are blank and work back from there
+			ll := n.Content[i].Line - 1
+			if len(n.Content[i].HeadComment) > 0 {
+				ll -= strings.Count(n.Content[i].HeadComment, "\n") + 1
+			}
+
+			// The previous node will have accounted for all the blanks above it
+			ll -= lastLine(n.Content[i-1])
+
+			// The foot comment will be stored two nodes back if this is a mapping node
+			footComment := n.Content[i-1].FootComment
+			if footComment == "" && n.Kind == yaml.MappingNode && i-2 >= 0 {
+				footComment = n.Content[i-2].FootComment
+			}
+			if len(footComment) > 0 {
+				ll -= strings.Count(footComment, "\n") + 2
+			}
+
+			// Check if all the lines are accounted for
+			if ll <= 0 {
+				continue
+			}
+
+			// Prefix the head comment with blank lines
+			n.Content[i].HeadComment = strings.Repeat("\n", ll) + n.Content[i].HeadComment
+		}
+	}
+}
+
+// lastLine returns the largest line number from the supplied node.
+func lastLine(n *yaml.Node) int {
+	line := n.Line
+	for i := range n.Content {
+		if ll := lastLine(n.Content[i]); ll > line {
+			line = ll
+		}
+	}
+	return line
 }
