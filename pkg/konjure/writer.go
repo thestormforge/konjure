@@ -306,31 +306,6 @@ func (w *EnvWriter) printEnvVar(sh, k, v string) {
 	}
 }
 
-// wrap is a helper that wraps a list of resource nodes into a single node.
-func wrap(apiVersion, kind string, nodes []*yaml.RNode) *yaml.RNode {
-	items := &yaml.Node{Kind: yaml.SequenceNode}
-	for i := range nodes {
-		items.Content = append(items.Content, nodes[i].YNode())
-	}
-
-	return yaml.NewRNode(&yaml.Node{
-		Kind: yaml.DocumentNode,
-		Content: []*yaml.Node{
-			{
-				Kind: yaml.MappingNode,
-				Content: []*yaml.Node{
-					{Kind: yaml.ScalarNode, Value: "apiVersion"},
-					{Kind: yaml.ScalarNode, Value: apiVersion},
-					{Kind: yaml.ScalarNode, Value: "kind"},
-					{Kind: yaml.ScalarNode, Value: kind},
-					{Kind: yaml.ScalarNode, Value: "items"},
-					items,
-				},
-			},
-		},
-	})
-}
-
 // GroupWriter writes nodes based on a functional grouping definition.
 type GroupWriter struct {
 	GroupNode   func(node *yaml.RNode) (group string, ordinal string, err error)
@@ -441,6 +416,31 @@ func (w *GroupWriter) indexNodes(nodes []*yaml.RNode) (map[string][]*yaml.RNode,
 	}
 
 	return result, nil
+}
+
+// wrap is a helper that wraps a list of resource nodes into a single node.
+func wrap(apiVersion, kind string, nodes []*yaml.RNode) *yaml.RNode {
+	items := &yaml.Node{Kind: yaml.SequenceNode}
+	for i := range nodes {
+		items.Content = append(items.Content, nodes[i].YNode())
+	}
+
+	return yaml.NewRNode(&yaml.Node{
+		Kind: yaml.DocumentNode,
+		Content: []*yaml.Node{
+			{
+				Kind: yaml.MappingNode,
+				Content: []*yaml.Node{
+					{Kind: yaml.ScalarNode, Value: "apiVersion"},
+					{Kind: yaml.ScalarNode, Value: apiVersion},
+					{Kind: yaml.ScalarNode, Value: "kind"},
+					{Kind: yaml.ScalarNode, Value: kind},
+					{Kind: yaml.ScalarNode, Value: "items"},
+					items,
+				},
+			},
+		},
+	})
 }
 
 // restoreVerticalWhiteSpace tries to put back blank lines eaten by the parser.
