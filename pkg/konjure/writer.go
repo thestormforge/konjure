@@ -440,6 +440,7 @@ func (w *GroupWriter) indexNodes(nodes []*yaml.RNode) (map[string][]*yaml.RNode,
 func restoreVerticalWhiteSpace(nodes []*yaml.RNode) {
 	for _, node := range nodes {
 		n := node.YNode()
+		minLL := n.Line
 		for i := range n.Content {
 			// No need to insert VWS if we are still on the same line
 			if i == 0 || n.Content[i].Line == n.Content[i-1].Line {
@@ -453,7 +454,10 @@ func restoreVerticalWhiteSpace(nodes []*yaml.RNode) {
 			}
 
 			// The previous node will have accounted for all the blanks above it
-			ll -= lastLine(n.Content[i-1])
+			if cll := lastLine(n.Content[i-1]); cll > minLL {
+				minLL = cll
+			}
+			ll -= minLL
 
 			// The foot comment will be stored two nodes back if this is a mapping node
 			footComment := n.Content[i-1].FootComment
