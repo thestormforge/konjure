@@ -47,8 +47,10 @@ type Writer struct {
 	// Flag indicating nodes should be sorted before writing.
 	Sort bool
 	// Flag indicating we should attempt to restore vertical white space using
-	// line numbers prior to writing.
+	// line numbers prior to writing YAML output.
 	RestoreVerticalWhiteSpace bool
+	// Additional functions to use while evaluating Go templates.
+	Functions template.FuncMap
 }
 
 // Write delegates to the format specific writer.
@@ -106,8 +108,9 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 
 	case "template", "go-template":
 		ww = &TemplateWriter{
-			Writer:   w.Writer,
-			Template: w.Format[templateStart:],
+			Writer:    w.Writer,
+			Template:  w.Format[templateStart:],
+			Functions: w.Functions,
 		}
 
 	case "columns", "custom-columns":
@@ -120,6 +123,7 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 
 		ww = &TemplateWriter{
 			Writer:             tabwriter.NewWriter(w.Writer, 3, 0, 3, ' ', 0),
+			Functions:          w.Functions,
 			WrappingAPIVersion: "v1",
 			WrappingKind:       "List",
 			Template: "{{ if .items }}" + strings.Join(headers, "\t") +
