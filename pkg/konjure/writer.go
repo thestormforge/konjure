@@ -333,10 +333,13 @@ func wrap(apiVersion, kind string, nodes []*yaml.RNode) *yaml.RNode {
 
 // GroupWriter writes nodes based on a functional grouping definition.
 type GroupWriter struct {
-	KeepReaderAnnotations bool
-	ClearAnnotations      []string
-	GroupNode             func(node *yaml.RNode) (group string, ordinal string, err error)
-	GroupWriter           func(name string) (io.Writer, error)
+	GroupNode   func(node *yaml.RNode) (group string, ordinal string, err error)
+	GroupWriter func(name string) (io.Writer, error)
+
+	KeepReaderAnnotations     bool
+	ClearAnnotations          []string
+	Sort                      bool
+	RestoreVerticalWhiteSpace bool
 }
 
 // Write sends all the output on the files back to where it came from.
@@ -366,6 +369,11 @@ func (w *GroupWriter) Write(nodes []*yaml.RNode) error {
 		}
 	}
 
+	// Attempt to restore vertical white space
+	if w.RestoreVerticalWhiteSpace {
+		restoreVerticalWhiteSpace(nodes)
+	}
+
 	// Index the nodes
 	indexed, err := w.indexNodes(nodes)
 	if err != nil {
@@ -387,6 +395,7 @@ func (w *GroupWriter) Write(nodes []*yaml.RNode) error {
 			Writer:                out,
 			KeepReaderAnnotations: w.KeepReaderAnnotations,
 			ClearAnnotations:      clearAnnotations,
+			Sort:                  w.Sort,
 		}
 
 		// Write the content out
