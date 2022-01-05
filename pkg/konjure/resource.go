@@ -44,10 +44,10 @@ type Resource struct {
 	File       *konjurev1beta2.File       `json:"file,omitempty" yaml:"file,omitempty"`
 
 	// Some specs (default reader, `data:` URLs, inline resources) resolve to a stream.
-	raw kio.Reader // NOTE: when this is non-nil there MUST be a value for `str`!
+	raw kio.Reader `json:"-"` // NOTE: when this is non-nil there MUST be a value for `str`!
 
 	// Original string representation this resource was parsed from.
-	str string
+	str string `json:"-"`
 }
 
 // NewResource returns a resource for parsing the supplied resource specifications. This
