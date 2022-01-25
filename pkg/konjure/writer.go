@@ -61,6 +61,8 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 	templateStart := strings.IndexRune(format, '=') + 1
 	if templateStart > 0 {
 		format = format[0 : templateStart-1]
+	} else if strings.Contains(format, "{{") {
+		format = "template"
 	}
 
 	switch format {
