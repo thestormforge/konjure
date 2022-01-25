@@ -22,7 +22,7 @@ import (
 )
 
 // FilterOne is the opposite of kio.FilterAll, useful if you have a filter that
-// is optimized for filtering batches of nodes but you just need to call `Pipe`
+// is optimized for filtering batches of nodes, but you just need to call `Pipe`
 // on a single node.
 func FilterOne(f kio.Filter) yaml.Filter {
 	return yaml.FilterFunc(func(node *yaml.RNode) (*yaml.RNode, error) {
