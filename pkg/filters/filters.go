@@ -59,6 +59,22 @@ func FilterAll(f yaml.Filter) kio.Filter {
 	})
 }
 
+// Has is similar to `yaml.Tee` except it only produces a result if the supplied
+// functions evaluate to a non-nil result.
+func Has(functions ...yaml.Filter) yaml.Filter {
+	return yaml.FilterFunc(func(rn *yaml.RNode) (*yaml.RNode, error) {
+		n, err := rn.Pipe(functions...)
+		if err != nil {
+			return nil, err
+		}
+		if yaml.IsMissingOrNull(n) {
+			return nil, nil
+		}
+
+		return rn, nil
+	})
+}
+
 // Pipeline wraps a KYAML pipeline but doesn't allow writers: instead the
 // resulting resource nodes are returned directly. This is useful for applying
 // filters to readers in memory. A pipeline can also be used as a reader in
