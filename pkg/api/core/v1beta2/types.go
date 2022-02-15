@@ -149,7 +149,7 @@ type Secret struct {
 	PasswordSources []PasswordRecipe `json:"passwords,omitempty" yaml:"passwords,omitempty"`
 
 	// Additional configuration for generating passwords.
-	PasswordOptions *password.GeneratorInput `json:"passwordOptions,omitempty" yaml:"passwordOptions,omitempty"`
+	PasswordOptions *password.GeneratorInput `json:"-" yaml:"-"`
 }
 
 // Git is used to expand full or partial Git repositories.
