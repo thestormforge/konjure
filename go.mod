@@ -1,6 +1,6 @@
 module github.com/thestormforge/konjure
 
-go 1.17
+go 1.18
 
 require (
 	github.com/fatih/color v1.12.0
