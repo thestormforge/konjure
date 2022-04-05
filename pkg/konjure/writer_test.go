@@ -104,3 +104,44 @@ c: d
 		})
 	}
 }
+
+func TestSplitColumns(t *testing.T) {
+	cases := []struct {
+		desc            string
+		spec            string
+		expectedHeaders []string
+		expectedColumns []string
+	}{
+		{
+			desc:            "default headers",
+			spec:            "foo, bar",
+			expectedHeaders: []string{"FOO", "BAR"},
+			expectedColumns: []string{"foo", "bar"},
+		},
+		{
+			desc:            "default headers from path",
+			spec:            "a.b.c.foo, x.y.z.bar",
+			expectedHeaders: []string{"FOO", "BAR"},
+			expectedColumns: []string{"a.b.c.foo", "x.y.z.bar"},
+		},
+		{
+			desc:            "explicit headers",
+			spec:            "Foo:a.b.c.foo  ,  Bar:x.y.z.bar",
+			expectedHeaders: []string{"Foo", "Bar"},
+			expectedColumns: []string{"a.b.c.foo", "x.y.z.bar"},
+		},
+		{
+			desc:            "escaped column",
+			spec:            ":x:y:z, :a:b.c",
+			expectedHeaders: []string{"X:Y:Z", "C"},
+			expectedColumns: []string{"x:y:z", "a:b.c"},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.desc, func(t *testing.T) {
+			headers, columns := splitColumns(tc.spec)
+			assert.Equal(t, tc.expectedHeaders, headers)
+			assert.Equal(t, tc.expectedColumns, columns)
+		})
+	}
+}

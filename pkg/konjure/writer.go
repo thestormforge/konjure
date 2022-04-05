@@ -18,6 +18,7 @@ package konjure
 
 import (
 	"encoding/base64"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -29,6 +30,7 @@ import (
 	"text/tabwriter"
 	"text/template"
 
+	"github.com/thestormforge/konjure/pkg/filters"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
@@ -116,11 +118,9 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 		}
 
 	case "columns", "custom-columns":
-		var headers, columns []string
-		for _, c := range strings.Split(w.Format[templateStart:], ",") {
-			c = strings.TrimSpace(c)
-			headers = append(headers, strings.ToUpper(c[strings.LastIndex(c, ".")+1:]))
-			columns = append(columns, fmt.Sprintf("{{ .%s }}", strings.TrimPrefix(c, ".")))
+		headers, columns := splitColumns(w.Format[templateStart:])
+		for i := range columns {
+			columns[i] = fmt.Sprintf("{{ .%s }}", strings.TrimPrefix(columns[i], "."))
 		}
 
 		ww = &TemplateWriter{
@@ -131,6 +131,23 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 			Template: "{{ if .items }}" + strings.Join(headers, "\t") +
 				"\n{{ range .items }}" + strings.Join(columns, "\t") +
 				"\n{{ end }}{{ else }}No results.\n{{ end }}",
+		}
+
+	case "csv":
+		headers, paths := splitColumns(w.Format[templateStart:])
+		columns := make([][]string, 0, len(paths))
+		for _, p := range paths {
+			column, err := filters.FieldPath(p, nil)
+			if err != nil {
+				return err
+			}
+			columns = append(columns, column)
+		}
+
+		ww = &CSVWriter{
+			Writer:  w.Writer,
+			Headers: headers,
+			Columns: columns,
 		}
 
 	}
@@ -234,6 +251,43 @@ func (w *TemplateWriter) Write(nodes []*yaml.RNode) error {
 	}
 
 	return nil
+}
+
+// CSVWriter is a writer which emits comma-separated values based on the supplied column paths.
+type CSVWriter struct {
+	Writer  io.Writer
+	Headers []string
+	Columns [][]string
+}
+
+// Write outputs the data as CSV.
+func (w *CSVWriter) Write(nodes []*yaml.RNode) error {
+	cw := csv.NewWriter(w.Writer)
+	if len(w.Headers) > 0 {
+		if err := cw.Write(w.Headers); err != nil {
+			return err
+		}
+	}
+
+	record := make([]string, len(w.Columns))
+	for _, node := range nodes {
+		for i, col := range w.Columns {
+			c, err := node.Pipe(yaml.Lookup(col...))
+			if err != nil {
+				return err
+			}
+
+			// TODO How should we convert this to string?
+			record[i] = c.YNode().Value
+		}
+
+		if err := cw.Write(record); err != nil {
+			return err
+		}
+	}
+
+	cw.Flush()
+	return cw.Error()
 }
 
 // EnvWriter is a writer which only emits name/value pairs found in the data of config maps and secrets.
@@ -503,4 +557,22 @@ func lastLine(n *yaml.Node) int {
 		}
 	}
 	return line
+}
+
+// splitColumns splits a column specification into fields, also returning the header names.
+func splitColumns(spec string) (headers []string, columns []string) {
+	for _, c := range strings.Split(spec, ",") {
+		c = strings.TrimSpace(c)
+		if pos := strings.IndexRune(c, ':'); pos > 0 {
+			headers = append(headers, c[0:pos])
+			columns = append(columns, c[pos+1:])
+		} else {
+			if pos == 0 {
+				c = c[1:]
+			}
+			headers = append(headers, strings.ToUpper(c[strings.LastIndex(c, ".")+1:]))
+			columns = append(columns, c)
+		}
+	}
+	return
 }
