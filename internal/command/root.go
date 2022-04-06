@@ -84,6 +84,11 @@ func NewRootCommand(version, refspec, date string) *cobra.Command {
 	cmd.Flags().StringVarP(&w.Format, "output", "o", "yaml", "set the output format (yaml, json, ndjson, env, name, columns=, csv=, template=)")
 	cmd.Flags().BoolVar(&w.KeepReaderAnnotations, "keep-annotations", false, "retain annotations used for processing")
 	cmd.Flags().BoolVar(&w.Sort, "sort", false, "sort output prior to writing")
+	cmd.Flags().BoolVar(&f.ApplicationFilter.Enabled, "apps", false, "transform output to application definitions")
+	cmd.Flags().StringVar(&f.ApplicationFilter.ApplicationNameLabel, "application-name", "", "label to use for application names")
+
+	_ = cmd.Flags().MarkHidden("apps")             // TODO This is "early access"
+	_ = cmd.Flags().MarkHidden("application-name") // TODO This is "early access"
 
 	_ = cmd.Flags().MarkHidden("vws")
 
