@@ -1,4 +1,4 @@
-package internal
+package filters
 
 import (
 	"testing"
@@ -46,7 +46,7 @@ func TestSplitHelmChart(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.desc, func(t *testing.T) {
-			name, version := SplitHelmChart(tc.chart)
+			name, version := splitHelmChart(tc.chart)
 			assert.Equal(t, tc.expectedName, name, "name")
 			assert.Equal(t, tc.expectedVersion, version, "version")
 		})

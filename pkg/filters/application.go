@@ -1,7 +1,10 @@
 package filters
 
 import (
-	"github.com/thestormforge/konjure/pkg/filters/internal"
+	"regexp"
+	"strings"
+
+	"github.com/thestormforge/konjure/internal/application"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -24,14 +27,14 @@ func (f *ApplicationFilter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 		return nodes, nil
 	}
 
-	apps := make(map[yaml.NameMeta]*internal.ApplicationNode)
+	apps := make(map[yaml.NameMeta]*application.Node)
 	var err error
 	var scannedAppLabels bool
 
 IndexApps:
 
 	// Index the existing applications
-	nodes, err = internal.IndexApplications(nodes, apps)
+	nodes, err = application.Index(nodes, apps)
 	if err != nil {
 		return nil, err
 	}
@@ -76,6 +79,9 @@ IndexApps:
 	return nodes, nil
 }
 
+// appFromLabels attempts to use the recommended `app.kubernetes.io/*` labels
+// from the supplied resource node to generate a new application node. If an
+// application cannot be created, this function will just return nil.
 func (f *ApplicationFilter) appFromLabels(n *yaml.RNode) (*yaml.RNode, error) {
 	md, err := n.GetMeta()
 	if err != nil {
@@ -84,23 +90,23 @@ func (f *ApplicationFilter) appFromLabels(n *yaml.RNode) (*yaml.RNode, error) {
 
 	nameLabelKey := f.ApplicationNameLabel
 	if nameLabelKey == "" {
-		nameLabelKey = "app.kubernetes.io/name"
+		nameLabelKey = application.LabelName
 	}
 
 	instanceLabelKey := f.ApplicationInstanceLabel
 	if instanceLabelKey == "" {
-		instanceLabelKey = "app.kubernetes.io/instance"
+		instanceLabelKey = application.LabelInstance
 	}
 
 	nameLabel := md.Labels[nameLabelKey]
 	instanceLabel := md.Labels[instanceLabelKey]
-	partOfLabel := md.Labels["app.kubernetes.io/part-of"]
-	versionLabel := md.Labels["app.kubernetes.io/version"]
+	partOfLabel := md.Labels[application.LabelPartOf]
+	versionLabel := md.Labels[application.LabelVersion]
 
 	// Special case: let a Helm chart define a missing name/version
 	if nameLabel == "" || versionLabel == "" {
-		if helmChartLabel := md.Labels["helm.sh/chart"]; helmChartLabel != "" {
-			chartName, chartVersion := internal.SplitHelmChart(helmChartLabel)
+		if helmChartLabel := md.Labels[application.LabelHelmChart]; helmChartLabel != "" {
+			chartName, chartVersion := splitHelmChart(helmChartLabel)
 			if nameLabel == "" {
 				nameLabel = chartName
 			}
@@ -110,20 +116,8 @@ func (f *ApplicationFilter) appFromLabels(n *yaml.RNode) (*yaml.RNode, error) {
 		}
 	}
 
-	// We need a name for the application: this is where the Application SIG
-	// spec is a little confusing. They show examples where the application name
-	// is something like "wordpress-01" implying that it is actually the
-	// value of the "instance" label that corresponds to the application name.
-	// For this implementation, we'll try the instance label first, and fallback
-	// on the name label; but at least one of them needs to be non-empty.
-	name := instanceLabel
-	if name == "" {
-		name = nameLabel
-	}
-	if name == "" {
-		return nil, nil
-	}
-
+	// Build a pipeline of changes, the order in which we add to this list will
+	// impact what the final document looks like
 	var pp []yaml.Filter
 
 	// Add Kubernetes metadata for the application
@@ -132,8 +126,25 @@ func (f *ApplicationFilter) appFromLabels(n *yaml.RNode) (*yaml.RNode, error) {
 	if md.Namespace != "" {
 		pp = append(pp, yaml.Tee(yaml.SetK8sNamespace(md.Namespace)))
 	}
-	pp = append(pp, yaml.Tee(yaml.SetK8sName(name)))
-	pp = append(pp, yaml.Tee(yaml.SetLabel("app.kubernetes.io/name", name))) // As seen in the Application SIG examples
+
+	// We need a name for the application: this is where the Application SIG
+	// spec is a little confusing. They show examples where the application name
+	// is something like "wordpress-01" implying that it is actually the
+	// value of the "instance" label that corresponds to the application  name.
+	switch {
+	case instanceLabel != "" && nameLabel != "":
+		pp = append(pp, yaml.Tee(yaml.SetK8sName(instanceLabel)))
+		pp = append(pp, yaml.Tee(yaml.SetLabel(application.LabelName, nameLabel)))
+	case instanceLabel != "":
+		pp = append(pp, yaml.Tee(yaml.SetK8sName(instanceLabel)))
+		pp = append(pp, yaml.Tee(yaml.SetLabel(application.LabelName, instanceLabel)))
+	case nameLabel != "":
+		pp = append(pp, yaml.Tee(yaml.SetK8sName(nameLabel)))
+		pp = append(pp, yaml.Tee(yaml.SetLabel(application.LabelName, nameLabel)))
+	default:
+		// With no name we cannot create an application
+		return nil, nil
+	}
 
 	// Add match labels for the current resource
 	if nameLabel != "" {
@@ -150,15 +161,15 @@ func (f *ApplicationFilter) appFromLabels(n *yaml.RNode) (*yaml.RNode, error) {
 	}
 
 	// Add the current resource type as one of the component kinds supported by the application
-	gk := internal.GroupKindFromType(md.TypeMeta)
 	pp = append(pp, yaml.Tee(
 		yaml.LookupCreate(yaml.SequenceNode, "spec", "componentKinds"),
 		yaml.Append(&yaml.Node{Kind: yaml.MappingNode}),
-		yaml.Tee(yaml.SetField("group", yaml.NewStringRNode(gk.Group))),
-		yaml.Tee(yaml.SetField("kind", yaml.NewStringRNode(gk.Kind))),
+		yaml.Tee(yaml.SetField("group", yaml.NewStringRNode(application.StripVersion(md.APIVersion)))),
+		yaml.Tee(yaml.SetField("kind", yaml.NewStringRNode(md.Kind))),
 	))
 
-	// Consider part-of the application type, falling back on the name label IFF we are using the instance label as the app name...
+	// Consider part-of the application type, falling back on the name label
+	// IFF we are using the instance label as the app name...
 	appType := partOfLabel
 	if appType == "" && instanceLabel != "" {
 		appType = nameLabel
@@ -179,5 +190,15 @@ func (f *ApplicationFilter) appFromLabels(n *yaml.RNode) (*yaml.RNode, error) {
 	}
 
 	// Run the constructed pipeline over a new document
-	return yaml.NewRNode(&yaml.Node{Kind: yaml.DocumentNode, Content: []*yaml.Node{{Kind: yaml.MappingNode}}}).Pipe(pp...)
+	return yaml.NewRNode(&yaml.Node{
+		Kind:    yaml.DocumentNode,
+		Content: []*yaml.Node{{Kind: yaml.MappingNode}},
+	}).Pipe(pp...)
+}
+
+// splitHelmChart splits a Helm chart into it's name and version.
+func splitHelmChart(chart string) (name string, version string) {
+	name = regexp.MustCompile(`-(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)`).Split(chart, 2)[0]
+	version = strings.TrimPrefix(strings.TrimPrefix(chart, name), "-")
+	return
 }
