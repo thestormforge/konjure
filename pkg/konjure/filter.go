@@ -33,6 +33,8 @@ type Filter struct {
 	Depth int
 	// The default reader to use, defaults to stdin.
 	DefaultReader io.Reader
+	// Filter used to reduce the output to application definitions.
+	ApplicationFilter filters.ApplicationFilter
 	// Filter to determine which resources are retained.
 	filters.ResourceMetaFilter
 	// Flag indicating that status fields should not be stripped.
@@ -70,6 +72,7 @@ func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 				},
 			},
 
+			&f.ApplicationFilter,
 			&f.ResourceMetaFilter,
 		},
 	}
