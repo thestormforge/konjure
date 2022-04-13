@@ -38,12 +38,20 @@ type Filter struct {
 
 // Filter expands all the Konjure resources using the configured executors.
 func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
-	return f.filterToDepth(nodes, f.Depth)
+	var err error
+
+	// Recursively expand the nodes to the specified depth
+	nodes, err = f.expandToDepth(nodes, f.Depth)
+	if err != nil {
+		return nil, err
+	}
+
+	return nodes, nil
 }
 
-// filterToDepth applies the expansion executors up to the specified depth (i.e. a File executor that produces a
+// expandToDepth applies the expansion executors up to the specified depth (i.e. a File executor that produces a
 // Kustomize resource would be at a depth of 2).
-func (f *Filter) filterToDepth(nodes []*yaml.RNode, depth int) ([]*yaml.RNode, error) {
+func (f *Filter) expandToDepth(nodes []*yaml.RNode, depth int) ([]*yaml.RNode, error) {
 	if depth <= 0 {
 		return nodes, nil
 	}
@@ -69,18 +77,21 @@ func (f *Filter) filterToDepth(nodes []*yaml.RNode, depth int) ([]*yaml.RNode, e
 			r = opt(r)
 		}
 
-		ns, err := r.Read()
+		expanded, err := r.Read()
 		if err != nil {
 			return nil, err
 		}
 
-		result = append(result, ns...)
-		done = done && len(ns) == 1 && ns[0] == n
+		if len(expanded) == 1 && expanded[0] != n {
+			done = false
+		}
+
+		result = append(result, expanded...)
 	}
 
 	// Perform another iteration if any of the nodes changed
 	if !done {
-		return f.filterToDepth(result, depth-1)
+		return f.expandToDepth(result, depth-1)
 	}
 	return result, nil
 }
@@ -110,17 +121,16 @@ func (f *Filter) expand(node *yaml.RNode) (kio.Reader, error) {
 		}
 		return r, nil
 
-	default:
-		// The default behavior is to just return the node itself
-		return kio.ResourceNodeSlice{node}, nil
 	}
-}
 
-// cleaner can be implemented by readers to implement clean up logic after a filter iteration.
-type cleaner interface{ Clean() error }
+	// The default behavior is to just return the node itself
+	return kio.ResourceNodeSlice{node}, nil
+}
 
 // clean is used to discover readers which implement `cleaner` and invoke their `Clean` function.
 func clean() (cleanOpt Option, doClean func()) {
+	// The cleaner interface can be implemented by readers to implement clean up logic after a filter iteration
+	type cleaner interface{ Clean() error }
 	var cleaners []cleaner
 
 	// Accumulate cleaner instances using a reader option
