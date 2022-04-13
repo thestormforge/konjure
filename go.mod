@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/fatih/color v1.12.0
-	github.com/google/go-jsonnet v0.17.0
+	github.com/google/go-jsonnet v0.18.0
 	github.com/google/uuid v1.3.0
 	github.com/jsonnet-bundler/jsonnet-bundler v0.4.0
 	github.com/oklog/ulid/v2 v2.0.2
@@ -37,4 +37,5 @@ require (
 	golang.org/x/text v0.3.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
+	sigs.k8s.io/yaml v1.1.0 // indirect
 )
