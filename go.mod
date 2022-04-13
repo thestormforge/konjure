@@ -9,7 +9,7 @@ require (
 	github.com/jsonnet-bundler/jsonnet-bundler v0.4.0
 	github.com/oklog/ulid/v2 v2.0.2
 	github.com/sethvargo/go-password v0.2.0
-	github.com/spf13/cobra v1.1.3
+	github.com/spf13/cobra v1.4.0
 	github.com/stretchr/testify v1.7.0
 	sigs.k8s.io/kustomize/kyaml v0.10.17
 )
