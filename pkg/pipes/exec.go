@@ -9,14 +9,14 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-// CommandReader is a KYAML reader that consumes YAML from another process via stdout.
-type CommandReader struct {
+// ExecReader is a KYAML reader that consumes YAML from another process via stdout.
+type ExecReader struct {
 	// The YAML producing command.
 	*exec.Cmd
 }
 
 // Read executes the supplied command and parses the output as a YAML document stream.
-func (c *CommandReader) Read() ([]*yaml.RNode, error) {
+func (c *ExecReader) Read() ([]*yaml.RNode, error) {
 	data, err := c.Cmd.Output()
 	if err != nil {
 		return nil, err
@@ -27,14 +27,14 @@ func (c *CommandReader) Read() ([]*yaml.RNode, error) {
 	}).Read()
 }
 
-// CommandWriter is a KYAML writer that sends YAML to another process via stdin.
-type CommandWriter struct {
+// ExecWriter is a KYAML writer that sends YAML to another process via stdin.
+type ExecWriter struct {
 	// The YAML consuming command.
 	*exec.Cmd
 }
 
 // Write executes the supplied command, piping the generated YAML to stdin.
-func (c *CommandWriter) Write(nodes []*yaml.RNode) error {
+func (c *ExecWriter) Write(nodes []*yaml.RNode) error {
 	// Open stdin for writing
 	p, err := c.Cmd.StdinPipe()
 	if err != nil {

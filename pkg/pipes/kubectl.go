@@ -54,7 +54,7 @@ func (k *Kubectl) Get(ctx context.Context, objs ...string) kio.Reader {
 	args := []string{"get", "--output", "yaml"}
 	args = append(args, objs...)
 
-	return &CommandReader{
+	return &ExecReader{
 		Cmd: k.command(ctx, args...),
 	}
 }
@@ -66,7 +66,7 @@ func (k *Kubectl) Create(ctx context.Context, dryRun string) kio.Writer {
 		args = append(args, "--dry-run", dryRun)
 	}
 
-	return &CommandWriter{
+	return &ExecWriter{
 		Cmd: k.command(ctx, args...),
 	}
 }
