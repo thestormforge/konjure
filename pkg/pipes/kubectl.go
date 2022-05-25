@@ -27,9 +27,9 @@ func (k *Kubectl) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&k.Namespace, "namespace", "n", k.Namespace, "")
 }
 
-// command creates a new executable command with the configured global flags and
+// Command creates a new executable command with the configured global flags and
 // the supplied arguments.
-func (k *Kubectl) command(ctx context.Context, args ...string) *exec.Cmd {
+func (k *Kubectl) Command(ctx context.Context, args ...string) *exec.Cmd {
 	name := k.Bin
 	if name == "" {
 		name = "kubectl"
@@ -55,7 +55,7 @@ func (k *Kubectl) Get(ctx context.Context, objs ...string) kio.Reader {
 	args = append(args, objs...)
 
 	return &ExecReader{
-		Cmd: k.command(ctx, args...),
+		Cmd: k.Command(ctx, args...),
 	}
 }
 
@@ -67,6 +67,18 @@ func (k *Kubectl) Create(ctx context.Context, dryRun string) kio.Writer {
 	}
 
 	return &ExecWriter{
-		Cmd: k.command(ctx, args...),
+		Cmd: k.Command(ctx, args...),
+	}
+}
+
+// Apply returns a sink for applying resources via kubectl.
+func (k *Kubectl) Apply(ctx context.Context, dryRun string) kio.Writer {
+	args := []string{"apply", "--filename", "-"}
+	if dryRun != "" {
+		args = append(args, "--dry-run", dryRun)
+	}
+
+	return &ExecWriter{
+		Cmd: k.Command(ctx, args...),
 	}
 }
