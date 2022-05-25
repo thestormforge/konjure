@@ -4,7 +4,7 @@ import (
 	"context"
 	"os/exec"
 
-	"github.com/spf13/pflag"
+	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 )
 
@@ -21,10 +21,10 @@ type Kubectl struct {
 }
 
 // AddFlags adds binding for configuring the `kubectl` fields.
-func (k *Kubectl) AddFlags(flagSet *pflag.FlagSet) {
-	flagSet.StringVar(&k.KubeConfig, "kubeconfig", k.KubeConfig, "")
-	flagSet.StringVar(&k.Context, "context", k.Context, "")
-	flagSet.StringVarP(&k.Namespace, "namespace", "n", k.Namespace, "")
+func (k *Kubectl) AddFlags(cmd *cobra.Command) {
+	cmd.Flags().StringVar(&k.KubeConfig, "kubeconfig", k.KubeConfig, "")
+	cmd.Flags().StringVar(&k.Context, "context", k.Context, "")
+	cmd.Flags().StringVarP(&k.Namespace, "namespace", "n", k.Namespace, "")
 }
 
 // command creates a new executable command with the configured global flags and
