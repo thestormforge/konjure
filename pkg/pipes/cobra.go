@@ -58,8 +58,8 @@ func CommandWriters(cmd *cobra.Command, overwrite bool) []kio.Writer {
 			},
 		})
 	} else {
-		outputs = append(outputs, &kio.ByteWriter{
-			Writer: &prefixWriter{w: cmd.OutOrStdout()},
+		outputs = append(outputs, &prefixWriter{
+			Writer: cmd.OutOrStdout(),
 			ClearAnnotations: []string{
 				kioutil.PathAnnotation,
 				filters.FmtAnnotation,
@@ -97,22 +97,20 @@ func (r *fileReader) Read(p []byte) (n int, err error) {
 	return
 }
 
-// prefixWriter is a writer that emits a document separator prefix on the first
-// attempt to write output.
-type prefixWriter struct {
-	sync.Once
-	w io.Writer
-}
+// prefixWriter is a writer that emits a document separator prefix.
+type prefixWriter kio.ByteWriter
 
-// Write emits "---" on first write.
-func (w *prefixWriter) Write(p []byte) (n int, err error) {
-	w.Once.Do(func() {
-		n, err = w.w.Write([]byte("---\n"))
-	})
-	if err != nil {
-		return
+func (w *prefixWriter) Write(nodes []*yaml.RNode) error {
+	// Only emit the document separator if this appears to be valid Kubernetes resources
+	if len(nodes) > 0 {
+		if meta, _ := nodes[0].GetMeta(); meta.Kind != "" {
+			if _, err := w.Writer.Write([]byte("---\n")); err != nil {
+				return err
+			}
+		}
 	}
-	return w.w.Write(p)
+
+	return (*kio.ByteWriter)(w).Write(nodes)
 }
 
 // overwriteWriter is an alternative to the `kio.LocalPackageWriter` that does
