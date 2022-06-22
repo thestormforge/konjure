@@ -9,8 +9,8 @@ require (
 	github.com/jsonnet-bundler/jsonnet-bundler v0.4.0
 	github.com/oklog/ulid/v2 v2.0.2
 	github.com/sethvargo/go-password v0.2.0
-	github.com/spf13/cobra v1.4.0
-	github.com/stretchr/testify v1.7.1
+	github.com/spf13/cobra v1.5.0
+	github.com/stretchr/testify v1.7.4
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	sigs.k8s.io/kustomize/kyaml v0.13.7
 )
