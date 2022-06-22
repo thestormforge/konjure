@@ -4,7 +4,6 @@ import (
 	"context"
 	"os/exec"
 
-	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 )
 
@@ -18,13 +17,6 @@ type Kubectl struct {
 	Context string
 	// The namespace name.
 	Namespace string
-}
-
-// AddFlags adds binding for configuring the `kubectl` fields.
-func (k *Kubectl) AddFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVar(&k.KubeConfig, "kubeconfig", k.KubeConfig, "path to the kubeconfig `file` to use for CLI requests")
-	cmd.Flags().StringVar(&k.Context, "context", k.Context, "the `name` of the kubeconfig context to use")
-	cmd.Flags().StringVarP(&k.Namespace, "namespace", "n", k.Namespace, "if present, the `name`space scope for this CLI request")
 }
 
 // Command creates a new executable command with the configured global flags and
