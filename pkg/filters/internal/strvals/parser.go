@@ -25,21 +25,10 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"sigs.k8s.io/yaml"
 )
 
 // ErrNotList indicates that a non-list was treated as a list.
 var ErrNotList = errors.New("not a list")
-
-// ToYAML takes a string of arguments and converts to a YAML document.
-func ToYAML(s string) (string, error) {
-	m, err := Parse(s)
-	if err != nil {
-		return "", err
-	}
-	d, err := yaml.Marshal(m)
-	return strings.TrimSuffix(string(d), "\n"), err
-}
 
 // Parse parses a set line.
 //
