@@ -7,11 +7,16 @@ import (
 	"sync"
 
 	"github.com/spf13/cobra"
+	"github.com/thestormforge/konjure/pkg/konjure"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/kio/filters"
 	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
+
+// CommandWriterFormatFlag is a global that can be overwritten to change the name
+// of the flag used to get the output format from the command.
+var CommandWriterFormatFlag = "output"
 
 // CommandReaders returns KYAML readers for the supplied file name arguments.
 func CommandReaders(cmd *cobra.Command, args []string) []kio.Reader {
@@ -47,19 +52,24 @@ func CommandReaders(cmd *cobra.Command, args []string) []kio.Reader {
 }
 
 // CommandWriters returns KYAML writers for the supplied command.
-func CommandWriters(cmd *cobra.Command, overwrite bool) []kio.Writer {
+func CommandWriters(cmd *cobra.Command, overwriteFiles bool) []kio.Writer {
 	var outputs []kio.Writer
 
-	if overwrite {
+	format, _ := cmd.Flags().GetString(CommandWriterFormatFlag)
+
+	if overwriteFiles {
 		outputs = append(outputs, &overwriteWriter{
+			Format: format,
 			ClearAnnotations: []string{
 				kioutil.PathAnnotation,
 				filters.FmtAnnotation,
 			},
 		})
 	} else {
-		outputs = append(outputs, &prefixWriter{
-			Writer: cmd.OutOrStdout(),
+		outputs = append(outputs, &konjure.Writer{
+			Writer:               cmd.OutOrStdout(),
+			InitialDocumentStart: true,
+			Format:               format,
 			ClearAnnotations: []string{
 				kioutil.PathAnnotation,
 				filters.FmtAnnotation,
@@ -97,25 +107,10 @@ func (r *fileReader) Read(p []byte) (n int, err error) {
 	return
 }
 
-// prefixWriter is a writer that emits a document separator prefix.
-type prefixWriter kio.ByteWriter
-
-func (w *prefixWriter) Write(nodes []*yaml.RNode) error {
-	// Only emit the document separator if this appears to be valid Kubernetes resources
-	if len(nodes) > 0 {
-		if meta, _ := nodes[0].GetMeta(); meta.Kind != "" {
-			if _, err := w.Writer.Write([]byte("---\n")); err != nil {
-				return err
-			}
-		}
-	}
-
-	return (*kio.ByteWriter)(w).Write(nodes)
-}
-
 // overwriteWriter is an alternative to the `kio.LocalPackageWriter` that does
 // not make assumptions about "packages" or their shared base directories.
 type overwriteWriter struct {
+	Format           string
 	ClearAnnotations []string
 }
 
@@ -156,8 +151,10 @@ func (w *overwriteWriter) writeToPath(path string, nodes []*yaml.RNode) error {
 	}
 	defer f.Close()
 
-	return kio.ByteWriter{
-		Writer:           f,
-		ClearAnnotations: w.ClearAnnotations,
-	}.Write(nodes)
+	return (&konjure.Writer{
+		Writer:               f,
+		InitialDocumentStart: true,
+		Format:               w.Format,
+		ClearAnnotations:     w.ClearAnnotations,
+	}).Write(nodes)
 }

@@ -51,6 +51,8 @@ type Writer struct {
 	// Flag indicating we should attempt to restore vertical white space using
 	// line numbers prior to writing YAML output.
 	RestoreVerticalWhiteSpace bool
+	// Normally, document start indicators are only included between resources.
+	InitialDocumentStart bool
 	// Additional functions to use while evaluating Go templates.
 	Functions template.FuncMap
 }
@@ -79,6 +81,16 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 			KeepReaderAnnotations: w.KeepReaderAnnotations,
 			ClearAnnotations:      w.ClearAnnotations,
 			Sort:                  w.Sort,
+		}
+
+		// The ByteWriter will not print the first document start indicator
+		if len(nodes) > 0 && w.InitialDocumentStart {
+			// TODO This is a hack for detecting when the writer is being used for non-Kube resources
+			if meta, _ := nodes[0].GetMeta(); meta.Kind != "" {
+				if _, err := w.Writer.Write([]byte("---\n")); err != nil {
+					return err
+				}
+			}
 		}
 
 	case "json":
