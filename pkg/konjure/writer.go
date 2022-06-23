@@ -55,8 +55,9 @@ type Writer struct {
 	InitialDocumentStart bool
 	// The default Go template to evaluate.
 	Template string
-	// Additional functions to use while evaluating Go templates.
-	Functions template.FuncMap
+	// The root template used to parse user supplied templates. Can be used to
+	// inject new functions or templates.
+	RootTemplate *template.Template
 }
 
 // Write delegates to the format specific writer.
@@ -136,9 +137,9 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 
 	case "template", "go-template":
 		ww = &TemplateWriter{
-			Writer:    w.Writer,
-			Template:  t,
-			Functions: w.Functions,
+			Writer:       w.Writer,
+			RootTemplate: w.RootTemplate,
+			Template:     t,
 		}
 
 	case "columns", "custom-columns":
@@ -149,7 +150,7 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 
 		ww = &TemplateWriter{
 			Writer:             tabwriter.NewWriter(w.Writer, 3, 0, 3, ' ', 0),
-			Functions:          w.Functions,
+			RootTemplate:       w.RootTemplate,
 			WrappingAPIVersion: "v1",
 			WrappingKind:       "List",
 			Template: "{{ if .items }}" + strings.Join(headers, "\t") +
@@ -233,22 +234,22 @@ func (w *JSONWriter) Write(nodes []*yaml.RNode) error {
 type TemplateWriter struct {
 	Writer             io.Writer
 	Template           string
-	Functions          template.FuncMap
+	RootTemplate       *template.Template
 	WrappingKind       string
 	WrappingAPIVersion string
 }
 
 // Write evaluates the template using each resource.
 func (w *TemplateWriter) Write(nodes []*yaml.RNode) error {
-	fns := map[string]interface{}{
-		"upper": strings.ToUpper,
-		"lower": strings.ToLower,
-	}
-	for k, v := range w.Functions {
-		fns[k] = v
+	root := w.RootTemplate
+	if root == nil {
+		root = template.New("root").Funcs(template.FuncMap{
+			"upper": strings.ToUpper,
+			"lower": strings.ToLower,
+		})
 	}
 
-	tmpl, err := template.New("resource").Funcs(fns).Parse(w.Template)
+	tmpl, err := root.New("resource").Parse(w.Template)
 	if err != nil {
 		return err
 	}
