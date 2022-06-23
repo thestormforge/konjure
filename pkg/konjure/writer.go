@@ -53,6 +53,8 @@ type Writer struct {
 	RestoreVerticalWhiteSpace bool
 	// Normally, document start indicators are only included between resources.
 	InitialDocumentStart bool
+	// The default Go template to evaluate.
+	Template string
 	// Additional functions to use while evaluating Go templates.
 	Functions template.FuncMap
 }
@@ -68,15 +70,15 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 		nonKube = meta.Kind == ""
 	}
 
-	format := strings.ToLower(w.Format)
-	templateStart := strings.IndexRune(format, '=') + 1
-	if templateStart > 0 {
-		format = format[0 : templateStart-1]
-	} else if strings.Contains(format, "{{") {
-		format = "template"
+	// Determine the effective format and template
+	f, t := strings.ToLower(w.Format), w.Template
+	if pos := strings.IndexRune(f, '=') + 1; pos > 0 {
+		f, t = f[0:pos-1], w.Format[pos:]
+	} else if strings.Contains(f, "{{") {
+		f, t = "template", w.Format
 	}
 
-	switch format {
+	switch f {
 
 	case "yaml", "":
 		if w.RestoreVerticalWhiteSpace {
@@ -135,12 +137,12 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 	case "template", "go-template":
 		ww = &TemplateWriter{
 			Writer:    w.Writer,
-			Template:  w.Format[templateStart:],
+			Template:  t,
 			Functions: w.Functions,
 		}
 
 	case "columns", "custom-columns":
-		headers, columns := splitColumns(w.Format[templateStart:])
+		headers, columns := splitColumns(t)
 		for i := range columns {
 			columns[i] = fmt.Sprintf("{{ .%s }}", strings.TrimPrefix(columns[i], "."))
 		}
@@ -156,7 +158,7 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 		}
 
 	case "csv":
-		headers, paths := splitColumns(w.Format[templateStart:])
+		headers, paths := splitColumns(t)
 		columns := make([][]string, 0, len(paths))
 		for _, p := range paths {
 			column, err := filters.FieldPath(p, nil)
