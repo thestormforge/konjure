@@ -31,10 +31,10 @@ type ReaderFunc func() ([]*yaml.RNode, error)
 func (r ReaderFunc) Read() ([]*yaml.RNode, error) { return r() }
 
 // ErrorReader is an adapter to allow the use of an error as a kio.Reader.
-type ErrorReader struct{ error }
+type ErrorReader struct{ Err error }
 
 // Reader returns the wrapped failure.
-func (r ErrorReader) Read() ([]*yaml.RNode, error) { return nil, r }
+func (r ErrorReader) Read() ([]*yaml.RNode, error) { return nil, r.Err }
 
 // TemplateReader is a KYAML reader that consumes YAML from a Go template.
 type TemplateReader struct {
