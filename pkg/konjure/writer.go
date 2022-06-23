@@ -61,6 +61,13 @@ type Writer struct {
 func (w *Writer) Write(nodes []*yaml.RNode) error {
 	var ww kio.Writer
 
+	// TODO This is a hack for detecting when the writer is being used for non-Kube resources
+	var nonKube bool
+	if len(nodes) > 0 {
+		meta, _ := nodes[0].GetMeta()
+		nonKube = meta.Kind == ""
+	}
+
 	format := strings.ToLower(w.Format)
 	templateStart := strings.IndexRune(format, '=') + 1
 	if templateStart > 0 {
@@ -84,12 +91,9 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 		}
 
 		// The ByteWriter will not print the first document start indicator
-		if len(nodes) > 0 && w.InitialDocumentStart {
-			// TODO This is a hack for detecting when the writer is being used for non-Kube resources
-			if meta, _ := nodes[0].GetMeta(); meta.Kind != "" {
-				if _, err := w.Writer.Write([]byte("---\n")); err != nil {
-					return err
-				}
+		if len(nodes) > 0 && w.InitialDocumentStart && nonKube {
+			if _, err := w.Writer.Write([]byte("---\n")); err != nil {
+				return err
 			}
 		}
 
@@ -101,6 +105,12 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 			WrappingAPIVersion:    "v1",
 			WrappingKind:          "List",
 			Sort:                  w.Sort,
+		}
+
+		// Allow some JSON to sneak through unwrapped
+		if len(nodes) == 1 && nonKube {
+			ww.(*JSONWriter).WrappingAPIVersion = ""
+			ww.(*JSONWriter).WrappingKind = ""
 		}
 
 	case "ndjson":
