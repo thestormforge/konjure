@@ -145,7 +145,7 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 	case "columns", "custom-columns":
 		headers, columns := splitColumns(t)
 		for i := range columns {
-			columns[i] = fmt.Sprintf("{{ .%s }}", strings.TrimPrefix(columns[i], "."))
+			columns[i] = fmt.Sprintf("{{ index . %q }}", strings.TrimPrefix(columns[i], "."))
 		}
 
 		ww = &TemplateWriter{
