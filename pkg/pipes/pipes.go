@@ -30,6 +30,18 @@ type ReaderFunc func() ([]*yaml.RNode, error)
 // Read evaluates the typed function.
 func (r ReaderFunc) Read() ([]*yaml.RNode, error) { return r() }
 
+// ReadOneFunc is an adapter to allow the use of single node returning functions as a kio.Reader.
+type ReadOneFunc func() (*yaml.RNode, error)
+
+// Read evaluates the typed function and wraps the resulting non-nil node.
+func (r ReadOneFunc) Read() ([]*yaml.RNode, error) {
+	node, err := r()
+	if node != nil {
+		return []*yaml.RNode{node}, err
+	}
+	return nil, err
+}
+
 // ErrorReader is an adapter to allow the use of an error as a kio.Reader.
 type ErrorReader struct{ Err error }
 
