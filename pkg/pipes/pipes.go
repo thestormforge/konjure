@@ -48,6 +48,21 @@ type ErrorReader struct{ Err error }
 // Reader returns the wrapped failure.
 func (r ErrorReader) Read() ([]*yaml.RNode, error) { return nil, r.Err }
 
+// EncodingReader is an adapter to allow arbitrary values to be used as a kio.Reader.
+type EncodingReader struct{ Values []interface{} }
+
+// Read encodes the configured values.
+func (r *EncodingReader) Read() ([]*yaml.RNode, error) {
+	result := make([]*yaml.RNode, len(r.Values))
+	for i := range r.Values {
+		result[i] = yaml.NewRNode(&yaml.Node{})
+		if err := result[i].YNode().Encode(r.Values[i]); err != nil {
+			return nil, err
+		}
+	}
+	return result, nil
+}
+
 // TemplateReader is a KYAML reader that consumes YAML from a Go template.
 type TemplateReader struct {
 	// The template to execute.
