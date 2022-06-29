@@ -17,8 +17,12 @@ limitations under the License.
 package filters
 
 import (
+	"k8s.io/kube-openapi/pkg/validation/spec"
 	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/openapi"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
+	"sigs.k8s.io/kustomize/kyaml/yaml/merge2"
+	"sigs.k8s.io/kustomize/kyaml/yaml/walk"
 )
 
 // FilterOne is the opposite of kio.FilterAll, useful if you have a filter that
@@ -72,6 +76,33 @@ func Has(functions ...yaml.Filter) yaml.Filter {
 		}
 
 		return rn, nil
+	})
+}
+
+// Flatten never returns more than a single node, every other node is merged
+// into that first node using the supplied schema
+func Flatten(schema *spec.Schema) kio.Filter {
+	return kio.FilterFunc(func(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
+		// If there is 0 or 1 nodes, there is nothing for us to do
+		if len(nodes) <= 1 {
+			return nodes, nil
+		}
+
+		// Construct a 2-way merge walker using all the input nodes as sources
+		w := walk.Walker{
+			Visitor: merge2.Merger{},
+			Sources: nodes,
+		}
+		if schema != nil {
+			w.Schema = &openapi.ResourceSchema{Schema: schema}
+		}
+
+		// Return the result of the merge as a single node
+		result, err := w.Walk()
+		if err != nil || result == nil {
+			return nil, err
+		}
+		return []*yaml.RNode{result}, nil
 	})
 }
 
