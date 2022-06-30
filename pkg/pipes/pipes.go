@@ -48,11 +48,16 @@ type ErrorReader struct{ Err error }
 // Reader returns the wrapped failure.
 func (r ErrorReader) Read() ([]*yaml.RNode, error) { return nil, r.Err }
 
-// EncodingReader is an adapter to allow arbitrary values to be used as a kio.Reader.
-type EncodingReader struct{ Values []interface{} }
+// Encode returns a reader over the YAML encoding of the specified values.
+func Encode(values ...interface{}) kio.Reader {
+	return &encodingReader{Values: values}
+}
+
+// encodingReader is an adapter to allow arbitrary values to be used as a kio.Reader.
+type encodingReader struct{ Values []interface{} }
 
 // Read encodes the configured values.
-func (r *EncodingReader) Read() ([]*yaml.RNode, error) {
+func (r *encodingReader) Read() ([]*yaml.RNode, error) {
 	result := make([]*yaml.RNode, len(r.Values))
 	for i := range r.Values {
 		result[i] = yaml.NewRNode(&yaml.Node{})
