@@ -13,6 +13,7 @@ require (
 	github.com/spf13/cobra v1.5.0
 	github.com/stretchr/testify v1.7.4
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	k8s.io/kube-openapi v0.0.0-20220401212409-b28bf2818661
 	sigs.k8s.io/kustomize/kyaml v0.13.7
 )
 
@@ -40,6 +41,5 @@ require (
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/kube-openapi v0.0.0-20220401212409-b28bf2818661 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
