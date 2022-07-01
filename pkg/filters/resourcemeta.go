@@ -20,6 +20,7 @@ import (
 	"regexp"
 	"strings"
 
+	"sigs.k8s.io/kustomize/kyaml/openapi"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -167,4 +168,27 @@ func compileAnchored(pattern string) (*regexp.Regexp, error) {
 		return nil, nil
 	}
 	return regexp.Compile("^(?:" + pattern + ")$")
+}
+
+// SetNamespace is like `SetK8sNamespace` except it skips cluster scoped resources.
+func SetNamespace(namespace string) yaml.Filter {
+	return yaml.FilterFunc(func(node *yaml.RNode) (*yaml.RNode, error) {
+		return node.Pipe(
+			yaml.Tee(
+				yaml.FilterFunc(func(node *yaml.RNode) (*yaml.RNode, error) {
+					md, err := node.GetMeta()
+					if err != nil {
+						return nil, err
+					}
+
+					if openapi.IsCertainlyClusterScoped(md.TypeMeta) {
+						return nil, nil
+					}
+
+					return node, nil
+				}),
+				yaml.SetK8sNamespace(namespace),
+			),
+		)
+	})
 }
