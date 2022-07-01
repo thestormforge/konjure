@@ -19,8 +19,6 @@ package pipes
 import (
 	"context"
 	"os/exec"
-
-	"sigs.k8s.io/kustomize/kyaml/kio"
 )
 
 // Kubectl is used for executing `kubectl` as part of a KYAML pipeline.
@@ -58,7 +56,7 @@ func (k *Kubectl) Command(ctx context.Context, args ...string) *exec.Cmd {
 }
 
 // Get returns a source for getting resources via kubectl.
-func (k *Kubectl) Get(ctx context.Context, objs ...string) kio.Reader {
+func (k *Kubectl) Get(ctx context.Context, objs ...string) *ExecReader {
 	args := []string{"get", "--output", "yaml"}
 	args = append(args, objs...)
 
@@ -68,7 +66,7 @@ func (k *Kubectl) Get(ctx context.Context, objs ...string) kio.Reader {
 }
 
 // Create returns a sink for creating resources via kubectl.
-func (k *Kubectl) Create(ctx context.Context, dryRun string) kio.Writer {
+func (k *Kubectl) Create(ctx context.Context, dryRun string) *ExecWriter {
 	args := []string{"create", "--filename", "-"}
 	if dryRun != "" {
 		args = append(args, "--dry-run="+dryRun)
@@ -80,7 +78,7 @@ func (k *Kubectl) Create(ctx context.Context, dryRun string) kio.Writer {
 }
 
 // Apply returns a sink for applying resources via kubectl.
-func (k *Kubectl) Apply(ctx context.Context, dryRun string) kio.Writer {
+func (k *Kubectl) Apply(ctx context.Context, dryRun string) *ExecWriter {
 	args := []string{"apply", "--filename", "-"}
 	if dryRun != "" {
 		args = append(args, "--dry-run="+dryRun)
@@ -92,7 +90,7 @@ func (k *Kubectl) Apply(ctx context.Context, dryRun string) kio.Writer {
 }
 
 // Delete returns a sink for deleting resources via kubectl.
-func (k *Kubectl) Delete(ctx context.Context, dryRun string, ignoreNotFound bool) kio.Writer {
+func (k *Kubectl) Delete(ctx context.Context, dryRun string, ignoreNotFound bool) *ExecWriter {
 	args := []string{"delete", "--filename", "-"}
 	if dryRun != "" {
 		args = append(args, "--dry-run="+dryRun)
