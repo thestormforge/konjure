@@ -92,8 +92,11 @@ func (k *Kubectl) Apply(ctx context.Context, dryRun string) kio.Writer {
 }
 
 // Delete returns a sink for deleting resources via kubectl.
-func (k *Kubectl) Delete(ctx context.Context, ignoreNotFound bool) kio.Writer {
+func (k *Kubectl) Delete(ctx context.Context, dryRun string, ignoreNotFound bool) kio.Writer {
 	args := []string{"delete", "--filename", "-"}
+	if dryRun != "" {
+		args = append(args, "--dry-run", dryRun)
+	}
 	if ignoreNotFound {
 		args = append(args, "--ignore-not-found")
 	}
