@@ -71,7 +71,7 @@ func (k *Kubectl) Get(ctx context.Context, objs ...string) kio.Reader {
 func (k *Kubectl) Create(ctx context.Context, dryRun string) kio.Writer {
 	args := []string{"create", "--filename", "-"}
 	if dryRun != "" {
-		args = append(args, "--dry-run", dryRun)
+		args = append(args, "--dry-run="+dryRun)
 	}
 
 	return &ExecWriter{
@@ -83,7 +83,7 @@ func (k *Kubectl) Create(ctx context.Context, dryRun string) kio.Writer {
 func (k *Kubectl) Apply(ctx context.Context, dryRun string) kio.Writer {
 	args := []string{"apply", "--filename", "-"}
 	if dryRun != "" {
-		args = append(args, "--dry-run", dryRun)
+		args = append(args, "--dry-run="+dryRun)
 	}
 
 	return &ExecWriter{
@@ -95,7 +95,7 @@ func (k *Kubectl) Apply(ctx context.Context, dryRun string) kio.Writer {
 func (k *Kubectl) Delete(ctx context.Context, dryRun string, ignoreNotFound bool) kio.Writer {
 	args := []string{"delete", "--filename", "-"}
 	if dryRun != "" {
-		args = append(args, "--dry-run", dryRun)
+		args = append(args, "--dry-run="+dryRun)
 	}
 	if ignoreNotFound {
 		args = append(args, "--ignore-not-found")
