@@ -18,6 +18,7 @@ package pipes
 
 import (
 	"bytes"
+	"fmt"
 	"text/template"
 
 	"sigs.k8s.io/kustomize/kyaml/kio"
@@ -66,6 +67,27 @@ func (r *encodingReader) Read() ([]*yaml.RNode, error) {
 		}
 	}
 	return result, nil
+}
+
+// Decode returns a writer over the YAML decoding (one per resource document).
+func Decode(values ...interface{}) kio.Writer {
+	return &decodingWriter{Values: values}
+}
+
+// decodingWriter is an adapter to allow arbitrary values to be used as a kio.Writer.
+type decodingWriter struct{ Values []interface{} }
+
+// Write decodes the incoming nodes.
+func (w *decodingWriter) Write(nodes []*yaml.RNode) error {
+	if len(nodes) != len(w.Values) {
+		return fmt.Errorf("document count mismatch, expected %d, got %d", len(w.Values), len(nodes))
+	}
+	for i := range w.Values {
+		if err := nodes[i].YNode().Decode(w.Values[i]); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // TemplateReader is a KYAML reader that consumes YAML from a Go template.
