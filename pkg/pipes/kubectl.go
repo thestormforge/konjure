@@ -55,51 +55,53 @@ func (k *Kubectl) Command(ctx context.Context, args ...string) *exec.Cmd {
 	return exec.CommandContext(ctx, name, append(globalArgs, args...)...)
 }
 
+// Reader returns a kio.Reader for the specified kubectl arguments.
+func (k *Kubectl) Reader(ctx context.Context, args ...string) *ExecReader {
+	return &ExecReader{
+		Cmd: k.Command(ctx, append(args, "--output=yaml")...),
+	}
+}
+
+// Writer returns a kio.Writer for the specified kubectl arguments.
+func (k *Kubectl) Writer(ctx context.Context, args ...string) *ExecWriter {
+	return &ExecWriter{
+		Cmd: k.Command(ctx, append(args, "--filename=-")...),
+	}
+}
+
 // Get returns a source for getting resources via kubectl.
 func (k *Kubectl) Get(ctx context.Context, objs ...string) *ExecReader {
-	args := []string{"get", "--output", "yaml"}
+	args := []string{"get"}
 	args = append(args, objs...)
-
-	return &ExecReader{
-		Cmd: k.Command(ctx, args...),
-	}
+	return k.Reader(ctx, args...)
 }
 
 // Create returns a sink for creating resources via kubectl.
 func (k *Kubectl) Create(ctx context.Context, dryRun string) *ExecWriter {
-	args := []string{"create", "--filename", "-"}
+	args := []string{"create"}
 	if dryRun != "" {
 		args = append(args, "--dry-run="+dryRun)
 	}
-
-	return &ExecWriter{
-		Cmd: k.Command(ctx, args...),
-	}
+	return k.Writer(ctx, args...)
 }
 
 // Apply returns a sink for applying resources via kubectl.
 func (k *Kubectl) Apply(ctx context.Context, dryRun string) *ExecWriter {
-	args := []string{"apply", "--filename", "-"}
+	args := []string{"apply"}
 	if dryRun != "" {
 		args = append(args, "--dry-run="+dryRun)
 	}
-
-	return &ExecWriter{
-		Cmd: k.Command(ctx, args...),
-	}
+	return k.Writer(ctx, args...)
 }
 
 // Delete returns a sink for deleting resources via kubectl.
 func (k *Kubectl) Delete(ctx context.Context, dryRun string, ignoreNotFound bool) *ExecWriter {
-	args := []string{"delete", "--filename", "-"}
+	args := []string{"delete"}
 	if dryRun != "" {
 		args = append(args, "--dry-run="+dryRun)
 	}
 	if ignoreNotFound {
 		args = append(args, "--ignore-not-found")
 	}
-
-	return &ExecWriter{
-		Cmd: k.Command(ctx, args...),
-	}
+	return k.Writer(ctx, args...)
 }
