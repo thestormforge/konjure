@@ -19,6 +19,7 @@ package pipes
 import (
 	"bytes"
 	"os/exec"
+	"time"
 
 	"github.com/thestormforge/konjure/pkg/tracing"
 	"golang.org/x/sync/errgroup"
@@ -34,7 +35,8 @@ type ExecReader struct {
 
 // Read executes the supplied command and parses the output as a YAML document stream.
 func (c *ExecReader) Read() ([]*yaml.RNode, error) {
-	defer tracing.Exec(c.Cmd)
+	start := time.Now()
+	defer tracing.Exec(c.Cmd, start)
 	data, err := c.Cmd.Output()
 	if err != nil {
 		return nil, err
@@ -60,6 +62,7 @@ func (c *ExecWriter) Write(nodes []*yaml.RNode) error {
 	}
 
 	// Start the command
+	start := time.Now()
 	if err := c.Cmd.Start(); err != nil {
 		return err
 	}
@@ -67,7 +70,7 @@ func (c *ExecWriter) Write(nodes []*yaml.RNode) error {
 	// Sync on the command finishing and/or the byte writer writing
 	g := errgroup.Group{}
 	g.Go(func() error {
-		defer tracing.Exec(c.Cmd)
+		defer tracing.Exec(c.Cmd, start)
 		return c.Cmd.Wait()
 	})
 	g.Go(func() error {

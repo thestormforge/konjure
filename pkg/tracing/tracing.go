@@ -19,6 +19,7 @@ package tracing
 import (
 	"os/exec"
 	"syscall"
+	"time"
 
 	"github.com/rs/zerolog"
 )
@@ -29,7 +30,7 @@ var Log = zerolog.Nop()
 
 // Exec logs a trace message with request/response fields for the specified
 // command (which should already have run when this is called).
-func Exec(cmd *exec.Cmd) {
+func Exec(cmd *exec.Cmd, start time.Time) {
 	Log.Trace().
 		Func(func(e *zerolog.Event) {
 			req := zerolog.Dict()
@@ -49,6 +50,7 @@ func Exec(cmd *exec.Cmd) {
 			resp := zerolog.Dict()
 			if cmd.ProcessState != nil {
 				resp.Int("pid", cmd.ProcessState.Pid()).
+					Dur("totalTime", time.Since(start)).
 					Dur("userTime", cmd.ProcessState.UserTime()).
 					Dur("systemTime", cmd.ProcessState.SystemTime())
 				if ws, ok := cmd.ProcessState.Sys().(syscall.WaitStatus); ok {
