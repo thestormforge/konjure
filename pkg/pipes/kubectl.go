@@ -19,6 +19,7 @@ package pipes
 import (
 	"context"
 	"os/exec"
+	"time"
 )
 
 // Kubectl is used for executing `kubectl` as part of a KYAML pipeline.
@@ -31,6 +32,8 @@ type Kubectl struct {
 	Context string
 	// The namespace name.
 	Namespace string
+	// The length of time to wait before giving up on a single request.
+	RequestTimeout time.Duration
 }
 
 // Command creates a new executable command with the configured global flags and
@@ -50,6 +53,9 @@ func (k *Kubectl) Command(ctx context.Context, args ...string) *exec.Cmd {
 	}
 	if k.Namespace != "" {
 		globalArgs = append(globalArgs, "--namespace", k.Namespace)
+	}
+	if k.RequestTimeout != 0 {
+		globalArgs = append(globalArgs, "--request-timeout", k.RequestTimeout.String())
 	}
 
 	return exec.CommandContext(ctx, name, append(globalArgs, args...)...)
