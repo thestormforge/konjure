@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"os/exec"
 
+	"github.com/thestormforge/konjure/pkg/tracing"
 	"golang.org/x/sync/errgroup"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
@@ -33,6 +34,7 @@ type ExecReader struct {
 
 // Read executes the supplied command and parses the output as a YAML document stream.
 func (c *ExecReader) Read() ([]*yaml.RNode, error) {
+	defer tracing.Exec(c.Cmd)
 	data, err := c.Cmd.Output()
 	if err != nil {
 		return nil, err
@@ -64,7 +66,10 @@ func (c *ExecWriter) Write(nodes []*yaml.RNode) error {
 
 	// Sync on the command finishing and/or the byte writer writing
 	g := errgroup.Group{}
-	g.Go(c.Cmd.Wait)
+	g.Go(func() error {
+		defer tracing.Exec(c.Cmd)
+		return c.Cmd.Wait()
+	})
 	g.Go(func() error {
 		defer p.Close()
 		return kio.ByteWriter{
