@@ -23,14 +23,14 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// KonjureLog is the debug/trace log used by Konjure. It is initially set to a
+// Log is the debug/trace log used by Konjure. It is initially set to a
 // disabled logger but may be globally overridden.
-var KonjureLog = zerolog.Nop()
+var Log = zerolog.Nop()
 
 // Exec logs a trace message with request/response fields for the specified
 // command (which should already have run when this is called).
 func Exec(cmd *exec.Cmd) {
-	KonjureLog.Trace().
+	Log.Trace().
 		Func(func(e *zerolog.Event) {
 			req := zerolog.Dict()
 			if cmd != nil {
