@@ -66,13 +66,11 @@ func (c *ExecWriter) Write(nodes []*yaml.RNode) error {
 	if err := c.Cmd.Start(); err != nil {
 		return err
 	}
+	defer tracing.Exec(c.Cmd, start)
 
 	// Sync on the command finishing and/or the byte writer writing
 	g := errgroup.Group{}
-	g.Go(func() error {
-		defer tracing.Exec(c.Cmd, start)
-		return c.Cmd.Wait()
-	})
+	g.Go(c.Cmd.Wait)
 	g.Go(func() error {
 		defer p.Close()
 		return kio.ByteWriter{
