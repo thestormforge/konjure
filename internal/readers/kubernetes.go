@@ -51,6 +51,9 @@ func (k *KubernetesReader) Read() ([]*yaml.RNode, error) {
 		cmd.Args = append(cmd.Args, "--ignore-not-found")
 		cmd.Args = append(cmd.Args, "--output", "yaml")
 		cmd.Args = append(cmd.Args, "--selector", k.Selector)
+		if k.FieldSelector != "" {
+			cmd.Args = append(cmd.Args, "--field-selector", k.FieldSelector)
+		}
 		if ns != "" {
 			cmd.Args = append(cmd.Args, "--namespace", ns)
 		}

@@ -104,6 +104,8 @@ type Kubernetes struct {
 	Types []string `json:"types,omitempty" yaml:"types,omitempty"`
 	// A label selector to limit which resources are included. Defaults to "" (match everything).
 	Selector string `json:"selector,omitempty" yaml:"selector,omitempty"`
+	// A field selector to limit which resources are included. Defaults to "" (match everything).
+	FieldSelector string `json:"fieldSelector,omitempty" yaml:"fieldSelector,omitempty"`
 }
 
 // Kustomize is used to expand kustomizations.
