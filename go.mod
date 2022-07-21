@@ -9,6 +9,7 @@ require (
 	github.com/jsonnet-bundler/jsonnet-bundler v0.4.0
 	github.com/oklog/ulid/v2 v2.0.2
 	github.com/pkg/errors v0.9.1
+	github.com/rs/zerolog v1.27.0
 	github.com/sethvargo/go-password v0.2.0
 	github.com/spf13/cobra v1.5.0
 	github.com/stretchr/testify v1.7.4
@@ -33,7 +34,6 @@ require (
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/rs/zerolog v1.27.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/xlab/treeprint v0.0.0-20181112141820-a009c3971eca // indirect
 	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4 // indirect
