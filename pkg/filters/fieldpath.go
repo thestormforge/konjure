@@ -19,10 +19,12 @@ package filters
 import (
 	"strings"
 	"text/template"
+
+	"sigs.k8s.io/kustomize/kyaml/utils"
 )
 
 // FieldPath evaluates a path template using the supplied context and then
-// splits it into individual path segments (honoring escaped slashes).
+// splits it into individual path segments (honoring escaped delimiters).
 func FieldPath(p string, data map[string]string) ([]string, error) {
 	// Evaluate the path as a Go Template
 	t, err := template.New("path").
@@ -37,19 +39,6 @@ func FieldPath(p string, data map[string]string) ([]string, error) {
 		return nil, err
 	}
 
-	// Remove the leading slash to prevent empty elements
-	path := strings.TrimLeft(pathBuf.String(), "/")
-	if path == "" {
-		return nil, nil
-	} else if !strings.Contains(path, `\/`) {
-		return strings.Split(path, "/"), nil
-	}
-
-	// Handle escaped slashes using a temporary placeholder
-	// NOTE: This just mimics the logic of the equivalent code in the Kustomize FieldPath
-	var result []string
-	for _, pp := range strings.Split(strings.ReplaceAll(path, `\/`, `???`), "/") {
-		result = append(result, strings.ReplaceAll(pp, `???`, `/`))
-	}
-	return result, nil
+	// TODO The "/" delimiter was for legacy KYAML compatibility, should we change it to "."?
+	return utils.SmarterPathSplitter(pathBuf.String(), "/"), nil
 }
