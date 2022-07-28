@@ -83,26 +83,19 @@ func Has(functions ...yaml.Filter) yaml.Filter {
 // into that first node using the supplied schema
 func Flatten(schema *spec.Schema) kio.Filter {
 	return kio.FilterFunc(func(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
-		// If there is 0 or 1 nodes, there is nothing for us to do
-		if len(nodes) <= 1 {
-			return nodes, nil
-		}
-
-		// Construct a 2-way merge walker using all the input nodes as sources
-		w := walk.Walker{
-			Visitor: merge2.Merger{},
-			Sources: nodes,
-		}
+		w := walk.Walker{Visitor: merge2.Merger{}}
 		if schema != nil {
 			w.Schema = &openapi.ResourceSchema{Schema: schema}
 		}
 
-		// Return the result of the merge as a single node
-		result, err := w.Walk()
-		if err != nil || result == nil {
-			return nil, err
+		for i := len(nodes); i > 1; i-- {
+			w.Sources = nodes[i-2 : i]
+			if _, err := w.Walk(); err != nil {
+				return nil, err
+			}
+			nodes = nodes[:i-1]
 		}
-		return []*yaml.RNode{result}, nil
+		return nodes, nil
 	})
 }
 
