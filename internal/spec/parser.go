@@ -265,7 +265,7 @@ func (p *Parser) parseKubernetesSpec(spec string) (interface{}, error) {
 	k8s.AllNamespaces, _ = strconv.ParseBool(u.Query().Get("allNamespaces"))
 	k8s.NamespaceSelector = u.Query().Get("namespaceSelector")
 	k8s.Namespaces = strings.Split(parts[0], ",")
-	if len(k8s.Namespace) == 1 {
+	if len(k8s.Namespaces) == 1 {
 		k8s.Namespace = k8s.Namespaces[0]
 		k8s.Namespaces = nil
 	}
