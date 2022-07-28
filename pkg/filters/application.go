@@ -14,8 +14,8 @@ type ApplicationFilter struct {
 	Enabled bool
 	// Flag indicating we should show resources which do not belong to an application.
 	ShowUnownedResources bool
-	// The name of the label that contains the application name, default is "app.kubernetes.io/name".
-	ApplicationNameLabel string
+	// The ordered names of the labels that contains the application name, default is "app.kubernetes.io/name, k8s-app, app".
+	ApplicationNameLabels []string
 	// The name of the label that contains the application instance name, default is "app.kubernetes.io/instance".
 	ApplicationInstanceLabel string
 }
@@ -88,9 +88,16 @@ func (f *ApplicationFilter) appFromLabels(n *yaml.RNode) (*yaml.RNode, error) {
 		return nil, err
 	}
 
-	nameLabelKey := f.ApplicationNameLabel
-	if nameLabelKey == "" {
-		nameLabelKey = application.LabelName
+	nameLabelKeys := f.ApplicationNameLabels
+	if len(nameLabelKeys) == 0 {
+		nameLabelKeys = []string{application.LabelName, "k8s-app", "app"}
+	}
+	var nameLabelKey, nameLabel string
+	for i := len(nameLabelKeys) - 1; i >= 0; i-- {
+		if md.Labels[nameLabelKeys[i]] != "" {
+			nameLabelKey = nameLabelKeys[i]
+			nameLabel = md.Labels[nameLabelKey]
+		}
 	}
 
 	instanceLabelKey := f.ApplicationInstanceLabel
@@ -98,7 +105,6 @@ func (f *ApplicationFilter) appFromLabels(n *yaml.RNode) (*yaml.RNode, error) {
 		instanceLabelKey = application.LabelInstance
 	}
 
-	nameLabel := md.Labels[nameLabelKey]
 	instanceLabel := md.Labels[instanceLabelKey]
 	partOfLabel := md.Labels[application.LabelPartOf]
 	versionLabel := md.Labels[application.LabelVersion]
