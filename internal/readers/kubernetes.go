@@ -40,9 +40,13 @@ type KubernetesReader struct {
 func (k *KubernetesReader) Read() ([]*yaml.RNode, error) {
 	p := &filters.Pipeline{}
 
-	namespaces, err := k.namespaces()
-	if err != nil {
+	var namespaces []string
+	if k.AllNamespaces {
+		namespaces = []string{""}
+	} else if ns, err := k.namespaces(); err != nil {
 		return nil, err
+	} else {
+		namespaces = ns
 	}
 
 	for _, ns := range namespaces {
@@ -51,13 +55,16 @@ func (k *KubernetesReader) Read() ([]*yaml.RNode, error) {
 		cmd.Args = append(cmd.Args, "--ignore-not-found")
 		cmd.Args = append(cmd.Args, "--output", "yaml")
 		cmd.Args = append(cmd.Args, "--selector", k.Selector)
-		if k.FieldSelector != "" {
-			cmd.Args = append(cmd.Args, "--field-selector", k.FieldSelector)
+		cmd.Args = append(cmd.Args, "--field-selector", k.FieldSelector)
+
+		if k.AllNamespaces {
+			cmd.Args = append(cmd.Args, "--all-namespaces")
 		}
 		if ns != "" {
 			cmd.Args = append(cmd.Args, "--namespace", ns)
 		}
-		if len(k.Types) > 0 {
+
+		if len(k.Types) > 0 && k.Types[0] != "" {
 			cmd.Args = append(cmd.Args, strings.Join(k.Types, ","))
 		} else {
 			cmd.Args = append(cmd.Args, "deployments,statefulsets,configmaps")

@@ -100,6 +100,8 @@ type Kubernetes struct {
 	Namespaces []string `json:"namespaces,omitempty" yaml:"namespaces,omitempty"`
 	// A label selector matching namespaces to look for resources in.
 	NamespaceSelector string `json:"namespaceSelector,omitempty" yaml:"namespaceSelector,omitempty"`
+	// True to consider all namespaces, ignoring the other configuration.
+	AllNamespaces bool `json:"allNamespaces,omitempty" yaml:"allNamespaces,omitempty"`
 	// The list of resource types to include. Defaults to "deployments,statefulsets,configmaps".
 	Types []string `json:"types,omitempty" yaml:"types,omitempty"`
 	// A label selector to limit which resources are included. Defaults to "" (match everything).

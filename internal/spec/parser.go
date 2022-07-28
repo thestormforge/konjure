@@ -28,6 +28,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	konjurev1beta2 "github.com/thestormforge/konjure/pkg/api/core/v1beta2"
@@ -261,11 +262,12 @@ func (p *Parser) parseKubernetesSpec(spec string) (interface{}, error) {
 
 	k8s := &konjurev1beta2.Kubernetes{}
 	k8s.Selector = u.Query().Get("labelSelector")
+	k8s.AllNamespaces, _ = strconv.ParseBool(u.Query().Get("allNamespaces"))
 	if parts[0] != "" {
 		k8s.Namespace = parts[0]
 	}
 	if len(parts) > 1 {
-		k8s.Types = []string{parts[1]}
+		k8s.Types = strings.Split(parts[1], ",")
 	}
 	return k8s, nil
 }
