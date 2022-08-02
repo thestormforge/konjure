@@ -94,7 +94,7 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 		}
 
 		// The ByteWriter will not print the first document start indicator
-		if len(nodes) > 0 && w.InitialDocumentStart && nonKube {
+		if len(nodes) > 0 && w.InitialDocumentStart && !nonKube {
 			if _, err := w.Writer.Write([]byte("---\n")); err != nil {
 				return err
 			}
