@@ -34,11 +34,25 @@ func FieldPath(p string, data map[string]string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	var pathBuf strings.Builder
 	if err := t.Execute(&pathBuf, data); err != nil {
 		return nil, err
 	}
 
-	// TODO The "/" delimiter was for legacy KYAML compatibility, should we change it to "."?
-	return utils.SmarterPathSplitter(pathBuf.String(), "/"), nil
+	fieldPath, err := utils.SmarterPathSplitter(pathBuf.String(), "/"), nil
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		switch {
+		case len(fieldPath) == 0:
+			return nil, nil
+		case fieldPath[0] == "":
+			fieldPath = fieldPath[1:]
+		default:
+			return fieldPath, nil
+		}
+	}
 }
