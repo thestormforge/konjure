@@ -25,63 +25,50 @@ type HelmValues struct {
 
 // Read converts the configured user specified values into resource nodes.
 func (f *HelmValues) Read() ([]*yaml.RNode, error) {
-	var result []*yaml.RNode
+	base := map[string]interface{}{}
 
 	for _, filePath := range f.ValueFiles {
+		currentMap := map[string]interface{}{}
+
 		data, err := f.readFile(filePath)
 		if err != nil {
 			return nil, err
 		}
 
-		node, err := yaml.Parse(data)
-		if err != nil {
+		if err := yaml.Unmarshal([]byte(data), &currentMap); err != nil {
 			return nil, err
 		}
 
-		result = append(result, node)
+		base = mergeMaps(base, currentMap)
 	}
 
 	for _, value := range f.Values {
-		node, err := f.parse(value, strvals.Parse)
-		if err != nil {
+		if err := strvals.ParseInto(value, base); err != nil {
 			return nil, err
 		}
-		result = append(result, node)
 	}
 
 	for _, value := range f.StringValues {
-		node, err := f.parse(value, strvals.ParseString)
-		if err != nil {
+		if err := strvals.ParseIntoString(value, base); err != nil {
 			return nil, err
 		}
-		result = append(result, node)
 	}
 
 	for _, value := range f.FileValues {
-		node, err := f.parse(value, func(s string) (map[string]interface{}, error) {
-			return strvals.ParseFile(s, func(rs []rune) (interface{}, error) { return f.readFile(string(rs)) })
-		})
-		if err != nil {
+		if err := strvals.ParseIntoFile(value, base, func(rs []rune) (interface{}, error) { return f.readFile(string(rs)) }); err != nil {
 			return nil, err
 		}
-		result = append(result, node)
 	}
 
-	return result, nil
-}
-
-func (f *HelmValues) parse(v string, parseFunc func(string) (map[string]interface{}, error)) (*yaml.RNode, error) {
-	data, err := parseFunc(v)
-	if err != nil {
-		return nil, err
+	if len(base) == 0 {
+		return nil, nil
 	}
 
 	node := yaml.NewRNode(&yaml.Node{})
-	if err := node.YNode().Encode(data); err != nil {
+	if err := node.YNode().Encode(base); err != nil {
 		return nil, err
 	}
-
-	return node, nil
+	return []*yaml.RNode{node}, nil
 }
 
 func (f *HelmValues) readFile(spec string) (string, error) {
@@ -94,4 +81,23 @@ func (f *HelmValues) readFile(spec string) (string, error) {
 
 	data, err := os.ReadFile(spec)
 	return string(data), err
+}
+
+func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
+	out := make(map[string]interface{}, len(a))
+	for k, v := range a {
+		out[k] = v
+	}
+	for k, v := range b {
+		if v, ok := v.(map[string]interface{}); ok {
+			if bv, ok := out[k]; ok {
+				if bv, ok := bv.(map[string]interface{}); ok {
+					out[k] = mergeMaps(bv, v)
+					continue
+				}
+			}
+		}
+		out[k] = v
+	}
+	return out
 }
