@@ -111,3 +111,17 @@ func (k *Kubectl) Delete(ctx context.Context, dryRun string, ignoreNotFound bool
 	}
 	return k.Writer(ctx, args...)
 }
+
+// Patch returns a sink for patching resources via kubectl.
+func (k *Kubectl) Patch(ctx context.Context, patchType, patch, dryRun string) *ExecWriter {
+	args := []string{"patch"}
+	if dryRun != "" {
+		args = append(args, "--dry-run="+dryRun)
+	}
+	if patchType != "" {
+		args = append(args, "--type="+patchType)
+	}
+	// Windows does not support "extra files" so we probably can't use --patch-file
+	args = append(args, "--patch", patch)
+	return k.Writer(ctx, args...)
+}
