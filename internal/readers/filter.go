@@ -82,9 +82,7 @@ func (f *Filter) expandToDepth(nodes []*yaml.RNode, depth int) ([]*yaml.RNode, e
 			return nil, err
 		}
 
-		if len(expanded) == 1 && expanded[0] != n {
-			done = false
-		}
+		done = done && len(expanded) == 1 && expanded[0] == n
 
 		result = append(result, expanded...)
 	}
