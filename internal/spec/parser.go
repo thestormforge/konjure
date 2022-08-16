@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-var schemeOverride = regexp.MustCompile(`^[a-zA-Z](?:[a-zA-Z0-9+\-.])*::`)
+var schemeOverride = regexp.MustCompile(`^[a-zA-Z][a-zA-Z\d+\-.]*::`)
 
 type Parser struct {
 	// Reader to use for the "-" specification.
@@ -156,7 +156,7 @@ func (p *Parser) parseHelmSpec(spec string) (interface{}, error) {
 
 	helm := &konjurev1beta2.Helm{}
 
-	// There are two flavors of Helm URL: it can be forced with a scheme override
+	// There are two flavors of Helm URL: it can be forced with a scheme override,
 	// or it can be the "helm:" scheme:
 
 	// This is an example where an HTTPS URL is forced to be a Helm spec:
@@ -438,7 +438,7 @@ func (c *HelmRepositoryConfig) Load() error {
 	return nil
 }
 
-// LookupURL returns the repository URL for the specified name or an error if cannot be found.
+// LookupURL returns the repository URL for the specified name or an error if it cannot be found.
 func (c *HelmRepositoryConfig) LookupURL(name string) (*url.URL, error) {
 	for i := range c.Repositories {
 		if c.Repositories[i].Name == name {
