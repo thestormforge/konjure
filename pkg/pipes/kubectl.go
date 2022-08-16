@@ -113,10 +113,13 @@ func (k *Kubectl) Delete(ctx context.Context, dryRun string, ignoreNotFound bool
 }
 
 // Patch returns a sink for patching resources via kubectl.
-func (k *Kubectl) Patch(ctx context.Context, patchType, patch, dryRun string) *ExecWriter {
+func (k *Kubectl) Patch(ctx context.Context, patchType, patch, dryRun, output string) *ExecWriter {
 	args := []string{"patch"}
 	if dryRun != "" {
 		args = append(args, "--dry-run="+dryRun)
+	}
+	if output != "" {
+		args = append(args, "--output="+output)
 	}
 	if patchType != "" {
 		args = append(args, "--type="+patchType)
