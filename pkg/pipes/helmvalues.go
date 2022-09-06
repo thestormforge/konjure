@@ -23,11 +23,6 @@ type HelmValues struct {
 	FS fs.FS
 }
 
-// Empty returns true if calling `Read` would result in an empty list.
-func (f *HelmValues) Empty() bool {
-	return len(f.ValueFiles)+len(f.Values)+len(f.StringValues)+len(f.FileValues) == 0
-}
-
 // Read converts the configured user specified values into resource nodes.
 func (f *HelmValues) Read() ([]*yaml.RNode, error) {
 	base := map[string]interface{}{}
