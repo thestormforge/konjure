@@ -74,7 +74,7 @@ func (f *HelmValues) Read() ([]*yaml.RNode, error) {
 func (f *HelmValues) readFile(spec string) (string, error) {
 	// TODO Should we be using something like spec.Parser to pull in data?
 
-	if f.FS == nil {
+	if f.FS != nil {
 		data, err := fs.ReadFile(f.FS, spec)
 		return string(data), err
 	}
