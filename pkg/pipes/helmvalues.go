@@ -24,13 +24,13 @@ type HelmValues struct {
 }
 
 // Read converts the configured user specified values into resource nodes.
-func (f *HelmValues) Read() ([]*yaml.RNode, error) {
+func (r *HelmValues) Read() ([]*yaml.RNode, error) {
 	base := map[string]interface{}{}
 
-	for _, filePath := range f.ValueFiles {
+	for _, filePath := range r.ValueFiles {
 		currentMap := map[string]interface{}{}
 
-		data, err := f.readFile(filePath)
+		data, err := r.readFile(filePath)
 		if err != nil {
 			return nil, err
 		}
@@ -39,23 +39,23 @@ func (f *HelmValues) Read() ([]*yaml.RNode, error) {
 			return nil, err
 		}
 
-		base = mergeMaps(base, currentMap)
+		base = r.MergeMaps(base, currentMap)
 	}
 
-	for _, value := range f.Values {
+	for _, value := range r.Values {
 		if err := strvals.ParseInto(value, base); err != nil {
 			return nil, err
 		}
 	}
 
-	for _, value := range f.StringValues {
+	for _, value := range r.StringValues {
 		if err := strvals.ParseIntoString(value, base); err != nil {
 			return nil, err
 		}
 	}
 
-	for _, value := range f.FileValues {
-		if err := strvals.ParseIntoFile(value, base, func(rs []rune) (interface{}, error) { return f.readFile(string(rs)) }); err != nil {
+	for _, value := range r.FileValues {
+		if err := strvals.ParseIntoFile(value, base, func(rs []rune) (interface{}, error) { return r.readFile(string(rs)) }); err != nil {
 			return nil, err
 		}
 	}
@@ -71,11 +71,11 @@ func (f *HelmValues) Read() ([]*yaml.RNode, error) {
 	return []*yaml.RNode{node}, nil
 }
 
-func (f *HelmValues) readFile(spec string) (string, error) {
+func (r *HelmValues) readFile(spec string) (string, error) {
 	// TODO Should we be using something like spec.Parser to pull in data?
 
-	if f.FS != nil {
-		data, err := fs.ReadFile(f.FS, spec)
+	if r.FS != nil {
+		data, err := fs.ReadFile(r.FS, spec)
 		return string(data), err
 	}
 
@@ -83,7 +83,8 @@ func (f *HelmValues) readFile(spec string) (string, error) {
 	return string(data), err
 }
 
-func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
+// MergeMaps is used to combine results from multiple values.
+func (r *HelmValues) MergeMaps(a, b map[string]interface{}) map[string]interface{} {
 	out := make(map[string]interface{}, len(a))
 	for k, v := range a {
 		out[k] = v
@@ -92,7 +93,7 @@ func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
 		if v, ok := v.(map[string]interface{}); ok {
 			if bv, ok := out[k]; ok {
 				if bv, ok := bv.(map[string]interface{}); ok {
-					out[k] = mergeMaps(bv, v)
+					out[k] = r.MergeMaps(bv, v)
 					continue
 				}
 			}
