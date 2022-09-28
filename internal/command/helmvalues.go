@@ -47,6 +47,8 @@ func NewHelmValuesCommand() *cobra.Command {
 	cmd.Flags().StringVar(&schema, "schema", "", "the values.schema.json `file`; only necessary if it includes Kubernetes extensions with merge instructions")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		w.Writer = cmd.OutOrStdout()
+
 		// Load a subset of the values.schema.json file for merging (if provided)
 		var s *spec.Schema
 		if schema != "" {
