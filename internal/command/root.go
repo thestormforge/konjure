@@ -94,6 +94,7 @@ func NewRootCommand(version, refspec, date string) *cobra.Command {
 
 	cmd.AddCommand(
 		NewHelmCommand(),
+		NewHelmValuesCommand(),
 		NewJsonnetCommand(),
 		NewSecretCommand(),
 	)
