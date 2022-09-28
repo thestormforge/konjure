@@ -17,6 +17,8 @@ limitations under the License.
 package filters
 
 import (
+	"context"
+
 	"k8s.io/kube-openapi/pkg/validation/spec"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/openapi"
@@ -145,4 +147,18 @@ func (p *Pipeline) Read() ([]*yaml.RNode, error) {
 	}
 
 	return result, nil
+}
+
+// ContextFilterFunc is a context-aware YAML filter function.
+type ContextFilterFunc func(context.Context, *yaml.RNode) (*yaml.RNode, error)
+
+// WithContext binds a context to a context filter function.
+func WithContext(ctx context.Context, f ContextFilterFunc) yaml.Filter {
+	return yaml.FilterFunc(func(node *yaml.RNode) (*yaml.RNode, error) {
+		// Check the context error first, mainly for when this is wrapped in FilterAll
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		return f(ctx, node)
+	})
 }
