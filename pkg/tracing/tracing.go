@@ -32,6 +32,7 @@ var Log = zerolog.Nop()
 // command (which should already have run when this is called).
 func Exec(cmd *exec.Cmd, start time.Time) {
 	Log.Trace().
+		CallerSkipFrame(1).
 		Func(func(e *zerolog.Event) {
 			req := zerolog.Dict()
 			if cmd != nil {
