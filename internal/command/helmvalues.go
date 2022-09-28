@@ -25,6 +25,7 @@ import (
 	"github.com/thestormforge/konjure/pkg/pipes"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 func NewHelmValuesCommand() *cobra.Command {
@@ -64,8 +65,11 @@ func NewHelmValuesCommand() *cobra.Command {
 
 		// The file _arguments_ are merged first (i.e. including comments), while `--values` files are just merged together
 		return kio.Pipeline{
-			Inputs:  append(pipes.CommandReaders(cmd, args), &valueOptions),
-			Filters: []kio.Filter{filters.Flatten(s)},
+			Inputs: append(pipes.CommandReaders(cmd, args), &valueOptions),
+			Filters: []kio.Filter{
+				filters.Flatten(s),
+				filters.FilterAll(yaml.Tee(yaml.Clear(yaml.MetadataField))),
+			},
 			Outputs: []kio.Writer{&w},
 		}.Execute()
 	}
