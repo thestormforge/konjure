@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -53,7 +54,7 @@ type Writer struct {
 	RestoreVerticalWhiteSpace bool
 	// Normally, document start indicators are only included between resources.
 	InitialDocumentStart bool
-	// The default Go template to evaluate.
+	// The default Go template to evaluate. Alternately, when the format is "env", a glob matching the file name to emit.
 	Template string
 	// The root template used to parse user supplied templates. Can be used to
 	// inject new functions or templates.
@@ -126,7 +127,8 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 
 	case "env":
 		ww = &EnvWriter{
-			Writer: w.Writer,
+			Writer:      w.Writer,
+			FilePattern: t,
 		}
 
 	case "name":
@@ -317,10 +319,11 @@ func (w *CSVWriter) Write(nodes []*yaml.RNode) error {
 
 // EnvWriter is a writer which only emits name/value pairs found in the data of config maps and secrets.
 type EnvWriter struct {
-	Writer   io.Writer
-	Unset    bool
-	Shell    string
-	Selector string
+	Writer      io.Writer
+	Unset       bool
+	Shell       string
+	Selector    string
+	FilePattern string
 }
 
 // Write outputs the data pairings from the supplied list of resource nodes.
@@ -350,21 +353,32 @@ func (w *EnvWriter) Write(nodes []*yaml.RNode) error {
 			}
 			v = string(b)
 
-			// Assume this is file data and not simple name/value pairs
-			if strings.Contains(k, ".") || strings.ContainsAny(v, "\n\r") {
-				continue
+			if w.FilePattern != "" {
+				w.printFile(k, v)
+			} else {
+				w.printEnvVar(sh, k, v)
 			}
-
-			// TODO Should we print a comment with the ID of the node the first time this hits?
-			w.printEnvVar(sh, k, v)
 		}
 	}
 
 	return nil
 }
 
+// printFile emits an entire file.
+func (w *EnvWriter) printFile(k, v string) {
+	if ok, err := path.Match(w.FilePattern, k); err != nil || !ok {
+		return
+	}
+
+	_, _ = fmt.Fprint(w.Writer, v)
+}
+
 // printEnvVar emits a single pair.
 func (w *EnvWriter) printEnvVar(sh, k, v string) {
+	if strings.Contains(k, ".") || strings.ContainsAny(v, "\n\r") {
+		return
+	}
+
 	switch sh {
 	case "none", "":
 		if w.Unset {
