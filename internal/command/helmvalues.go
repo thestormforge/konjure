@@ -17,6 +17,7 @@ limitations under the License.
 package command
 
 import (
+	"io"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -25,14 +26,14 @@ import (
 	"github.com/thestormforge/konjure/pkg/pipes"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 	"sigs.k8s.io/kustomize/kyaml/kio"
-	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 func NewHelmValuesCommand() *cobra.Command {
 	var (
 		valueOptions pipes.HelmValues
 		schema       string
-		w            konjure.Writer
+		w            konjure.GroupWriter
+		inPlace      bool
 	)
 
 	cmd := &cobra.Command{
@@ -46,9 +47,16 @@ func NewHelmValuesCommand() *cobra.Command {
 	cmd.Flags().StringArrayVar(&valueOptions.StringValues, "set-string", []string{}, "set STRING values on the command line (for example, `key1=val1`,key2=val2,...)")
 	cmd.Flags().StringArrayVar(&valueOptions.FileValues, "set-file", []string{}, "set values from respective files specified via the command line (for example, `key1=path1`,key2=path2,...)")
 	cmd.Flags().StringVar(&schema, "schema", "", "the values.schema.json `file`; only necessary if it includes Kubernetes extensions with merge instructions")
+	cmd.Flags().BoolVarP(&inPlace, "in-place", "i", false, "edit files in-place (if multiple FILE arguments are supplied, only the last file is overwritten)")
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		w.Writer = cmd.OutOrStdout()
+		// Configure the writer to overwrite
+		w.GroupWriter = func(name string) (io.Writer, error) {
+			if inPlace {
+				return os.Create(name)
+			}
+			return &nopCloser{Writer: cmd.OutOrStdout()}, nil
+		}
 
 		// Load a subset of the values.schema.json file for merging (if provided)
 		var s *spec.Schema
@@ -65,13 +73,16 @@ func NewHelmValuesCommand() *cobra.Command {
 
 		// The file _arguments_ are merged first (i.e. including comments), while `--values` files are just merged together
 		return kio.Pipeline{
-			Inputs: append(pipes.CommandReaders(cmd, args), &valueOptions),
-			Filters: []kio.Filter{
-				filters.Flatten(s),
-				filters.FilterAll(yaml.Tee(yaml.Clear(yaml.MetadataField))),
-			},
+			Inputs:  append(pipes.CommandReaders(cmd, args), &valueOptions),
+			Filters: []kio.Filter{filters.Flatten(s)},
 			Outputs: []kio.Writer{&w},
 		}.Execute()
 	}
 	return cmd
 }
+
+// nopCloser is used to block callers from closing stdout.
+type nopCloser struct{ io.Writer }
+
+// Close does nothing.
+func (nopCloser) Close() error { return nil }
