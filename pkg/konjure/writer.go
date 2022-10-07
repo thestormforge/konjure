@@ -455,9 +455,9 @@ func (w *GroupWriter) Write(nodes []*yaml.RNode) error {
 	}
 
 	// Write each group
-	for path, nodes := range indexed {
+	for name, nodes := range indexed {
 		// Get an io.Writer for the group
-		out, err := w.GroupWriter(path)
+		out, err := w.GroupWriter(name)
 		if err != nil {
 			return err
 		}
