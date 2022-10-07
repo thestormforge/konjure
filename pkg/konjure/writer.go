@@ -427,6 +427,10 @@ func (w *GroupWriter) Write(nodes []*yaml.RNode) error {
 				clearAnnotations,
 				kioutil.PathAnnotation,
 				kioutil.IndexAnnotation,
+
+				// Also remove the "legacy" variants
+				"config.kubernetes.io/path",
+				"config.kubernetes.io/index",
 			)
 		}
 	}
