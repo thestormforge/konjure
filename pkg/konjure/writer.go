@@ -59,7 +59,12 @@ type Writer struct {
 	// The root template used to parse user supplied templates. Can be used to
 	// inject new functions or templates.
 	RootTemplate *template.Template
+	// Generic configuration options for specific writer implementations.
+	Options []WriterOption
 }
+
+// WriterOption is an option for specific writer implementations.
+type WriterOption func(kio.Writer)
 
 // Write delegates to the format specific writer.
 func (w *Writer) Write(nodes []*yaml.RNode) error {
@@ -181,6 +186,9 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 
 	if ww == nil {
 		return fmt.Errorf("unknown format: %s", w.Format)
+	}
+	for _, opt := range w.Options {
+		opt(ww)
 	}
 	return ww.Write(nodes)
 }
