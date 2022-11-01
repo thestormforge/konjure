@@ -345,26 +345,29 @@ func (w *EnvWriter) Write(nodes []*yaml.RNode) error {
 	}
 
 	for _, n := range nodes {
+		// Only consider matching nodes
 		if ok, err := n.MatchesLabelSelector(w.Selector); err == nil && !ok {
 			continue
 		}
 
-		decode := func(s string) ([]byte, error) { return []byte(s), nil }
-		if m, err := n.GetMeta(); err == nil && m.Kind == "Secret" {
-			decode = base64.StdEncoding.DecodeString
-		}
+		if dataMap := n.GetDataMap(); dataMap != nil {
+			decode := func(s string) ([]byte, error) { return []byte(s), nil }
 
-		for k, v := range n.GetDataMap() {
-			b, err := decode(v)
-			if err != nil {
-				return err
+			// If it is a secret we need to base64 decode the entries
+			if m, err := n.GetMeta(); err == nil && m.Kind == "Secret" {
+				decode = base64.StdEncoding.DecodeString
+				if dockerConfig := w.extractDockerConfig(n); dockerConfig != nil {
+					dataMap = dockerConfig
+				}
 			}
-			v = string(b)
 
-			if w.FilePattern != "" {
-				w.printFile(k, v)
-			} else {
-				w.printEnvVar(sh, k, v)
+			// Decode and print each value from the map
+			for k, v := range dataMap {
+				b, err := decode(v)
+				if err != nil {
+					return err
+				}
+				_, _ = w.printEnvVar(sh, k, string(b))
 			}
 		}
 	}
@@ -372,45 +375,83 @@ func (w *EnvWriter) Write(nodes []*yaml.RNode) error {
 	return nil
 }
 
-// printFile emits an entire file.
-func (w *EnvWriter) printFile(k, v string) {
-	if ok, err := path.Match(w.FilePattern, k); err != nil || !ok {
-		return
-	}
-
-	_, _ = fmt.Fprint(w.Writer, v)
-}
-
 // printEnvVar emits a single pair.
-func (w *EnvWriter) printEnvVar(sh, k, v string) {
-	if strings.Contains(k, ".") || strings.ContainsAny(v, "\n\r") {
-		return
+func (w *EnvWriter) printEnvVar(sh, k, v string) (int, error) {
+	switch {
+	case w.FilePattern != "":
+		// If we have a file pattern specified, we must match it
+		if ok, err := path.Match(w.FilePattern, k); err == nil && ok {
+			return fmt.Fprint(w.Writer, v)
+		}
+		return 0, nil
+
+	case strings.ContainsAny(v, "\n\r"):
+		// If the value contains newlines, it is most likely "file content", do not emit anything
+		return 0, nil
+
+	case strings.Contains(k, "."):
+		// If the key contains a dot, it is most likely a file name, not an environment variable
+		return 0, nil
 	}
 
 	switch sh {
 	case "none", "":
 		if w.Unset {
-			_, _ = fmt.Fprintf(w.Writer, "%s=\n", k)
+			return fmt.Fprintf(w.Writer, "%s=\n", k)
 		} else {
-			_, _ = fmt.Fprintf(w.Writer, "%s=%s\n", k, v)
+			return fmt.Fprintf(w.Writer, "%s=%s\n", k, v)
 		}
 
 	case "fish":
 		// e.g.: SHELL=fish konjure --output env ... | source
 		if w.Unset {
-			_, _ = fmt.Fprintf(w.Writer, "set -e %s;\n", k)
+			return fmt.Fprintf(w.Writer, "set -e %s;\n", k)
 		} else {
-			_, _ = fmt.Fprintf(w.Writer, "set -gx %s %q;\n", k, v)
+			return fmt.Fprintf(w.Writer, "set -gx %s %q;\n", k, v)
 		}
 
 	default: // sh, bash, zsh, etc.
 		// e.g.: eval $(SHELL=zsh konjure --output env ...)
 		if w.Unset {
-			_, _ = fmt.Fprintf(w.Writer, "unset %s\n", k)
+			return fmt.Fprintf(w.Writer, "unset %s\n", k)
 		} else {
-			_, _ = fmt.Fprintf(w.Writer, "export %s=%q\n", k, v)
+			return fmt.Fprintf(w.Writer, "export %s=%q\n", k, v)
 		}
 	}
+}
+
+// extractDockerConfig makes it easier to read Docker configurations. You can bypass this
+// expansion by setting the FilePattern to `.dockerconfigjson` (i.e. emit the raw file).
+func (w *EnvWriter) extractDockerConfig(n *yaml.RNode) map[string]string {
+	if w.FilePattern != "" {
+		return nil
+	}
+	if t, err := n.GetString("type"); err != nil || t != "kubernetes.io/dockerconfigjson" {
+		return nil
+	}
+	configJson, err := base64.StdEncoding.DecodeString(n.GetDataMap()[".dockerconfigjson"])
+	if err != nil {
+		return nil
+	}
+	config := struct {
+		Auths map[string]struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+			Auth     string `json:"auth"`
+		} `json:"auths"`
+	}{}
+	if err := json.Unmarshal(configJson, &config); err != nil || len(config.Auths) != 1 {
+		return nil
+	}
+	for k, v := range config.Auths {
+		return map[string]string{
+			"DOCKER_REGISTRY": base64.StdEncoding.EncodeToString([]byte(k)),
+			"DOCKER_USERNAME": base64.StdEncoding.EncodeToString([]byte(v.Username)),
+			"DOCKER_PASSWORD": base64.StdEncoding.EncodeToString([]byte(v.Password)),
+			"DOCKER_AUTH":     base64.StdEncoding.EncodeToString([]byte(v.Auth)),
+		}
+	}
+	return nil
 }
 
 // GroupWriter writes nodes based on a functional grouping definition.
