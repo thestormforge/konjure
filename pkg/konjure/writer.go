@@ -332,6 +332,7 @@ type EnvWriter struct {
 	Shell       string
 	Selector    string
 	FilePattern string
+	Comments    bool
 }
 
 // Write outputs the data pairings from the supplied list of resource nodes.
@@ -373,6 +374,22 @@ func (w *EnvWriter) Write(nodes []*yaml.RNode) error {
 	}
 
 	return nil
+}
+
+// printComment emits a comment.
+func (w *EnvWriter) printComment(sh, c string) (int, error) {
+	switch {
+	case !w.Comments:
+		// Comments are disabled
+		return 0, nil
+	}
+
+	switch sh {
+	case "none", "":
+		return 0, nil
+	default: // sh, bash, zsh, fish, etc.
+		return fmt.Fprintf(w.Writer, "# %s\n", c)
+	}
 }
 
 // printEnvVar emits a single pair.
