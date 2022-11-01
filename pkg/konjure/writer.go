@@ -351,24 +351,75 @@ func (w *EnvWriter) Write(nodes []*yaml.RNode) error {
 			continue
 		}
 
-		if dataMap := n.GetDataMap(); dataMap != nil {
-			decode := func(s string) ([]byte, error) { return []byte(s), nil }
+		md, err := n.GetMeta()
+		if err != nil {
+			continue
+		}
 
-			// If it is a secret we need to base64 decode the entries
-			if m, err := n.GetMeta(); err == nil && m.Kind == "Secret" {
-				decode = base64.StdEncoding.DecodeString
-				if dockerConfig := w.extractDockerConfig(n); dockerConfig != nil {
-					dataMap = dockerConfig
+		var dataMap map[string]string
+		switch {
+		case md.Kind == "ConfigMap":
+			dataMap = n.GetDataMap()
+
+			// Ignore the binaryData field unless we are looking for files
+			if w.FilePattern != "" {
+				for k, v := range n.GetBinaryDataMap() {
+					dataMap[k] = v
 				}
 			}
 
-			// Decode and print each value from the map
+		case md.Kind == "Secret":
+			dataMap = n.GetDataMap()
+
+			// Decode the secret data
 			for k, v := range dataMap {
-				b, err := decode(v)
-				if err != nil {
-					return err
+				if vv, err := base64.StdEncoding.DecodeString(v); err == nil {
+					dataMap[k] = string(vv)
 				}
-				_, _ = w.printEnvVar(sh, k, string(b))
+			}
+
+			// Since we might be looking at raw YAML, also consider the stringData field
+			_ = n.PipeE(yaml.Lookup("stringData"), yaml.FilterFunc(func(object *yaml.RNode) (*yaml.RNode, error) {
+				return nil, object.VisitFields(func(node *yaml.MapNode) error {
+					dataMap[yaml.GetValue(node.Key)] = yaml.GetValue(node.Value)
+					return nil
+				})
+			}))
+
+		default:
+			dataMap = map[string]string{}
+
+			// Look for container environment variables that use `value` (i.e. not `valueFrom`)
+			_ = n.PipeE(
+				yaml.LookupFirstMatch(yaml.ConventionalContainerPaths),
+				&yaml.PathMatcher{Path: []string{"[name=]", "env", "[value=.+]"}},
+				yaml.FilterFunc(func(object *yaml.RNode) (*yaml.RNode, error) {
+					return nil, object.VisitElements(func(node *yaml.RNode) error {
+						name, err := node.GetString("name")
+						if err != nil {
+							return err
+						}
+						value, err := node.GetString("value")
+						if err != nil {
+							return err
+						}
+						dataMap[name] = value
+						return nil
+					})
+				}))
+		}
+
+		// Decode and print each value from the map
+		if len(dataMap) > 0 {
+			sortedKeys := make([]string, 0, len(dataMap))
+			for k := range dataMap {
+				sortedKeys = append(sortedKeys, k)
+			}
+			sort.Strings(sortedKeys)
+
+			_, _ = w.printComment(sh, fmt.Sprintf("%s %s", md.Kind, md.Name))
+			for _, k := range sortedKeys {
+				_, _ = w.printEnvVar(sh, k, dataMap[k])
 			}
 		}
 	}
