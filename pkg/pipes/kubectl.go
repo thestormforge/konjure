@@ -20,6 +20,8 @@ import (
 	"context"
 	"os/exec"
 	"time"
+
+	"github.com/thestormforge/konjure/pkg/pipes/karg"
 )
 
 // Kubectl is used for executing `kubectl` as part of a KYAML pipeline.
@@ -76,55 +78,43 @@ func (k *Kubectl) Writer(ctx context.Context, args ...string) *ExecWriter {
 }
 
 // Get returns a source for getting resources via kubectl.
-func (k *Kubectl) Get(ctx context.Context, objs ...string) *ExecReader {
-	args := []string{"get"}
-	args = append(args, objs...)
-	return k.Reader(ctx, args...)
+func (k *Kubectl) Get(ctx context.Context, opts ...karg.GetOption) *ExecReader {
+	r := k.Reader(ctx, "get")
+	karg.WithGetOptions(r.Cmd, opts...)
+	return r
 }
 
 // Create returns a sink for creating resources via kubectl.
-func (k *Kubectl) Create(ctx context.Context, dryRun string) *ExecWriter {
-	args := []string{"create"}
-	if dryRun != "" {
-		args = append(args, "--dry-run="+dryRun)
-	}
-	return k.Writer(ctx, args...)
+func (k *Kubectl) Create(ctx context.Context, opts ...karg.CreateOption) *ExecWriter {
+	w := k.Writer(ctx, "create")
+	karg.WithCreateOptions(w.Cmd, opts...)
+	return w
 }
 
 // Apply returns a sink for applying resources via kubectl.
-func (k *Kubectl) Apply(ctx context.Context, dryRun string) *ExecWriter {
-	args := []string{"apply"}
-	if dryRun != "" {
-		args = append(args, "--dry-run="+dryRun)
-	}
-	return k.Writer(ctx, args...)
+func (k *Kubectl) Apply(ctx context.Context, opts ...karg.ApplyOption) *ExecWriter {
+	w := k.Writer(ctx, "apply")
+	karg.WithApplyOptions(w.Cmd, opts...)
+	return w
 }
 
 // Delete returns a sink for deleting resources via kubectl.
-func (k *Kubectl) Delete(ctx context.Context, dryRun string, ignoreNotFound bool) *ExecWriter {
-	args := []string{"delete"}
-	if dryRun != "" {
-		args = append(args, "--dry-run="+dryRun)
-	}
-	if ignoreNotFound {
-		args = append(args, "--ignore-not-found")
-	}
-	return k.Writer(ctx, args...)
+func (k *Kubectl) Delete(ctx context.Context, opts ...karg.DeleteOption) *ExecWriter {
+	w := k.Writer(ctx, "delete")
+	karg.WithDeleteOptions(w.Cmd, opts...)
+	return w
 }
 
 // Patch returns a sink for patching resources via kubectl.
-func (k *Kubectl) Patch(ctx context.Context, patchType, patch, dryRun, output string) *ExecWriter {
-	args := []string{"patch"}
-	if dryRun != "" {
-		args = append(args, "--dry-run="+dryRun)
-	}
-	if output != "" {
-		args = append(args, "--output="+output)
-	}
-	if patchType != "" {
-		args = append(args, "--type="+patchType)
-	}
-	// Windows does not support "extra files" so we probably can't use --patch-file
-	args = append(args, "--patch", patch)
-	return k.Writer(ctx, args...)
+func (k *Kubectl) Patch(ctx context.Context, opts ...karg.PatchOption) *ExecWriter {
+	w := k.Writer(ctx, "patch")
+	karg.WithPatchOptions(w.Cmd, opts...)
+	return w
+}
+
+// Wait returns a command to wait for conditions via kubectl.
+func (k *Kubectl) Wait(ctx context.Context, opts ...karg.WaitOption) *exec.Cmd {
+	cmd := k.Command(ctx, "wait")
+	karg.WithWaitOptions(cmd, opts...)
+	return cmd
 }
