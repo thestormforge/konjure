@@ -200,6 +200,17 @@ func OutputGoTemplateFile(file string) Output    { return Output("go-template-fi
 func OutputJSONPath(path string) Output          { return Output("jsonpath=" + path) }
 func OutputJSONPathFile(file string) Output      { return Output("jsonpath-file=" + file) }
 
+// Wait represents the "--wait" option
+type Wait bool
+
+func (o Wait) applyCmd(cmd *exec.Cmd)  { o.kubectlCmd(cmd) }
+func (o Wait) deleteCmd(cmd *exec.Cmd) { o.kubectlCmd(cmd) }
+func (o Wait) kubectlCmd(cmd *exec.Cmd) {
+	if o {
+		cmd.Args = append(cmd.Args, "--wait")
+	}
+}
+
 // PatchType represents the "--type=json|merge|strategic" option on the patch command.
 type PatchType string
 
