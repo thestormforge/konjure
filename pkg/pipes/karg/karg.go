@@ -76,11 +76,13 @@ type Resource string
 
 func (o Resource) getCmd(cmd *exec.Cmd) { o.kubectlCmd(cmd) }
 func (o Resource) kubectlCmd(cmd *exec.Cmd) {
-	cmd.Args = append(cmd.Args, string(o))
+	if o != "" {
+		cmd.Args = append(cmd.Args, string(o))
+	}
 }
 
-// ResourceType returns a resource argument using the GVR.
-func ResourceType(resource string) Resource { return Resource(resource) }
+// ResourceType returns a resource argument using the GVR(s).
+func ResourceType(resource ...string) Resource { return Resource(strings.Join(resource, ",")) }
 
 // ResourceKind returns a resource argument using the GVK.
 func ResourceKind(apiVersion, kind string) Resource {
@@ -104,6 +106,28 @@ func ResourceKindName(apiVersion, kind, name string) Resource {
 		return Resource(kind + "." + apiVersion + "./" + name)
 	}
 	return Resource(kind + "." + apiVersion + "/" + name)
+}
+
+// AllNamespaces represents the "--all-namespaces" option.
+type AllNamespaces bool
+
+func (o AllNamespaces) getCmd(cmd *exec.Cmd) { o.kubectlCmd(cmd) }
+func (o AllNamespaces) kubectlCmd(cmd *exec.Cmd) {
+	if o {
+		// This is special in that we need to strip out an existing "--namespace" option
+		args := make([]string, 0, len(cmd.Args)+1)
+		for i := 0; i < len(cmd.Args); i++ {
+			switch arg := cmd.Args[i]; arg {
+			case "--namespace", "-n":
+				i++
+			default:
+				if !strings.HasPrefix(arg, "--namespace=") && !strings.HasPrefix(arg, "-n=") {
+					args = append(args, arg)
+				}
+			}
+		}
+		cmd.Args = append(args, "--all-namespaces")
+	}
 }
 
 // Selector represents the "--selector" option.
@@ -139,12 +163,14 @@ const (
 func (o DryRun) IsDryRun() bool { return o != "" && o != "none" }
 
 // IgnoreNotFound represents the "--ignore-not-found" option.
-type IgnoreNotFound struct{}
+type IgnoreNotFound bool
 
 func (o IgnoreNotFound) getCmd(cmd *exec.Cmd)    { o.kubectlCmd(cmd) }
 func (o IgnoreNotFound) deleteCmd(cmd *exec.Cmd) { o.kubectlCmd(cmd) }
 func (o IgnoreNotFound) kubectlCmd(cmd *exec.Cmd) {
-	cmd.Args = append(cmd.Args, "--ignore-not-found")
+	if o {
+		cmd.Args = append(cmd.Args, "--ignore-not-found")
+	}
 }
 
 // Output represents the "--output=json|yaml|wide|name|custom-columns=|custom-columns-file=|go-template=|go-template-file=|jsonpath=|jsonpath-file=" option.

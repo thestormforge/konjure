@@ -26,6 +26,7 @@ import (
 func TestWithGetOptions(t *testing.T) {
 	cases := []struct {
 		desc     string
+		args     []string
 		opts     []GetOption
 		expected []string
 	}{
@@ -38,10 +39,22 @@ func TestWithGetOptions(t *testing.T) {
 			opts:     []GetOption{ResourceKind("v1", "Namespace"), Selector("foo=bar")},
 			expected: []string{"kubectl", "get", "Namespace.v1.", "--selector", "foo=bar"},
 		},
+		{
+			desc:     "resource types with all namespaces",
+			args:     []string{"--namespace", "default"},
+			opts:     []GetOption{ResourceType("deployments", "statefulsets"), AllNamespaces(true)},
+			expected: []string{"kubectl", "get", "deployments,statefulsets", "--all-namespaces"},
+		},
+		{
+			desc:     "tricky namespace",
+			args:     []string{"--namespace=default"},
+			opts:     []GetOption{ResourceName("secret", "my-token"), AllNamespaces(true)},
+			expected: []string{"kubectl", "get", "secret/my-token", "--all-namespaces"},
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.desc, func(t *testing.T) {
-			cmd := exec.Command("kubectl", "get")
+			cmd := exec.Command("kubectl", append([]string{"get"}, tc.args...)...)
 			WithGetOptions(cmd, tc.opts...)
 			assert.Equal(t, tc.expected, cmd.Args)
 		})
