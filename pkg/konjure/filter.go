@@ -35,6 +35,8 @@ type Filter struct {
 	DefaultReader io.Reader
 	// Filter used to reduce the output to application definitions.
 	ApplicationFilter filters.ApplicationFilter
+	// Filter used to reduce the output to workloads.
+	WorkloadFilter filters.WorkloadFilter
 	// Filter to determine which resources are retained.
 	filters.ResourceMetaFilter
 	// Flag indicating that status fields should not be stripped.
@@ -57,6 +59,11 @@ type Filter struct {
 
 // Filter evaluates Konjure resources according to the filter configuration.
 func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
+	defaultTypes := []string{"deployments", "statefulsets", "configmaps"}
+	if f.WorkloadFilter.Enabled {
+		defaultTypes = []string{"deployments", "statefulsets", "replicasets", "pods"}
+	}
+
 	p := &filters.Pipeline{
 		Inputs: []kio.Reader{kio.ResourceNodeSlice(nodes)},
 		Filters: []kio.Filter{
@@ -69,10 +76,12 @@ func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 					readers.WithKubeconfig(f.Kubeconfig),
 					readers.WithKubectlExecutor(f.KubectlExecutor),
 					readers.WithKustomizeExecutor(f.KustomizeExecutor),
+					readers.WithDefaultTypes(defaultTypes...),
 				},
 			},
 
 			&f.ApplicationFilter,
+			&f.WorkloadFilter,
 			&f.ResourceMetaFilter,
 		},
 	}

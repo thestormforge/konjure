@@ -86,11 +86,12 @@ func NewRootCommand(version, refspec, date string) *cobra.Command {
 	cmd.Flags().BoolVar(&w.Sort, "sort", false, "sort output prior to writing")
 	cmd.Flags().BoolVar(&f.ApplicationFilter.Enabled, "apps", false, "transform output to application definitions")
 	cmd.Flags().StringSliceVar(&f.ApplicationFilter.ApplicationNameLabels, "application-name-label", nil, "label to use for application names")
+	cmd.Flags().BoolVar(&f.WorkloadFilter.Enabled, "workloads", false, "keep only workload resources")
 
 	_ = cmd.Flags().MarkHidden("apps")                   // TODO This is "early access"
 	_ = cmd.Flags().MarkHidden("application-name-label") // TODO This is "early access"
-
-	_ = cmd.Flags().MarkHidden("vws")
+	_ = cmd.Flags().MarkHidden("workloads")              // TODO This is "early access"
+	_ = cmd.Flags().MarkHidden("vws")                    // TODO This is "early access" / "somewhat unstable"
 
 	cmd.AddCommand(
 		NewHelmCommand(),

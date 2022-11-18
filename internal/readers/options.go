@@ -92,3 +92,13 @@ func WithKustomizeExecutor(executor Executor) Option {
 		return r
 	}
 }
+
+// WithDefaultTypes controls the default types to fetch when none are specified.
+func WithDefaultTypes(types ...string) Option {
+	return func(r kio.Reader) kio.Reader {
+		if kr, ok := r.(*KubernetesReader); ok {
+			kr.DefaultTypes = types
+		}
+		return r
+	}
+}

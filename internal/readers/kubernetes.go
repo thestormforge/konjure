@@ -19,6 +19,7 @@ package readers
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"path"
 	"strings"
 
@@ -35,6 +36,8 @@ type KubernetesReader struct {
 	Kubeconfig string
 	// Override the default kubeconfig context.
 	Context string
+	// The list of default types to use if none are specified.
+	DefaultTypes []string
 }
 
 func (k *KubernetesReader) Read() ([]*yaml.RNode, error) {
@@ -47,6 +50,11 @@ func (k *KubernetesReader) Read() ([]*yaml.RNode, error) {
 		return nil, err
 	} else {
 		namespaces = ns
+	}
+
+	types, err := k.types()
+	if err != nil {
+		return nil, err
 	}
 
 	for _, ns := range namespaces {
@@ -64,11 +72,7 @@ func (k *KubernetesReader) Read() ([]*yaml.RNode, error) {
 			cmd.Args = append(cmd.Args, "--namespace", ns)
 		}
 
-		if len(k.Types) > 0 && k.Types[0] != "" {
-			cmd.Args = append(cmd.Args, strings.Join(k.Types, ","))
-		} else {
-			cmd.Args = append(cmd.Args, "deployments,statefulsets,configmaps")
-		}
+		cmd.Args = append(cmd.Args, strings.Join(types, ","))
 
 		p.Inputs = append(p.Inputs, cmd)
 	}
@@ -117,4 +121,28 @@ func (k *KubernetesReader) namespaces() ([]string, error) {
 	}
 
 	return namespaces, nil
+}
+
+func (k *KubernetesReader) types() ([]string, error) {
+	var types []string
+	for _, t := range k.Types {
+		if t != "" {
+			types = append(types, t)
+		}
+	}
+	if len(types) > 0 {
+		return types, nil
+	}
+
+	for _, t := range k.DefaultTypes {
+		if t != "" {
+			types = append(types, t)
+		}
+	}
+
+	if len(types) > 0 {
+		return types, nil
+	}
+
+	return nil, fmt.Errorf("no types specified")
 }
