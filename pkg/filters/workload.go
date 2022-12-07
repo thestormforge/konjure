@@ -32,61 +32,64 @@ func (f *WorkloadFilter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 		return nodes, nil
 	}
 
-	// Index the owners
-	owners := make(map[yaml.ResourceIdentifier][]yaml.ResourceIdentifier, len(nodes))
+	owners := make(map[yaml.ResourceIdentifier]*yaml.ResourceIdentifier, len(nodes))
+	pods := make([]yaml.ResourceIdentifier, 0, len(nodes)/3)
+	unscoped := make(map[yaml.ResourceIdentifier]struct{})
 	for _, n := range nodes {
 		md, err := n.GetMeta()
 		if err != nil {
 			return nil, err
 		}
+
 		id := md.GetIdentifier()
-		if err = n.PipeE(
+
+		// Keep track of pods
+		if md.APIVersion == "v1" && md.Kind == "Pod" {
+			pods = append(pods, id)
+		}
+
+		// Keep track of unscoped nodes
+		if md.Namespace == "" {
+			unscoped[id] = struct{}{}
+		}
+
+		// Index the owner with `controller=true`
+		if err := n.PipeE(
 			yaml.Lookup(yaml.MetadataField, "ownerReferences"),
 			yaml.FilterFunc(func(object *yaml.RNode) (*yaml.RNode, error) {
 				return nil, object.VisitElements(func(node *yaml.RNode) error {
-					owner := yaml.ResourceIdentifier{}
-					if err := node.YNode().Decode(&owner); err != nil {
-						return err
+					controller, _ := node.GetFieldValue("controller")
+					if isController, ok := controller.(bool); !ok || !isController {
+						return nil
 					}
-					if owner.Namespace == "" {
-						owner.Namespace = md.Namespace
-					}
-					owners[id] = append(owners[id], owner)
-					return nil
+
+					owners[id] = &yaml.ResourceIdentifier{}
+					return node.YNode().Decode(owners[id])
 				})
 			})); err != nil {
 			return nil, err
 		}
 	}
-	var findOwners func(yaml.ResourceIdentifier) []yaml.ResourceIdentifier
-	findOwners = func(id yaml.ResourceIdentifier) []yaml.ResourceIdentifier {
-		if len(owners[id]) == 0 {
-			return []yaml.ResourceIdentifier{id}
-		}
-		var result []yaml.ResourceIdentifier
-		for _, owner := range owners[id] {
-			result = append(result, findOwners(owner)...)
-		}
-		return result
-	}
 
-	// Find the owners of the pods
+	// Find all the distinct workloads by traversing up from the pods
 	workloads := make(map[yaml.ResourceIdentifier]struct{}, len(nodes))
-	for _, n := range nodes {
-		md, err := n.GetMeta()
-		if err != nil {
-			return nil, err
-		}
-		if md.APIVersion != "v1" || md.Kind != "Pod" {
-			continue
-		}
+	for _, pod := range pods {
+		workload := pod
+		for {
+			owner := owners[workload]
+			if owner == nil {
+				break
+			}
 
-		for _, owner := range findOwners(md.GetIdentifier()) {
-			workloads[owner] = struct{}{}
+			workload = *owner
+			if _, ok := unscoped[workload]; !ok {
+				workload.Namespace = pod.Namespace
+			}
 		}
+		workloads[workload] = struct{}{}
 	}
 
-	// Take the full nodes
+	// Filter out the workloads
 	result := make([]*yaml.RNode, 0, len(workloads))
 	for _, n := range nodes {
 		md, err := n.GetMeta()
@@ -97,6 +100,5 @@ func (f *WorkloadFilter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 			result = append(result, n)
 		}
 	}
-
 	return result, nil
 }
