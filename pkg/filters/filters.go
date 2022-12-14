@@ -129,19 +129,8 @@ func (p *Pipeline) Read() ([]*yaml.RNode, error) {
 		return nil, err
 	}
 
-	// There seems to be an issue with KYAML adding annotations for
-	// internal tracking, then removing them. But it leaves behind an
-	// empty metadata.annotations.
 	for _, node := range result {
-		if err := node.PipeE(
-			yaml.Tee(
-				yaml.Lookup("metadata"),
-				&yaml.FieldClearer{Name: "annotations", IfEmpty: true},
-			),
-			yaml.Tee(
-				&yaml.FieldClearer{Name: "metadata", IfEmpty: true},
-			),
-		); err != nil {
+		if err := yaml.ClearEmptyAnnotations(node); err != nil {
 			return nil, err
 		}
 	}
