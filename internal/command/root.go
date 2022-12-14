@@ -56,6 +56,7 @@ func NewRootCommand(version, refspec, date string) *cobra.Command {
 			if !w.KeepReaderAnnotations {
 				w.ClearAnnotations = append(w.ClearAnnotations,
 					kioutil.PathAnnotation,
+					kioutil.LegacyPathAnnotation,
 					filters.FmtAnnotation,
 				)
 			}

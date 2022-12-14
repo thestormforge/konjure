@@ -215,8 +215,11 @@ func (w *JSONWriter) Write(nodes []*yaml.RNode) error {
 	for _, n := range nodes {
 		// This is to be consistent with ByteWriter
 		if !w.KeepReaderAnnotations {
-			_, err := n.Pipe(yaml.ClearAnnotation(kioutil.IndexAnnotation))
-			if err != nil {
+			if err := n.PipeE(
+				yaml.ClearAnnotation(kioutil.IndexAnnotation),
+				yaml.ClearAnnotation(kioutil.LegacyIndexAnnotation),
+				yaml.ClearAnnotation(kioutil.SeqIndentAnnotation),
+			); err != nil {
 				return err
 			}
 		}
