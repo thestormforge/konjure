@@ -16,7 +16,9 @@ limitations under the License.
 
 package filters
 
-import "sigs.k8s.io/kustomize/kyaml/yaml"
+import (
+	"sigs.k8s.io/kustomize/kyaml/yaml"
+)
 
 // WorkloadFilter keeps only workload resources, i.e. those that directly or
 // indirectly own pods. For this filter to work, all intermediate resources must
@@ -87,6 +89,27 @@ func (f *WorkloadFilter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 			}
 		}
 		workloads[workload] = struct{}{}
+	}
+
+	// There were no pods found, assume everything we find with a pod template is a workload
+	if len(pods) == 0 {
+		for _, n := range nodes {
+			err := n.PipeE(
+				Has(yaml.LookupFirstMatch(yaml.ConventionalContainerPaths)),
+				yaml.FilterFunc(func(object *yaml.RNode) (*yaml.RNode, error) {
+					md, err := n.GetMeta()
+					if err != nil {
+						return nil, err
+					}
+					if owners[md.GetIdentifier()] == nil {
+						workloads[md.GetIdentifier()] = struct{}{}
+					}
+					return nil, nil
+				}))
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	// Filter out the workloads
