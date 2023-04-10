@@ -61,7 +61,10 @@ type Filter struct {
 func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 	defaultTypes := []string{"deployments", "statefulsets", "configmaps"}
 	if f.WorkloadFilter.Enabled {
-		defaultTypes = []string{"deployments", "statefulsets", "replicasets", "pods"}
+		defaultTypes = []string{"daemonsets", "deployments", "statefulsets", "replicasets", "cronjobs", "pods"}
+		if f.WorkloadFilter.CaptureAutoScaling {
+			defaultTypes = append(defaultTypes, "horizontalpodautoscalers")
+		}
 	}
 
 	p := &filters.Pipeline{

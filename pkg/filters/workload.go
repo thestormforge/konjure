@@ -17,6 +17,8 @@ limitations under the License.
 package filters
 
 import (
+	"strings"
+
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -26,6 +28,8 @@ import (
 type WorkloadFilter struct {
 	// Flag indicating if this filter should act as a pass-through.
 	Enabled bool
+	// Flag indicating if this filter should allow auto-scaling resources to pass-through.
+	CaptureAutoScaling bool
 }
 
 // Filter keeps all the workload resources.
@@ -119,9 +123,14 @@ func (f *WorkloadFilter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 		if err != nil {
 			return nil, err
 		}
-		if _, ok := workloads[md.GetIdentifier()]; ok {
-			result = append(result, n)
+
+		if strings.HasPrefix(md.APIVersion, "autoscaling/") && !f.CaptureAutoScaling {
+			continue
+		} else if _, isWorkload := workloads[md.GetIdentifier()]; !isWorkload {
+			continue
 		}
+
+		result = append(result, n)
 	}
 	return result, nil
 }
