@@ -30,3 +30,13 @@ brews:
     folder: Formula
     homepage: "https://github.com/thestormforge/konjure/"
     description: Manifest appear!
+    install: |
+      bin.install "konjure"
+
+      # generate and install bash completion
+      output = Utils.safe_popen_read("#{bin}/konjure", "completion", "bash")
+      (bash_completion/"konjure").write output
+
+      # generate and install zsh completion
+      output = Utils.safe_popen_read("#{bin}/konjure", "completion", "zsh")
+      (zsh_completion/"_konjure").write output
