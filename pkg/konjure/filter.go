@@ -51,6 +51,8 @@ type Filter struct {
 	RecursiveDirectories bool
 	// Override the default path to the kubeconfig file.
 	Kubeconfig string
+	// Override the default types used when fetching Kubernetes resources.
+	KubernetesTypes []string
 	// Override the default Kubectl executor.
 	KubectlExecutor func(cmd *exec.Cmd) ([]byte, error)
 	// Override the default Kustomize executor.
@@ -59,11 +61,17 @@ type Filter struct {
 
 // Filter evaluates Konjure resources according to the filter configuration.
 func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
-	defaultTypes := []string{"deployments", "statefulsets", "configmaps"}
+	defaultTypes := f.KubernetesTypes
+	if len(defaultTypes) == 0 {
+		// This represents the original set of default types from early StormForge products
+		defaultTypes = append(defaultTypes, "deployments", "statefulsets", "configmaps")
+	}
+
 	if f.WorkloadFilter.Enabled {
-		defaultTypes = []string{"daemonsets", "deployments", "statefulsets", "replicasets", "cronjobs", "pods"}
+		// Include the built-in workload types (and intermediaries necessary for detection to work)
+		defaultTypes = appendDistinct(defaultTypes, "daemonsets", "deployments", "statefulsets", "replicasets", "cronjobs", "pods")
 		if f.WorkloadFilter.CaptureAutoScaling {
-			defaultTypes = append(defaultTypes, "horizontalpodautoscalers")
+			defaultTypes = appendDistinct(defaultTypes, "horizontalpodautoscalers")
 		}
 	}
 
@@ -102,4 +110,18 @@ func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 	}
 
 	return p.Read()
+}
+
+func appendDistinct(values []string, more ...string) []string {
+	contains := make(map[string]struct{}, len(values)+len(more))
+	for _, v := range values {
+		contains[v] = struct{}{}
+	}
+	for _, m := range more {
+		if _, ok := contains[m]; !ok {
+			contains[m] = struct{}{}
+			values = append(values, m)
+		}
+	}
+	return values
 }
