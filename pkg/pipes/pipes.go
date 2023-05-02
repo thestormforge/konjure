@@ -18,6 +18,7 @@ package pipes
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"text/template"
 
@@ -84,6 +85,31 @@ func (w *decodingWriter) Write(nodes []*yaml.RNode) error {
 	}
 	for i := range w.Values {
 		if err := nodes[i].YNode().Decode(w.Values[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// DecodeJSON returns a writer over the JSON decoding of the YAML (one per resource document).
+func DecodeJSON(values ...interface{}) kio.Writer {
+	return &decodingJSONWriter{Values: values}
+}
+
+// decodingWriter is an adapter to allow arbitrary values to be used as a kio.Writer.
+type decodingJSONWriter struct{ Values []interface{} }
+
+// Write decodes the incoming nodes as JSON.
+func (w *decodingJSONWriter) Write(nodes []*yaml.RNode) error {
+	if len(nodes) != len(w.Values) {
+		return fmt.Errorf("document count mismatch, expected %d, got %d", len(w.Values), len(nodes))
+	}
+	for i := range w.Values {
+		data, err := nodes[i].MarshalJSON()
+		if err != nil {
+			return err
+		}
+		if err := json.Unmarshal(data, w.Values[i]); err != nil {
 			return err
 		}
 	}
