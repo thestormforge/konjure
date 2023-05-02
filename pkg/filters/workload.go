@@ -17,8 +17,6 @@ limitations under the License.
 package filters
 
 import (
-	"strings"
-
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -28,8 +26,8 @@ import (
 type WorkloadFilter struct {
 	// Flag indicating if this filter should act as a pass-through.
 	Enabled bool
-	// Flag indicating if this filter should allow auto-scaling resources to pass-through.
-	CaptureAutoScaling bool
+	// Secondary filter which can be optionally used to accept non-workload resources.
+	NonWorkloadFilter *ResourceMetaFilter
 }
 
 // Filter keeps all the workload resources.
@@ -37,6 +35,8 @@ func (f *WorkloadFilter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 	if !f.Enabled {
 		return nodes, nil
 	}
+
+	// TODO https://sdk.operatorframework.io/docs/building-operators/ansible/reference/retroactively-owned-resources/#for-objects-which-are-not-in-the-same-namespace-as-the-owner-cr
 
 	owners := make(map[yaml.ResourceIdentifier]*yaml.ResourceIdentifier, len(nodes))
 	pods := make([]yaml.ResourceIdentifier, 0, len(nodes)/3)
@@ -124,13 +124,19 @@ func (f *WorkloadFilter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 			return nil, err
 		}
 
-		if strings.HasPrefix(md.APIVersion, "autoscaling/") && !f.CaptureAutoScaling {
-			continue
-		} else if _, isWorkload := workloads[md.GetIdentifier()]; !isWorkload {
-			continue
+		if _, isWorkload := workloads[md.GetIdentifier()]; isWorkload {
+			result = append(result, n)
 		}
-
-		result = append(result, n)
 	}
+
+	// If we have been asked to keep additional workloads, append to the end
+	if f.NonWorkloadFilter != nil {
+		extra, err := f.NonWorkloadFilter.Filter(nodes)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, extra...)
+	}
+
 	return result, nil
 }

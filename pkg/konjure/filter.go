@@ -70,9 +70,6 @@ func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 	if f.WorkloadFilter.Enabled {
 		// Include the built-in workload types (and intermediaries necessary for detection to work)
 		defaultTypes = appendDistinct(defaultTypes, "daemonsets", "deployments", "statefulsets", "replicasets", "cronjobs", "pods")
-		if f.WorkloadFilter.CaptureAutoScaling {
-			defaultTypes = appendDistinct(defaultTypes, "horizontalpodautoscalers")
-		}
 	}
 
 	p := &filters.Pipeline{
