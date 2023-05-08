@@ -15,7 +15,7 @@ require (
 	github.com/stretchr/testify v1.8.2
 	golang.org/x/sync v0.1.0
 	k8s.io/kube-openapi v0.0.0-20230109183929-3758b55a6596
-	sigs.k8s.io/kustomize/kyaml v0.14.1
+	sigs.k8s.io/kustomize/kyaml v0.14.2
 )
 
 require (
