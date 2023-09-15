@@ -21,6 +21,7 @@ import (
 	"os"
 
 	"github.com/thestormforge/konjure/pkg/pipes/internal/strvals"
+	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -129,4 +130,60 @@ func (r *HelmValues) MergeMaps(a, b map[string]any) map[string]any {
 		out[k] = v
 	}
 	return out
+}
+
+// Mask returns a filter that either keeps or strips data impacted by these values.
+func (r *HelmValues) Mask(keep bool) kio.Filter {
+	return kio.FilterFunc(func(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
+		m, err := r.AsMap()
+		if err != nil {
+			return nil, err
+		}
+
+		result := make([]*yaml.RNode, 0, len(nodes))
+		for _, n := range nodes {
+			if nn, err := mask(n, m, keep); err != nil {
+				return nil, err
+			} else if nn != nil {
+				result = append(result, nn)
+			}
+		}
+		return result, nil
+	})
+}
+
+func mask(rn *yaml.RNode, m any, keep bool) (*yaml.RNode, error) {
+	switch m := m.(type) {
+	case map[string]any:
+		if err := yaml.ErrorIfInvalid(rn, yaml.MappingNode); err != nil {
+			return nil, err
+		}
+
+		original := rn.Content()
+		masked := make([]*yaml.Node, 0, len(original))
+		for i := 0; i < len(original); i += 2 {
+			if v, ok := m[original[i].Value]; ok {
+				// Recursively filter the value
+				if value, err := mask(yaml.NewRNode(original[i+1]), v, keep); err != nil {
+					return nil, err
+				} else if value != nil {
+					masked = append(masked, original[i], value.YNode())
+				}
+			} else if !keep {
+				// Just keep it
+				masked = append(masked, original[i], original[i+1])
+			}
+		}
+		if len(masked) > 0 {
+			rn = rn.Copy()
+			rn.YNode().Content = masked
+			return rn, nil
+		}
+
+	default:
+		if keep && m != nil {
+			return rn.Copy(), nil
+		}
+	}
+	return nil, nil
 }
