@@ -39,12 +39,12 @@ type HelmValues struct {
 	FS fs.FS
 }
 
-// Read converts the configured user specified values into resource nodes.
-func (r *HelmValues) Read() ([]*yaml.RNode, error) {
-	base := map[string]interface{}{}
+// AsMap converts the configured user specified values into a map of values.
+func (r *HelmValues) AsMap() (map[string]any, error) {
+	base := map[string]any{}
 
 	for _, filePath := range r.ValueFiles {
-		currentMap := map[string]interface{}{}
+		currentMap := map[string]any{}
 
 		data, err := r.readFile(filePath)
 		if err != nil {
@@ -71,11 +71,23 @@ func (r *HelmValues) Read() ([]*yaml.RNode, error) {
 	}
 
 	for _, value := range r.FileValues {
-		if err := strvals.ParseIntoFile(value, base, func(rs []rune) (interface{}, error) { return r.readFile(string(rs)) }); err != nil {
+		if err := strvals.ParseIntoFile(value, base, func(rs []rune) (any, error) { return r.readFile(string(rs)) }); err != nil {
 			return nil, err
 		}
 	}
 
+	if len(base) == 0 {
+		return nil, nil
+	}
+	return base, nil
+}
+
+// Read converts the configured user specified values into resource nodes.
+func (r *HelmValues) Read() ([]*yaml.RNode, error) {
+	base, err := r.AsMap()
+	if err != nil {
+		return nil, err
+	}
 	if len(base) == 0 {
 		return nil, nil
 	}
@@ -100,15 +112,15 @@ func (r *HelmValues) readFile(spec string) (string, error) {
 }
 
 // MergeMaps is used to combine results from multiple values.
-func (r *HelmValues) MergeMaps(a, b map[string]interface{}) map[string]interface{} {
-	out := make(map[string]interface{}, len(a))
+func (r *HelmValues) MergeMaps(a, b map[string]any) map[string]any {
+	out := make(map[string]any, len(a))
 	for k, v := range a {
 		out[k] = v
 	}
 	for k, v := range b {
-		if v, ok := v.(map[string]interface{}); ok {
+		if v, ok := v.(map[string]any); ok {
 			if bv, ok := out[k]; ok {
-				if bv, ok := bv.(map[string]interface{}); ok {
+				if bv, ok := bv.(map[string]any); ok {
 					out[k] = r.MergeMaps(bv, v)
 					continue
 				}
