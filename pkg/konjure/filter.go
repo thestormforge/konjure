@@ -45,6 +45,10 @@ type Filter struct {
 	KeepComments bool
 	// Flag indicating that output should be formatted.
 	Format bool
+	// Flag indicating that output should be sorted.
+	Sort bool
+	// Flag indicating that output should be reverse sorted (implies sort=true).
+	Reverse bool
 	// The explicit working directory used to resolve relative paths.
 	WorkingDirectory string
 	// Flag indicating we can process directories recursively.
@@ -104,6 +108,12 @@ func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 
 	if f.Format {
 		p.Filters = append(p.Filters, &kiofilters.FormatFilter{})
+	}
+
+	if f.Reverse {
+		p.Filters = append(p.Filters, filters.UninstallOrder())
+	} else if f.Sort {
+		p.Filters = append(p.Filters, filters.InstallOrder())
 	}
 
 	return p.Read()

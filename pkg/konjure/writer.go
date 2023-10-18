@@ -47,8 +47,6 @@ type Writer struct {
 	KeepReaderAnnotations bool
 	// List of additional annotations to clear.
 	ClearAnnotations []string
-	// Flag indicating nodes should be sorted before writing.
-	Sort bool
 	// Flag indicating we should attempt to restore vertical white space using
 	// line numbers prior to writing YAML output.
 	RestoreVerticalWhiteSpace bool
@@ -96,7 +94,6 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 			Writer:                w.Writer,
 			KeepReaderAnnotations: w.KeepReaderAnnotations,
 			ClearAnnotations:      w.ClearAnnotations,
-			Sort:                  w.Sort,
 		}
 
 		// The ByteWriter will not print the first document start indicator
@@ -113,7 +110,6 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 			ClearAnnotations:      w.ClearAnnotations,
 			WrappingAPIVersion:    "v1",
 			WrappingKind:          "List",
-			Sort:                  w.Sort,
 		}
 
 		// Allow some JSON to sneak through unwrapped
@@ -127,7 +123,6 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 			Writer:                w.Writer,
 			KeepReaderAnnotations: w.KeepReaderAnnotations,
 			ClearAnnotations:      w.ClearAnnotations,
-			Sort:                  w.Sort,
 		}
 
 	case "env":
