@@ -37,6 +37,9 @@ func NewRootCommand(version, refspec, date string) *cobra.Command {
 		Version:          version,
 		SilenceUsage:     true,
 		TraverseChildren: true,
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			return []string{"yaml", "yml", "json"}, cobra.ShellCompDirectiveFilterFileExt
+		},
 		Annotations: map[string]string{
 			"BuildRefspec": refspec,
 			"BuildDate":    date,
