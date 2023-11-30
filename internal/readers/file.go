@@ -19,7 +19,6 @@ package readers
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -86,7 +85,7 @@ func (r *FileReader) Read() ([]*yaml.RNode, error) {
 
 		case ".json", ".yaml", ".yml", "":
 			// Just read the data in, assume it must be manifests to slurp
-			data, err := ioutil.ReadFile(path)
+			data, err := os.ReadFile(path)
 			if err != nil {
 				return err
 			}

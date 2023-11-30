@@ -17,7 +17,6 @@ limitations under the License.
 package readers
 
 import (
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -33,7 +32,7 @@ type GitReader struct {
 
 func (r *GitReader) Read() ([]*yaml.RNode, error) {
 	var err error
-	r.path, err = ioutil.TempDir("", "konjure-git")
+	r.path, err = os.MkdirTemp("", "konjure-git")
 	if err != nil {
 		return nil, err
 	}

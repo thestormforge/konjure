@@ -21,7 +21,6 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -96,7 +95,7 @@ func (r *SecretReader) files(n *yaml.RNode) (*yaml.RNode, error) {
 		items := strings.SplitN(s, "=", 3)
 		switch len(items) {
 		case 1:
-			data, err := ioutil.ReadFile(items[0])
+			data, err := os.ReadFile(items[0])
 			if err != nil {
 				return nil, err
 			}
@@ -107,7 +106,7 @@ func (r *SecretReader) files(n *yaml.RNode) (*yaml.RNode, error) {
 				return nil, fmt.Errorf("key or file path is missing: %s", s)
 			}
 
-			data, err := ioutil.ReadFile(items[1])
+			data, err := os.ReadFile(items[1])
 			if err != nil {
 				return nil, err
 			}
@@ -128,7 +127,7 @@ func (r *SecretReader) envs(n *yaml.RNode) (*yaml.RNode, error) {
 
 	m := make(map[string]string)
 	for _, s := range r.EnvSources {
-		data, err := ioutil.ReadFile(s)
+		data, err := os.ReadFile(s)
 		if err != nil {
 			return nil, err
 		}

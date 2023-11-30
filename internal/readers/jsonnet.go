@@ -19,7 +19,7 @@ package readers
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -152,7 +152,7 @@ func (r *JsonnetReader) bundlerEnsure() error {
 	// TODO Append JsonnetBundlerPackageHome to the r.FileImporter JPath iff it is not already there
 
 	// Ignore output when ensuring dependencies are updated
-	color.Output = ioutil.Discard
+	color.Output = io.Discard
 
 	_, err = jb.Ensure(jsonnetFile, r.JsonnetBundlerPackageHome, lockFile.Dependencies)
 	return err

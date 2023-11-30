@@ -495,7 +495,7 @@ func (w *EnvWriter) extractDockerConfig(n *yaml.RNode) map[string]string {
 	if t, err := n.GetString("type"); err != nil || t != "kubernetes.io/dockerconfigjson" {
 		return nil
 	}
-	configJson, err := base64.StdEncoding.DecodeString(n.GetDataMap()[".dockerconfigjson"])
+	configJSON, err := base64.StdEncoding.DecodeString(n.GetDataMap()[".dockerconfigjson"])
 	if err != nil {
 		return nil
 	}
@@ -506,7 +506,7 @@ func (w *EnvWriter) extractDockerConfig(n *yaml.RNode) map[string]string {
 			Auth     string `json:"auth"`
 		} `json:"auths"`
 	}{}
-	if err := json.Unmarshal(configJson, &config); err != nil || len(config.Auths) != 1 {
+	if err := json.Unmarshal(configJSON, &config); err != nil || len(config.Auths) != 1 {
 		return nil
 	}
 	for k, v := range config.Auths {

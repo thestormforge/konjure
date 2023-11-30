@@ -86,7 +86,7 @@ func ResourceType(resource ...string) Resource { return Resource(strings.Join(re
 
 // ResourceKind returns a resource argument using the GVK.
 func ResourceKind(apiVersion, kind string) Resource {
-	if strings.IndexRune(apiVersion, '.') < 0 {
+	if !strings.ContainsRune(apiVersion, '.') {
 		return Resource(kind + "." + apiVersion + ".")
 	}
 	return Resource(kind + "." + apiVersion)
@@ -102,7 +102,7 @@ func ResourceName(resourceType, resourceName string) Resource {
 
 // ResourceKindName returns
 func ResourceKindName(apiVersion, kind, name string) Resource {
-	if strings.IndexRune(apiVersion, '.') < 0 {
+	if !strings.ContainsRune(apiVersion, '.') {
 		return Resource(kind + "." + apiVersion + "./" + name)
 	}
 	return Resource(kind + "." + apiVersion + "/" + name)
