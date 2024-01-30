@@ -74,7 +74,8 @@ func WithWaitOptions(cmd *exec.Cmd, opts ...WaitOption) {
 // Resource represents an individual named resource or type of resource passed as an argument.
 type Resource string
 
-func (o Resource) getCmd(cmd *exec.Cmd) { o.kubectlCmd(cmd) }
+func (o Resource) getCmd(cmd *exec.Cmd)   { o.kubectlCmd(cmd) }
+func (o Resource) patchCmd(cmd *exec.Cmd) { o.kubectlCmd(cmd) }
 func (o Resource) kubectlCmd(cmd *exec.Cmd) {
 	if o != "" {
 		cmd.Args = append(cmd.Args, string(o))
@@ -100,7 +101,7 @@ func ResourceName(resourceType, resourceName string) Resource {
 	return Resource(resourceType + "/" + resourceName)
 }
 
-// ResourceKindName returns
+// ResourceKindName returns a resource argument using GVK and a name.
 func ResourceKindName(apiVersion, kind, name string) Resource {
 	if !strings.ContainsRune(apiVersion, '.') {
 		return Resource(kind + "." + apiVersion + "./" + name)
