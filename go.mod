@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/fatih/color v1.16.0
 	github.com/google/go-jsonnet v0.20.0
-	github.com/google/uuid v1.5.0
+	github.com/google/uuid v1.6.0
 	github.com/jsonnet-bundler/jsonnet-bundler v0.5.1
 	github.com/oklog/ulid/v2 v2.1.0
 	github.com/pkg/errors v0.9.1
