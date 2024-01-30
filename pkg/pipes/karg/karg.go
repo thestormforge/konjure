@@ -218,7 +218,17 @@ type PatchType string
 func (o PatchType) patchCmd(cmd *exec.Cmd) { o.kubectlCmd(cmd) }
 func (o PatchType) kubectlCmd(cmd *exec.Cmd) {
 	if o != "" {
-		cmd.Args = append(cmd.Args, "--type="+string(o))
+		// Allow the media type to be used interchangeably with the type arg values
+		switch string(o) {
+		case "application/json-patch+json":
+			cmd.Args = append(cmd.Args, "--type=json")
+		case "application/merge-patch+json":
+			cmd.Args = append(cmd.Args, "--type=merge")
+		case "application/strategic-merge-patch+json":
+			cmd.Args = append(cmd.Args, "--type=strategic")
+		default:
+			cmd.Args = append(cmd.Args, "--type="+string(o))
+		}
 	}
 }
 
