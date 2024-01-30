@@ -89,9 +89,12 @@ func NewRootCommand(version, refspec, date string) *cobra.Command {
 	cmd.Flags().BoolVar(&w.KeepReaderAnnotations, "keep-annotations", false, "retain annotations used for processing")
 	cmd.Flags().BoolVar(&f.Sort, "sort", false, "sort output prior to writing")
 	cmd.Flags().BoolVar(&f.Reverse, "reverse", false, "reverse sort output prior to writing")
+	cmd.Flags().StringSliceVar(&f.DoNotExpand, "do-not-expand", nil, "do not expand Konjure kinds (Resource, Helm, Jsonnet, Kubernetes, Kustomize, Secret, Git, HTTP, File)")
 	cmd.Flags().BoolVar(&f.ApplicationFilter.Enabled, "apps", false, "transform output to application definitions")
 	cmd.Flags().StringSliceVar(&f.ApplicationFilter.ApplicationNameLabels, "application-name-label", nil, "label to use for application names")
 	cmd.Flags().BoolVar(&f.WorkloadFilter.Enabled, "workloads", false, "keep only workload resources")
+
+	_ = cmd.Flags().MarkHidden("do-not-expand")
 
 	_ = cmd.Flags().MarkHidden("apps")                   // TODO This is "early access"
 	_ = cmd.Flags().MarkHidden("application-name-label") // TODO This is "early access"

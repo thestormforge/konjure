@@ -53,6 +53,8 @@ type Filter struct {
 	WorkingDirectory string
 	// Flag indicating we can process directories recursively.
 	RecursiveDirectories bool
+	// Kinds which should not be expanded (e.g. "Kustomize").
+	DoNotExpand []string
 	// Override the default path to the kubeconfig file.
 	Kubeconfig string
 	// Override the default types used when fetching Kubernetes resources.
@@ -89,6 +91,7 @@ func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 					readers.WithKubectlExecutor(f.KubectlExecutor),
 					readers.WithKustomizeExecutor(f.KustomizeExecutor),
 					readers.WithDefaultTypes(defaultTypes...),
+					readers.WithoutKindExpansion(f.DoNotExpand...),
 				},
 			},
 

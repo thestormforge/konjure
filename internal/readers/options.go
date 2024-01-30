@@ -21,14 +21,15 @@ import (
 	"path/filepath"
 
 	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 // Option is used to configure or decorate a reader.
-type Option func(r kio.Reader) kio.Reader
+type Option func(src *yaml.RNode, r kio.Reader) kio.Reader
 
 // WithDefaultInputStream overrides the default input stream of stdin.
 func WithDefaultInputStream(defaultReader io.Reader) Option {
-	return func(r kio.Reader) kio.Reader {
+	return func(_ *yaml.RNode, r kio.Reader) kio.Reader {
 		if rr, ok := r.(*ResourceReader); ok && rr.Reader == nil {
 			rr.Reader = defaultReader
 		}
@@ -45,7 +46,7 @@ func WithWorkingDirectory(dir string) Option {
 		return filepath.Join(dir, path), nil
 	}
 
-	return func(r kio.Reader) kio.Reader {
+	return func(_ *yaml.RNode, r kio.Reader) kio.Reader {
 		if fr, ok := r.(*FileReader); ok {
 			fr.Abs = abs
 		}
@@ -55,7 +56,7 @@ func WithWorkingDirectory(dir string) Option {
 
 // WithRecursiveDirectories controls the behavior for traversing directories.
 func WithRecursiveDirectories(recurse bool) Option {
-	return func(r kio.Reader) kio.Reader {
+	return func(_ *yaml.RNode, r kio.Reader) kio.Reader {
 		if fr, ok := r.(*FileReader); ok {
 			fr.Recurse = recurse
 		}
@@ -65,7 +66,7 @@ func WithRecursiveDirectories(recurse bool) Option {
 
 // WithKubeconfig controls the default path of the kubeconfig file.
 func WithKubeconfig(kubeconfig string) Option {
-	return func(r kio.Reader) kio.Reader {
+	return func(_ *yaml.RNode, r kio.Reader) kio.Reader {
 		if kr, ok := r.(*KubernetesReader); ok {
 			kr.Kubeconfig = kubeconfig
 		}
@@ -75,7 +76,7 @@ func WithKubeconfig(kubeconfig string) Option {
 
 // WithKubectlExecutor controls the alternate executor for kubectl.
 func WithKubectlExecutor(executor Executor) Option {
-	return func(r kio.Reader) kio.Reader {
+	return func(_ *yaml.RNode, r kio.Reader) kio.Reader {
 		if kr, ok := r.(*KubernetesReader); ok {
 			kr.Executor = executor
 		}
@@ -85,7 +86,7 @@ func WithKubectlExecutor(executor Executor) Option {
 
 // WithKustomizeExecutor controls the alternate executor for kustomize.
 func WithKustomizeExecutor(executor Executor) Option {
-	return func(r kio.Reader) kio.Reader {
+	return func(_ *yaml.RNode, r kio.Reader) kio.Reader {
 		if kr, ok := r.(*KustomizeReader); ok {
 			kr.Executor = executor
 		}
@@ -95,9 +96,22 @@ func WithKustomizeExecutor(executor Executor) Option {
 
 // WithDefaultTypes controls the default types to fetch when none are specified.
 func WithDefaultTypes(types ...string) Option {
-	return func(r kio.Reader) kio.Reader {
+	return func(_ *yaml.RNode, r kio.Reader) kio.Reader {
 		if kr, ok := r.(*KubernetesReader); ok {
 			kr.DefaultTypes = types
+		}
+		return r
+	}
+}
+
+// WithoutKindExpansion disables specific Konjure kinds from being expanded.
+func WithoutKindExpansion(kinds ...string) Option {
+	return func(src *yaml.RNode, r kio.Reader) kio.Reader {
+		k := src.GetKind()
+		for _, kind := range kinds {
+			if k == kind {
+				return kio.ResourceNodeSlice{src}
+			}
 		}
 		return r
 	}

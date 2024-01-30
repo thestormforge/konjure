@@ -74,7 +74,7 @@ func (f *Filter) expandToDepth(nodes []*yaml.RNode, depth int) ([]*yaml.RNode, e
 		}
 
 		for _, opt := range opts {
-			r = opt(r)
+			r = opt(n, r)
 		}
 
 		expanded, err := r.Read()
@@ -132,7 +132,7 @@ func clean() (cleanOpt Option, doClean func()) {
 	var cleaners []cleaner
 
 	// Accumulate cleaner instances using a reader option
-	cleanOpt = func(r kio.Reader) kio.Reader {
+	cleanOpt = func(_ *yaml.RNode, r kio.Reader) kio.Reader {
 		if c, ok := r.(cleaner); ok {
 			cleaners = append(cleaners, c)
 		}
