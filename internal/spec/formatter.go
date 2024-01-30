@@ -25,7 +25,7 @@ import (
 type Formatter struct {
 }
 
-func (f *Formatter) Encode(obj interface{}) (string, error) {
+func (f *Formatter) Encode(obj any) (string, error) {
 	switch s := obj.(type) {
 	case *konjurev1beta2.Resource:
 		if len(s.Resources) == 1 {

@@ -263,4 +263,4 @@ func (o Patch) kubectlCmd(cmd *exec.Cmd) {
 	}
 }
 
-// TODO Should we take an interface{} and format the JSON?
+// TODO Should we have something like a `func MarshalPatch(any) (Patch, error)` that marshals the JSON?

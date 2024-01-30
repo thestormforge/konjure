@@ -29,7 +29,7 @@ import (
 )
 
 // New returns a resource node reader or nil if the input is not recognized.
-func New(res interface{}) kio.Reader {
+func New(res any) kio.Reader {
 	// Construct a new reader based on the input type
 	switch res := res.(type) {
 	case *konjurev1beta2.Resource:

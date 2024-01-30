@@ -172,7 +172,7 @@ func (rs Resources) Read() ([]*yaml.RNode, error) {
 // NewReader returns a KYAML reader for an individual Konjure resource
 // specification. If the object is not recognized, the resulting reader will
 // silently generate nothing.
-func NewReader(obj interface{}) kio.Reader {
+func NewReader(obj any) kio.Reader {
 	if r := readers.New(obj); r != nil {
 		return r
 	}

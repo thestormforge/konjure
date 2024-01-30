@@ -48,7 +48,7 @@ type Parser struct {
 
 // Decode converts a string into a resource. The goal here is to be compatible with Kustomize where we overlap,
 // (e.g. Git URLs), but there may be additional functionality handled here.
-func (p *Parser) Decode(spec string) (interface{}, error) {
+func (p *Parser) Decode(spec string) (any, error) {
 	// Default reader
 	if spec == "-" {
 		return &kio.ByteReader{Reader: p.Reader}, nil
@@ -107,7 +107,7 @@ func (p *Parser) Decode(spec string) (interface{}, error) {
 	return &konjurev1beta2.File{Path: spec}, nil
 }
 
-func (p *Parser) parseGitSpec(spec string) (interface{}, error) {
+func (p *Parser) parseGitSpec(spec string) (any, error) {
 	u, err := ParseURL(spec)
 	if err != nil {
 		return nil, err
@@ -148,7 +148,7 @@ func (p *Parser) parseGitSpec(spec string) (interface{}, error) {
 	return g, nil
 }
 
-func (p *Parser) parseHelmSpec(spec string) (interface{}, error) {
+func (p *Parser) parseHelmSpec(spec string) (any, error) {
 	u, err := url.Parse(spec)
 	if err != nil {
 		return nil, err
@@ -232,7 +232,7 @@ func (p *Parser) parseHelmSpec(spec string) (interface{}, error) {
 	return helm, nil
 }
 
-func (p *Parser) parseHTTPSpec(spec string) (interface{}, error) {
+func (p *Parser) parseHTTPSpec(spec string) (any, error) {
 	if u, err := url.Parse(spec); err != nil {
 		return nil, err
 	} else if u.Scheme != "http" && u.Scheme != "https" {
@@ -242,7 +242,7 @@ func (p *Parser) parseHTTPSpec(spec string) (interface{}, error) {
 	return &konjurev1beta2.HTTP{URL: spec}, nil
 }
 
-func (p *Parser) parseKubernetesSpec(spec string) (interface{}, error) {
+func (p *Parser) parseKubernetesSpec(spec string) (any, error) {
 	u, err := url.Parse(spec)
 	if err != nil {
 		return nil, err
@@ -275,7 +275,7 @@ func (p *Parser) parseKubernetesSpec(spec string) (interface{}, error) {
 	return k8s, nil
 }
 
-func (p *Parser) parseDataSpec(spec string) (interface{}, error) {
+func (p *Parser) parseDataSpec(spec string) (any, error) {
 	u, err := url.Parse(spec)
 	if err != nil {
 		return nil, err

@@ -40,7 +40,7 @@ type SecretReader struct {
 
 func (r *SecretReader) Read() ([]*yaml.RNode, error) {
 	// Build the basic secret node
-	n, err := yaml.FromMap(map[string]interface{}{"apiVersion": "v1", "kind": "Secret"})
+	n, err := yaml.FromMap(map[string]any{"apiVersion": "v1", "kind": "Secret"})
 	if err != nil {
 		return nil, err
 	}

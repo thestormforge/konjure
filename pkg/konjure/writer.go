@@ -267,7 +267,7 @@ func (w *TemplateWriter) Write(nodes []*yaml.RNode) error {
 	}
 
 	for _, n := range nodes {
-		var data interface{}
+		var data any
 		if err := n.YNode().Decode(&data); err != nil {
 			return err
 		}

@@ -31,7 +31,7 @@ func TestParser_Decode(t *testing.T) {
 		desc     string
 		parser   Parser
 		spec     string
-		expected interface{}
+		expected any
 	}{
 		{
 			desc:     "default reader",

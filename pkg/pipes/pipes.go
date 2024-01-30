@@ -51,12 +51,12 @@ type ErrorReader struct{ Err error }
 func (r ErrorReader) Read() ([]*yaml.RNode, error) { return nil, r.Err }
 
 // Encode returns a reader over the YAML encoding of the specified values.
-func Encode(values ...interface{}) kio.Reader {
+func Encode(values ...any) kio.Reader {
 	return &encodingReader{Values: values}
 }
 
 // encodingReader is an adapter to allow arbitrary values to be used as a kio.Reader.
-type encodingReader struct{ Values []interface{} }
+type encodingReader struct{ Values []any }
 
 // Read encodes the configured values.
 func (r *encodingReader) Read() ([]*yaml.RNode, error) {
@@ -71,12 +71,12 @@ func (r *encodingReader) Read() ([]*yaml.RNode, error) {
 }
 
 // Decode returns a writer over the YAML decoding (one per resource document).
-func Decode(values ...interface{}) kio.Writer {
+func Decode(values ...any) kio.Writer {
 	return &decodingWriter{Values: values}
 }
 
 // decodingWriter is an adapter to allow arbitrary values to be used as a kio.Writer.
-type decodingWriter struct{ Values []interface{} }
+type decodingWriter struct{ Values []any }
 
 // Write decodes the incoming nodes.
 func (w *decodingWriter) Write(nodes []*yaml.RNode) error {
@@ -92,12 +92,12 @@ func (w *decodingWriter) Write(nodes []*yaml.RNode) error {
 }
 
 // DecodeJSON returns a writer over the JSON decoding of the YAML (one per resource document).
-func DecodeJSON(values ...interface{}) kio.Writer {
+func DecodeJSON(values ...any) kio.Writer {
 	return &decodingJSONWriter{Values: values}
 }
 
 // decodingWriter is an adapter to allow arbitrary values to be used as a kio.Writer.
-type decodingJSONWriter struct{ Values []interface{} }
+type decodingJSONWriter struct{ Values []any }
 
 // Write decodes the incoming nodes as JSON.
 func (w *decodingJSONWriter) Write(nodes []*yaml.RNode) error {
@@ -121,7 +121,7 @@ type TemplateReader struct {
 	// The template to execute.
 	Template *template.Template
 	// The data for the template.
-	Data interface{}
+	Data any
 }
 
 // Read executes the supplied template and parses the output as a YAML document stream.

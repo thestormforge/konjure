@@ -147,7 +147,7 @@ func TestResource_DeepCopyInto(t *testing.T) {
 	assert.NotSame(t, in.File, out.File)
 }
 
-func mustRNode(obj interface{}) *yaml.RNode {
+func mustRNode(obj any) *yaml.RNode {
 	rn, err := konjurev1beta2.GetRNode(obj)
 	if err != nil {
 		panic(err)

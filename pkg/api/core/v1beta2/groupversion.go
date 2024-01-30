@@ -32,12 +32,12 @@ var (
 )
 
 // NewForType returns a new instance of the typed object identified by the supplied type metadata.
-func NewForType(t *yaml.TypeMeta) (interface{}, error) {
+func NewForType(t *yaml.TypeMeta) (any, error) {
 	if t.APIVersion != APIVersion {
 		return nil, fmt.Errorf("unknown API version: %s", t.APIVersion)
 	}
 
-	var result interface{}
+	var result any
 	switch t.Kind {
 	case "Resource":
 		result = new(Resource)
@@ -65,9 +65,9 @@ func NewForType(t *yaml.TypeMeta) (interface{}, error) {
 }
 
 // GetRNode converts the supplied object to a resource node.
-func GetRNode(obj interface{}) (*yaml.RNode, error) {
+func GetRNode(obj any) (*yaml.RNode, error) {
 	m := &yaml.ResourceMeta{TypeMeta: yaml.TypeMeta{APIVersion: APIVersion}}
-	var node interface{}
+	var node any
 	switch s := obj.(type) {
 	case *Resource:
 		m.Kind = "Resource"
