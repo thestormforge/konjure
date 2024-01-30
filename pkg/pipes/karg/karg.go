@@ -212,6 +212,20 @@ func (o Wait) kubectlCmd(cmd *exec.Cmd) {
 	}
 }
 
+// FieldManager represents the "--field-manager" option on the patch command.
+type FieldManager string
+
+func (o FieldManager) patchCmd(cmd *exec.Cmd) { o.kubectlCmd(cmd) }
+func (o FieldManager) kubectlCmd(cmd *exec.Cmd) {
+	if o != "" {
+		cmd.Args = append(cmd.Args, "--field-manager", string(o))
+	}
+}
+
+const (
+	FieldManagerKubectlPatch FieldManager = "kubectl-patch"
+)
+
 // PatchType represents the "--type=json|merge|strategic" option on the patch command.
 type PatchType string
 
