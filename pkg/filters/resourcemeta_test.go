@@ -53,6 +53,20 @@ func TestResourceMetaFilter_Filter(t *testing.T) {
 			},
 		},
 		{
+			desc: "match name negate",
+			filter: ResourceMetaFilter{
+				Name:        "foo.*",
+				InvertMatch: true,
+			},
+			input: []*yaml.RNode{
+				rmNode("foobar", nil, nil),
+				rmNode("barfoo", nil, nil),
+			},
+			expected: []*yaml.RNode{
+				rmNode("barfoo", nil, nil),
+			},
+		},
+		{
 			desc: "match annotation",
 			filter: ResourceMetaFilter{
 				AnnotationSelector: "test=testing",

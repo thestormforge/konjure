@@ -41,6 +41,9 @@ type ResourceMetaFilter struct {
 	LabelSelector string `json:"labelSelector,omitempty" yaml:"labelSelector,omitempty"`
 	// Kubernetes selector matching annotations
 	AnnotationSelector string `json:"annotationSelector,omitempty" yaml:"annotationSelector,omitempty"`
+
+	// Invert the matching behavior (i.e. keep non-matching nodes).
+	InvertMatch bool `json:"invertMatch,omitempty" yaml:"invertMatch,omitempty"`
 }
 
 func (f *ResourceMetaFilter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
@@ -58,7 +61,7 @@ func (f *ResourceMetaFilter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) 
 		if m != nil {
 			if meta, err := n.GetMeta(); err != nil {
 				return nil, err
-			} else if !m.matchesMeta(meta) {
+			} else if m.matchesMeta(meta) == f.InvertMatch {
 				continue
 			}
 		}
@@ -66,7 +69,7 @@ func (f *ResourceMetaFilter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) 
 		if f.LabelSelector != "" {
 			if matched, err := n.MatchesLabelSelector(f.LabelSelector); err != nil {
 				return nil, err
-			} else if !matched {
+			} else if matched == f.InvertMatch {
 				continue
 			}
 		}
@@ -74,7 +77,7 @@ func (f *ResourceMetaFilter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) 
 		if f.AnnotationSelector != "" {
 			if matched, err := n.MatchesAnnotationSelector(f.AnnotationSelector); err != nil {
 				return nil, err
-			} else if !matched {
+			} else if matched == f.InvertMatch {
 				continue
 			}
 		}
