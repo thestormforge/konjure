@@ -19,6 +19,7 @@ package readers
 import (
 	"bytes"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -58,15 +59,9 @@ func (r *FileReader) Read() ([]*yaml.RNode, error) {
 				return filepath.SkipDir
 			}
 
-			// Check to see if a directory is a Kustomize root
-			if isKustomizeRoot(path) {
-				n, err := konjurev1beta2.GetRNode(&konjurev1beta2.Kustomize{Root: path})
-				if err != nil {
-					return err
-				}
-
-				result = append(result, n)
-				return filepath.SkipDir
+			// See if the directory itself expands
+			if result, err = r.readDir(result, path); err != nil {
+				return err
 			}
 
 			return nil
@@ -141,6 +136,47 @@ func (r *FileReader) root() (path string, err error) {
 	return path, nil
 }
 
+// readDir attempts to expand a directory into Konjure nodes. If any nodes are returned, traversal of the directory
+// is skipped.
+func (r *FileReader) readDir(result []*yaml.RNode, path string) ([]*yaml.RNode, error) {
+	// Read the directory listing, ignore errors
+	d, err := os.Open(path)
+	if err != nil {
+		return nil, nil
+	}
+	dirContents, _ := d.Readdirnames(-1)
+	_ = d.Close()
+
+	// This is a Git repository, but since it is already cloned, we can just skip it
+	if filepath.Base(path) == ".git" && containsAll(dirContents, "objects", "refs", "HEAD") { // Just sanity check the dir contents
+		return result, fs.SkipDir
+	}
+
+	// Look for directory contents that indicate we should handle this specially
+	for _, name := range dirContents {
+		switch name {
+		case "kustomization.yaml",
+			"kustomization.yml",
+			"Kustomization":
+			// The path is a Kustomization root: return a Kustomize resource, so it gets expanded correctly
+			n, err := konjurev1beta2.GetRNode(&konjurev1beta2.Kustomize{Root: path})
+			if err != nil {
+				return nil, err
+			}
+
+			result = append(result, n)
+			return result, fs.SkipDir
+
+		case "Chart.yaml":
+			// The path is a Helm chart: return a Helm resource, so we don't fail parsing YAML templates
+			// TODO Read the chart...
+			return result, fs.SkipDir
+		}
+	}
+
+	return result, nil
+}
+
 // keepNode tests the supplied node to see if it should be included in the result.
 func keepNode(node *yaml.RNode) bool {
 	m, err := node.GetMeta()
@@ -173,27 +209,15 @@ func keepNode(node *yaml.RNode) bool {
 	}
 }
 
-// isKustomizeRoot tests to see if the specified directory can be used a Kustomize root.
-func isKustomizeRoot(path string) bool {
-	f, err := os.Open(path)
-	if err != nil {
-		return false
-	}
-
-	names, err := f.Readdirnames(-1)
-	_ = f.Close()
-	if err != nil {
-		return false
-	}
-
-	for _, n := range names {
-		switch n {
-		case "kustomization.yaml",
-			"kustomization.yml",
-			"Kustomization":
-			return true
+// containsAll checks that all values are present.
+func containsAll(haystack []string, needles ...string) bool {
+	for i := range haystack {
+		for j := range needles {
+			if haystack[i] == needles[j] {
+				needles = append(needles[:j], needles[j+1:]...)
+				break
+			}
 		}
 	}
-
-	return false
+	return len(needles) == 0
 }
