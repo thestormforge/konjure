@@ -97,8 +97,9 @@ func (r *FileReader) Read() ([]*yaml.RNode, error) {
 				},
 			}
 
+			// Try to parse the file
 			nodes, err := br.Read()
-			if err != nil {
+			if err != nil && filepath.Ext(path) != "" {
 				return err
 			}
 
