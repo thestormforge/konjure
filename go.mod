@@ -3,6 +3,7 @@ module github.com/thestormforge/konjure
 go 1.21
 
 require (
+	github.com/evanphx/json-patch/v5 v5.8.1
 	github.com/fatih/color v1.16.0
 	github.com/google/go-jsonnet v0.20.0
 	github.com/google/uuid v1.6.0
@@ -16,6 +17,7 @@ require (
 	golang.org/x/sync v0.6.0
 	k8s.io/kube-openapi v0.0.0-20230601164746-7562a1006961
 	sigs.k8s.io/kustomize/kyaml v0.16.0
+	sigs.k8s.io/yaml v1.4.0
 )
 
 require (
@@ -40,5 +42,4 @@ require (
 	golang.org/x/sys v0.16.0 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	sigs.k8s.io/yaml v1.4.0 // indirect
 )
