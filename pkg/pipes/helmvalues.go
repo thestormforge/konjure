@@ -132,6 +132,25 @@ func (r *HelmValues) MergeMaps(a, b map[string]any) map[string]any {
 	return out
 }
 
+// Flatten returns a filter that merges all the supplied nodes into a single node.
+func (r *HelmValues) Flatten() kio.Filter {
+	return kio.FilterFunc(func(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
+		out := make(map[string]any)
+		for _, n := range nodes {
+			var m map[string]any
+			if err := n.YNode().Decode(&m); err != nil {
+				return nil, err
+			}
+			out = r.MergeMaps(out, m)
+		}
+		result := yaml.NewMapRNode(nil)
+		if err := result.YNode().Encode(out); err != nil {
+			return nil, err
+		}
+		return []*yaml.RNode{result}, nil
+	})
+}
+
 // Mask returns a filter that either keeps or strips data impacted by these values.
 func (r *HelmValues) Mask(keep bool) kio.Filter {
 	return kio.FilterFunc(func(nodes []*yaml.RNode) ([]*yaml.RNode, error) {

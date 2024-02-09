@@ -21,6 +21,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/thestormforge/konjure/pkg/filters"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -77,4 +78,25 @@ c: d`),
 			}
 		})
 	}
+}
+
+func TestHelmValues_Flatten(t *testing.T) {
+	flattened, err := (&filters.Pipeline{
+		Inputs: []kio.Reader{
+			&HelmValues{Values: []string{"a=b"}},
+			&HelmValues{Values: []string{"c=d"}},
+		},
+		Filters: []kio.Filter{(&HelmValues{}).Flatten()},
+	}).Read()
+	require.NoError(t, err, "failed to flatten output")
+	assert.Len(t, flattened, 1)
+
+	out := struct {
+		A string `yaml:"a"`
+		C string `yaml:"c"`
+	}{}
+	err = flattened[0].YNode().Decode(&out)
+	require.NoError(t, err, "failed to decode result")
+	assert.Equal(t, "b", out.A)
+	assert.Equal(t, "d", out.C)
 }
