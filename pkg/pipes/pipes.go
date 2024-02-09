@@ -52,22 +52,54 @@ func (r ErrorReader) Read() ([]*yaml.RNode, error) { return nil, r.Err }
 
 // Encode returns a reader over the YAML encoding of the specified values.
 func Encode(values ...any) kio.Reader {
-	return &encodingReader{Values: values}
+	return encodingReader(values)
 }
 
 // encodingReader is an adapter to allow arbitrary values to be used as a kio.Reader.
-type encodingReader struct{ Values []any }
+type encodingReader []any
 
 // Read encodes the configured values.
-func (r *encodingReader) Read() ([]*yaml.RNode, error) {
-	result := make([]*yaml.RNode, len(r.Values))
-	for i := range r.Values {
+func (r encodingReader) Read() ([]*yaml.RNode, error) {
+	result := make([]*yaml.RNode, len(r))
+	for i := range r {
 		result[i] = yaml.NewRNode(&yaml.Node{})
-		if err := result[i].YNode().Encode(r.Values[i]); err != nil {
+		if err := result[i].YNode().Encode(r[i]); err != nil {
 			return nil, err
 		}
 	}
 	return result, nil
+}
+
+// EncodeJSON returns a reader over the JSON encoding of the specified values.
+func EncodeJSON(values ...any) kio.Reader {
+	return encodingJSONReader(values)
+}
+
+type encodingJSONReader []any
+
+func (r encodingJSONReader) Read() ([]*yaml.RNode, error) {
+	// Ignore the style from parsing JSON, just reset it to the default
+	var resetStyle func(node *yaml.Node)
+	resetStyle = func(node *yaml.Node) {
+		node.Style = 0
+		for _, node := range node.Content {
+			resetStyle(node)
+		}
+	}
+
+	nodes := make([]*yaml.RNode, len(r))
+	for i := range r {
+		data, err := json.Marshal(r[i])
+		if err != nil {
+			return nil, err
+		}
+		nodes[i] = yaml.NewRNode(&yaml.Node{})
+		if err := yaml.NewDecoder(bytes.NewReader(data)).Decode(nodes[i].YNode()); err != nil {
+			return nil, err
+		}
+		resetStyle(nodes[i].YNode())
+	}
+	return nodes, nil
 }
 
 // Decode returns a writer over the YAML decoding (one per resource document).
