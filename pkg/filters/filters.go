@@ -101,34 +101,46 @@ func Flatten(schema *spec.Schema) kio.Filter {
 	})
 }
 
-// Pipeline wraps a KYAML pipeline but doesn't allow writers: instead the
-// resulting resource nodes are returned directly. This is useful for applying
-// filters to readers in memory. A pipeline can also be used as a reader in
-// larger pipelines.
+// Pipeline is an alternate to the kio.Pipeline. This pipeline has the following differences:
+// 1. The read/filter is separated so this pipeline can be used as a reader in another pipeline
+// 2. This pipeline does not try to reconcile Kustomize annotations
+// 3. This pipeline does not support callbacks
+// 4. This pipeline implicitly clears empty annotations
 type Pipeline struct {
 	Inputs                []kio.Reader
 	Filters               []kio.Filter
+	Outputs               []kio.Writer
 	ContinueOnEmptyResult bool
 }
 
-// Execute this pipeline, returning the resulting resource nodes directly.
+// Read evaluates the inputs and filters, ignoring the writers.
 func (p *Pipeline) Read() ([]*yaml.RNode, error) {
 	var result []*yaml.RNode
 
-	pp := kio.Pipeline{
-		Inputs:                p.Inputs,
-		Filters:               p.Filters,
-		ContinueOnEmptyResult: p.ContinueOnEmptyResult,
-		Outputs: []kio.Writer{kio.WriterFunc(func(nodes []*yaml.RNode) error {
-			result = nodes
-			return nil
-		})},
+	// Read the inputs
+	for _, input := range p.Inputs {
+		nodes, err := input.Read()
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, nodes...)
 	}
 
-	if err := pp.Execute(); err != nil {
-		return nil, err
+	// Apply the filters
+	for _, filter := range p.Filters {
+		var err error
+		result, err = filter.Filter(result)
+		if err != nil {
+			return nil, err
+		}
+
+		// Allow the filter loop to be stopped early if it goes empty
+		if len(result) == 0 && !p.ContinueOnEmptyResult {
+			break
+		}
 	}
 
+	// Clear empty annotations on all nodes in the result
 	for _, node := range result {
 		if err := yaml.ClearEmptyAnnotations(node); err != nil {
 			return nil, err
@@ -136,6 +148,27 @@ func (p *Pipeline) Read() ([]*yaml.RNode, error) {
 	}
 
 	return result, nil
+}
+
+// Execute reads and filters the nodes before sending them to the writers.
+func (p *Pipeline) Execute() error {
+	// Call Read to evaluate the Inputs and Filters
+	nodes, err := p.Read()
+	if err != nil {
+		return err
+	}
+
+	// Check to see if the writers support empty node lists
+	if len(nodes) == 0 && !p.ContinueOnEmptyResult {
+		return nil
+	}
+
+	for _, output := range p.Outputs {
+		if err := output.Write(nodes); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // ContextFilterFunc is a context-aware YAML filter function.

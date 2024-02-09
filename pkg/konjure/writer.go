@@ -541,11 +541,9 @@ func (w *GroupWriter) Write(nodes []*yaml.RNode) error {
 			clearAnnotations = append(
 				clearAnnotations,
 				kioutil.PathAnnotation,
+				kioutil.LegacyPathAnnotation,
 				kioutil.IndexAnnotation,
-
-				// Also remove the "legacy" variants
-				"config.kubernetes.io/path",
-				"config.kubernetes.io/index",
+				kioutil.LegacyIndexAnnotation,
 			)
 		}
 	}

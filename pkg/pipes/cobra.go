@@ -78,6 +78,7 @@ func CommandWriters(cmd *cobra.Command, overwriteFiles bool) []kio.Writer {
 			Format: format,
 			ClearAnnotations: []string{
 				kioutil.PathAnnotation,
+				kioutil.LegacyPathAnnotation,
 				filters.FmtAnnotation,
 			},
 		})

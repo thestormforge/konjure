@@ -93,6 +93,12 @@ func (w *FileWriter) Write(nodes []*yaml.RNode) error {
 	var buf bytes.Buffer
 	bw := &kio.ByteWriter{
 		Writer: &buf,
+		ClearAnnotations: []string{
+			kioutil.PathAnnotation,
+			kioutil.LegacyPathAnnotation,
+			kioutil.IndexAnnotation,
+			kioutil.LegacyIndexAnnotation,
+		},
 	}
 
 	// Wrap the reader in an options struct for configuration
