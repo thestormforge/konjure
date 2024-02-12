@@ -35,9 +35,14 @@ func TestWithGetOptions(t *testing.T) {
 			expected: []string{"kubectl", "get"},
 		},
 		{
-			desc:     "resource kind with selector",
+			desc:     "resource core kind with selector",
 			opts:     []GetOption{ResourceKind("v1", "Namespace"), Selector("foo=bar")},
 			expected: []string{"kubectl", "get", "Namespace.v1.", "--selector", "foo=bar"},
+		},
+		{
+			desc:     "resource apps kind with selector",
+			opts:     []GetOption{ResourceKind("apps/v1", "Deployment"), Selector("foo=bar")},
+			expected: []string{"kubectl", "get", "Deployment.v1.apps", "--selector", "foo=bar"},
 		},
 		{
 			desc:     "resource types with all namespaces",

@@ -67,10 +67,6 @@ func WithWaitOptions(cmd *exec.Cmd, opts ...WaitOption) {
 // For Resource and Selector there is more going on... i.e. this is what `kubectl get` says:
 // (TYPE[.VERSION][.GROUP] [NAME | -l label] | TYPE[.VERSION][.GROUP]/NAME ...)
 
-// BUT...you can always Kind.version.group to, so long as the trailing dot is there even if group == ""
-
-// Also, you can't have "/" if the name is empty
-
 // Resource represents an individual named resource or type of resource passed as an argument.
 type Resource string
 
@@ -83,14 +79,18 @@ func (o Resource) kubectlCmd(cmd *exec.Cmd) {
 }
 
 // ResourceType returns a resource argument using the GVR(s).
-func ResourceType(resource ...string) Resource { return Resource(strings.Join(resource, ",")) }
+func ResourceType(resource ...string) Resource {
+	return Resource(strings.Join(resource, ","))
+}
 
 // ResourceKind returns a resource argument using the GVK.
 func ResourceKind(apiVersion, kind string) Resource {
-	if !strings.ContainsRune(apiVersion, '.') {
-		return Resource(kind + "." + apiVersion + ".")
+	// This only works because kubectl will actually accept a kind instead of resource name
+	group, version, ok := strings.Cut(apiVersion, "/")
+	if !ok {
+		group, version = version, group
 	}
-	return Resource(kind + "." + apiVersion)
+	return Resource(kind + "." + version + "." + group)
 }
 
 // ResourceName returns a resource argument using a GVR and a name.
@@ -103,10 +103,12 @@ func ResourceName(resourceType, resourceName string) Resource {
 
 // ResourceKindName returns a resource argument using GVK and a name.
 func ResourceKindName(apiVersion, kind, name string) Resource {
-	if !strings.ContainsRune(apiVersion, '.') {
-		return Resource(kind + "." + apiVersion + "./" + name)
+	// This only works because kubectl will actually accept a kind instead of resource name
+	group, version, ok := strings.Cut(apiVersion, "/")
+	if !ok {
+		group, version = version, group
 	}
-	return Resource(kind + "." + apiVersion + "/" + name)
+	return Resource(kind + "." + version + "." + group + "/" + name)
 }
 
 // AllNamespaces represents the "--all-namespaces" option.
