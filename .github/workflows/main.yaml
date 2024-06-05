@@ -22,9 +22,9 @@ jobs:
           goreleaserFlags=()
           goreleaserFlags+=(--release-notes ./.github/RELEASE_TEMPLATE.md)
           if [ "${GITHUB_REF_TYPE}" != "tag" ]; then
-            flags+=(--snapshot)
+            goreleaserFlags+=(--snapshot)
           fi
-          echo "GORELEASER_FLAGS=${flags[@]}" >> $GITHUB_ENV
+          echo "GORELEASER_FLAGS=${goreleaserFlags[@]}" >> $GITHUB_ENV
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
