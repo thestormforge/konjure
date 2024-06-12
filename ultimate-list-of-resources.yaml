@@ -1,0 +1,141 @@
+#
+# This is it. The Ultimate List of Resources.
+#
+
+# Konjure is a streaming tool for Kubernetes resource definitions ("manifests",
+# "YAMLs"). When processing Kubernetes resources, Konjure looks for...
+
+apiVersion: konjure.stormforge.io/v1beta2
+
+# ...to see if it is a resource that should mapped to a list of resources. That
+# list of resources is scanned again (up to a specified depth) so that it can
+# include other Konjure resources. Then those resources are flattened into the
+# resource stream.
+
+# So what kinds of resources does Konjure support? The first is the...
+
+kind: Resource
+
+# ...which just includes a list of URL-like strings which are each used to
+# create _another Konjure resource_...
+
+resources:
+
+# This can be useful for saving aggregations (so you aren't putting them in a
+# script or typing them out at the CLI each time), but it is also used by
+# Konjure to handle all of the arguments you pass it. Try it out for yourself:
+# `konjure --depth 0 so-meta.yaml` produces a Konjure `Resources` definition
+# with a single string. If you want to set the depth higher then 0, you better
+# make sure the file exists first.
+
+# So just what URL-like strings can you use? And why are they "URL-like" and
+# not just "URLs"? The strings can be URLs, but they can also be file paths,
+# SCP specs (for Git), or they can have a "scheme override" which is just a URL
+# scheme followed by "::" and another URL. Let's see some examples:
+
+# File paths are the most basic, they can be relative or absolute. If they are
+# relative, they are resolved against the directory of the file they were found
+# in (and for those paying attention, that `--depth 0` trick means the directory
+# is the current working directory)...
+
+- .goreleaser.yml
+
+# Wait. That isn't a Kubernetes resource! Konjure will check for an `apiVersion`
+# and a `kind` field (and in some cases a `metadata.name` field) before it
+# accepts a YAML document as a Kubernetes resource. Konjure won't accept content
+# that cannot be parsed as YAML (with a few minor exceptions, more on that
+# later).
+
+# File paths can also be directories, if you run Konjure with the `--recurse`
+# option it will look in the directory for files with YAML (or JSON) file
+# extensions. Konjure will also look to see if directories are Kustomization
+# roots.
+
+# In addition to file paths, you can use `file:` URLs. Just remember, one slash
+# or three, otherwise your first path segment will be treated like a host name
+# (which will be promptly ignored).
+
+# You can also use HTTP and HTTPS URLs, these will be fetched and processed just
+# like any other file...
+
+- https://raw.githubusercontent.com/kubernetes/website/master/content/en/examples/application/deployment.yaml
+
+# ...Konjure will also accept the GitHub "blob" URL and translate it to a raw
+# content URL on the fly, so the following URL is equivalent:
+# https://github.com/kubernetes/website/blob/master/content/en/examples/application/deployment.yaml
+
+# There are however some special cases around the use of HTTPS Git URLs. Aside
+# from the single file cases above, Konjure will try to clone the Git repository
+# into a temporary directory. Konjure tries to be smart about recognizing Git
+# repository URLs, but you may need to prefix your `https:` URL with `git::` for
+# it to be properly recognized.
+
+# Which brings us to Git URLs. When Konjure encounters a reference to a Git
+# repository, it clones it to a temporary location and then creates Konjure
+# resources for the files inside the cloned repository. Any standard Git URL is
+# supported (though, as we mentioned, you may need "git::" so it gets special
+# Git treatment). Subpath context can also be supplied so Konjure only looks at
+# part of the repository; you can use a `.git` extension on the repository
+# to help the parser determine where the path starts if your Git provider
+# allows the extension to be optional.
+
+#- git@github.com:kubernetes/website.git/content/en/examples/application/nginx
+# NOTE: This example is commented out because it is over 800MB with submodules
+
+# If there is any doubt, you can always invoke Konjure with a `--depth` to see
+# what `kind: Git` resource gets generated. Finally, note that Konjure relies
+# on the `git` executable to be on the `PATH` for all Git related actions.
+
+# And speaking of tools that Konjure can leverage to get manifests, how about
+# Helm! A URL to a Helm chart on Artifact Hub (artifacthub.io) can be forced
+# through the Helm 3+ `template` command...
+
+- helm::https://artifacthub.io/packages/helm/bitnami/nginx
+
+# Alternatively, you can reference the URL to the chart tarball directly, or if
+# have the repository configured in your local Helm installation you leverage
+# the `helm` URL scheme. The following two examples are equivalent to the
+# Artifact Hub example:
+
+# https://charts.bitnami.com/bitnami/nginx-8.8.0.tgz
+# helm://bitnami/nginx
+
+# You can also get your resources directly out of your cluster using kubectl`,
+# the `k8s` URL scheme accepts a namespace, type, and label selector...
+
+- k8s:default/deployments?labelSelector=app%3Dtest
+
+# ...would give you all `Deployment` resources in the default namespace with an
+# `app` label of `test`. Let's look at what Konjure resource that will create at
+# a depth of 1:
+---
+apiVersion: konjure.stormforge.io/v1beta2
+kind: Kubernetes
+
+namespaces:
+- default
+
+types:
+- deployments
+
+selector: app=test
+
+# That's much more useful, because now you can supply more then one type and
+# more then one namespace at a time. In fact, if you really want to, you can
+# even match namespaces using a selector:
+
+namespaceSelector: app=test
+
+# All of the namespaces will be collected before evaluation begins. The types
+# default to "deployments,statefulsets" if you do not specify anything. Also,
+# you may use an alternate `kubeconfig` or `context` by setting those fields.
+
+
+
+# This Ultimate List of Resources is still a work in progress. To see the raw
+# definitions of the Konjure resources you can check here:
+# https://github.com/thestormforge/konjure/blob/master/pkg/api/core/v1beta2/types.go
+# There are also more examples of URLs in the parser tests:
+# https://github.com/thestormforge/konjure/blob/master/internal/spec/parser_test.go
+
+# And of course, you can always set "--depth" to see what Konjure is seeing.
