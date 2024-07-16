@@ -26,9 +26,9 @@ jobs:
           fi
           echo "GORELEASER_FLAGS=${goreleaserFlags[@]}" >> $GITHUB_ENV
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
-          version: v1
+          version: latest
           args: release ${{ env.GORELEASER_FLAGS }}
         env:
           GITHUB_TOKEN: ${{ secrets.BMASTERS_TOKEN }}
