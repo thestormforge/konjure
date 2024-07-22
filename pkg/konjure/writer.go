@@ -368,9 +368,17 @@ func (w *EnvWriter) Write(nodes []*yaml.RNode) error {
 
 		case md.Kind == "Secret":
 			dataMap = n.GetDataMap()
+			secretType, _ := n.GetString("type")
 
 			// Decode the secret data
 			for k, v := range dataMap {
+
+				// Special handling for TLS secrets when NOT using file patterns, make the data look like environment variables (e.g. TLS_KEY)
+				if secretType == "kubernetes.io/tls" && w.FilePattern == "" {
+					dataMap[strings.ToUpper(strings.ReplaceAll(k, ".", "_"))] = v
+					continue
+				}
+
 				if vv, err := base64.StdEncoding.DecodeString(v); err == nil {
 					dataMap[k] = string(vv)
 				}
