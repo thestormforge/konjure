@@ -1,6 +1,6 @@
 module github.com/thestormforge/konjure
 
-go 1.22
+go 1.22.7
 
 require (
 	github.com/evanphx/json-patch/v5 v5.9.0
@@ -16,7 +16,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/sync v0.8.0
 	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00
-	sigs.k8s.io/kustomize/kyaml v0.17.2
+	sigs.k8s.io/kustomize/kyaml v0.18.0
 	sigs.k8s.io/yaml v1.4.0
 )
 
