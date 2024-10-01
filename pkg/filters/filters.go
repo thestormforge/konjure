@@ -232,3 +232,18 @@ func WithContext(ctx context.Context, f ContextFilterFunc) yaml.Filter {
 		return f(ctx, node)
 	})
 }
+
+// ResetStyle clears the style from the YAML nodes. This is one way to make parsing JSON into more useful YAML.
+func ResetStyle() yaml.Filter {
+	var resetStyle func(*yaml.Node)
+	resetStyle = func(node *yaml.Node) {
+		node.Style = 0
+		for _, node := range node.Content {
+			resetStyle(node)
+		}
+	}
+	return yaml.FilterFunc(func(node *yaml.RNode) (*yaml.RNode, error) {
+		resetStyle(node.YNode())
+		return node, nil
+	})
+}

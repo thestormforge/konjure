@@ -36,7 +36,7 @@ func (f *PatchFilter) Filter(node *yaml.RNode) (*yaml.RNode, error) {
 		if err := yaml.NewDecoder(bytes.NewReader(f.PatchData)).Decode(patchNode.YNode()); err != nil {
 			return nil, err
 		}
-		f.resetNodeStyle(patchNode.YNode())
+		_ = patchNode.PipeE(ResetStyle())
 
 		// Strategic Merge/Merge Patch is just the merge2 logic
 		opts := yaml.MergeOptions{
@@ -77,13 +77,5 @@ func (f *PatchFilter) Filter(node *yaml.RNode) (*yaml.RNode, error) {
 	default:
 		// This patch type is not supported
 		return nil, &UnsupportedPatchError{PatchType: f.PatchType}
-	}
-}
-
-// resetNodeStyle clears out the node style, this is useful to discard JSON formatting.
-func (f *PatchFilter) resetNodeStyle(node *yaml.Node) {
-	node.Style = 0
-	for _, node := range node.Content {
-		f.resetNodeStyle(node)
 	}
 }
