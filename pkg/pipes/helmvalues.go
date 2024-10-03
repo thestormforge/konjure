@@ -23,6 +23,8 @@ import (
 	"github.com/thestormforge/konjure/pkg/pipes/internal/strvals"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
+	"sigs.k8s.io/kustomize/kyaml/yaml/merge2"
+	"sigs.k8s.io/kustomize/kyaml/yaml/walk"
 )
 
 // HelmValues is a reader that emits resource nodes representing Helm values.
@@ -38,6 +40,11 @@ type HelmValues struct {
 
 	// The file system to use for resolving file contents (defaults to the OS reader).
 	FS fs.FS
+}
+
+// Empty returns true if there are no values configured on the this Helm values instance.
+func (r *HelmValues) Empty() bool {
+	return len(r.ValueFiles)+len(r.Values)+len(r.StringValues)+len(r.FileValues) == 0
 }
 
 // AsMap converts the configured user specified values into a map of values.
@@ -110,6 +117,26 @@ func (r *HelmValues) readFile(spec string) (string, error) {
 
 	data, err := os.ReadFile(spec)
 	return string(data), err
+}
+
+// Apply merges these Helm values into the filtered nodes without a schema.
+func (r *HelmValues) Apply() yaml.Filter {
+	return yaml.FilterFunc(func(node *yaml.RNode) (*yaml.RNode, error) {
+		if r.Empty() {
+			return node, nil
+		}
+
+		w := walk.Walker{
+			Visitor: merge2.Merger{},
+			Sources: []*yaml.RNode{node},
+		}
+		if nodes, err := r.Read(); err != nil {
+			return nil, err
+		} else {
+			w.Sources = append(w.Sources, nodes...)
+		}
+		return w.Walk()
+	})
 }
 
 // MergeMaps is used to combine results from multiple values.

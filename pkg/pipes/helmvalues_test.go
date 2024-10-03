@@ -80,6 +80,25 @@ c: d`),
 	}
 }
 
+func TestHelmValues_Apply(t *testing.T) {
+	nodes, err := (&filters.Pipeline{
+		Inputs: []kio.Reader{
+			&HelmValues{Values: []string{"a=b"}},
+		},
+		Filters: []kio.Filter{
+			kio.FilterAll((&HelmValues{Values: []string{
+				"c.d=e",
+				"a=z",
+			}}).Apply()),
+		},
+	}).Read()
+	assert.NoError(t, err, "failed to apply")
+
+	actual, err := nodes[0].MarshalJSON()
+	assert.NoError(t, err, "failed to produce JSON")
+	assert.JSONEq(t, `{"a":"z","c":{"d":"e"}}`, string(actual))
+}
+
 func TestHelmValues_Flatten(t *testing.T) {
 	flattened, err := (&filters.Pipeline{
 		Inputs: []kio.Reader{
