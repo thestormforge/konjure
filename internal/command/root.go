@@ -81,6 +81,7 @@ func NewRootCommand(version, refspec, date string) *cobra.Command {
 	cmd.Flags().StringVar(&f.Kind, "kind", "", "keep only resource matching the specified kind")
 	cmd.Flags().BoolVar(&f.KeepStatus, "keep-status", false, "retain status fields, if present")
 	cmd.Flags().BoolVar(&f.KeepComments, "keep-comments", true, "retain YAML comments")
+	cmd.Flags().BoolVar(&f.ResetStyle, "reset-style", false, "reset YAML style")
 	cmd.Flags().BoolVar(&f.Format, "format", false, "format output to Kubernetes conventions")
 	cmd.Flags().BoolVar(&w.RestoreVerticalWhiteSpace, "vws", false, "attempt to restore vertical white space")
 	cmd.Flags().BoolVarP(&f.RecursiveDirectories, "recurse", "r", false, "recursively process directories")

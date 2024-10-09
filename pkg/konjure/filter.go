@@ -43,6 +43,8 @@ type Filter struct {
 	KeepStatus bool
 	// Flag indicating that comments should not be stripped.
 	KeepComments bool
+	// Flag indicating that style should be reset.
+	ResetStyle bool
 	// Flag indicating that output should be formatted.
 	Format bool
 	// Flag indicating that output should be sorted.
@@ -107,6 +109,10 @@ func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 
 	if !f.KeepComments {
 		p.Filters = append(p.Filters, &kiofilters.StripCommentsFilter{})
+	}
+
+	if f.ResetStyle {
+		p.Filters = append(p.Filters, kio.FilterAll(filters.ResetStyle()))
 	}
 
 	if f.Format {
