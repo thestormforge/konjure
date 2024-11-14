@@ -82,6 +82,16 @@ func Has(functions ...yaml.Filter) yaml.Filter {
 	})
 }
 
+// When is used for conditionally constructing filter chains. Unlike other filters, the condition
+// is evaluated before the pipeline is executed. This is primarily useful to avoid needing to declare
+// a pipeline as a slice of filters which is then built up conditionally.
+func When(condition bool, filter yaml.Filter) yaml.Filter {
+	if condition {
+		return filter
+	}
+	return yaml.FilterFunc(func(object *yaml.RNode) (*yaml.RNode, error) { return object, nil })
+}
+
 // TeeMatched acts as a "tee" filter for nodes matched by the supplied path matcher:
 // each matched node is processed by the supplied filters and the result of the
 // entire operation is the initial node (or an error).
