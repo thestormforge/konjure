@@ -17,11 +17,15 @@ limitations under the License.
 package pipes
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
+	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 	"github.com/thestormforge/konjure/pkg/konjure"
 	"sigs.k8s.io/kustomize/kyaml/kio"
@@ -96,6 +100,62 @@ func CommandWriters(cmd *cobra.Command, overwriteFiles bool) []kio.Writer {
 	}
 
 	return outputs
+}
+
+// CommandEditor returns a filter which launches each of nodes into an editor for interactive edits.
+func CommandEditor(cmd *cobra.Command) kio.Filter {
+	return kio.FilterFunc(func(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
+		for i := range nodes {
+			if err := editNode(cmd, nodes[i]); err != nil {
+				return nil, err
+			}
+		}
+		return nodes, nil
+	})
+}
+
+// editNode interactively edits a node in-place.
+func editNode(cmd *cobra.Command, node *yaml.RNode) error {
+	tmp, err := os.CreateTemp("", strings.ReplaceAll(cmd.CommandPath(), " ", "-")+"-*.yaml")
+	if err != nil {
+		return err
+	}
+	defer func() { _ = os.Remove(tmp.Name()) }()
+
+	// TODO We should support an option to edit in JSON?
+	// TODO Should we support the option to force Windows line endings?
+	err = yaml.NewEncoder(tmp).Encode(node.YNode())
+	_ = tmp.Close()
+	if err != nil {
+		return err
+	}
+
+	editor := editorCmd(cmd.Context(), tmp.Name())
+	editor.Stdout, editor.Stderr = cmd.OutOrStdout(), cmd.ErrOrStderr()
+	if f, ok := cmd.InOrStdin().(*os.File); ok && isatty.IsTerminal(f.Fd()) {
+		editor.Stdin = f
+	} else if tty, err := os.Open("/dev/tty"); err == nil {
+		defer tty.Close()
+		editor.Stdin = tty
+	} else {
+		return fmt.Errorf("unable to open terminal")
+	}
+
+	if err := editor.Run(); err != nil {
+		return err
+	}
+
+	result, err := yaml.ReadFile(tmp.Name())
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			// If we went to empty, just ignore it
+			return nil
+		}
+		return err
+	}
+
+	*node = *result
+	return nil
 }
 
 // fileReader is a reader the lazily opens a file for reading and automatically
