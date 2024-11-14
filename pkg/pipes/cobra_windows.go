@@ -2,7 +2,10 @@ package pipes
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"os/exec"
+	"strings"
 )
 
 func editorCmd(ctx context.Context, filename string) *exec.Cmd {
@@ -26,5 +29,5 @@ func editorCmd(ctx context.Context, filename string) *exec.Cmd {
 		args = append(args, shell, "/C", fmt.Sprintf("%s %q", editor, filename))
 	}
 
-	return exec.CommandContext(cmd.Context(), args[0], args[1:]...)
+	return exec.CommandContext(ctx, args[0], args[1:]...)
 }
