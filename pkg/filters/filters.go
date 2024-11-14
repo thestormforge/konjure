@@ -229,6 +229,18 @@ func (p *Pipeline) Execute() error {
 	return nil
 }
 
+// PipeOne acts as a pipeline for a single node. If the supplied reader produces more than one node, this will fail.
+func PipeOne(r kio.Reader, f ...yaml.Filter) (*yaml.RNode, error) {
+	nodes, err := r.Read()
+	if err != nil || len(nodes) == 0 {
+		return nil, err
+	}
+	if len(nodes) == 1 {
+		return nodes[0].Pipe(f...)
+	}
+	return nil, fmt.Errorf("expected a single document, got %d", len(nodes))
+}
+
 // ContextFilterFunc is a context-aware YAML filter function.
 type ContextFilterFunc func(context.Context, *yaml.RNode) (*yaml.RNode, error)
 
