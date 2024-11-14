@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"text/template"
 
+	"github.com/thestormforge/konjure/pkg/filters"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -78,28 +79,17 @@ func EncodeJSON(values ...any) kio.Reader {
 type encodingJSONReader []any
 
 func (r encodingJSONReader) Read() ([]*yaml.RNode, error) {
-	// Ignore the style from parsing JSON, just reset it to the default
-	var resetStyle func(node *yaml.Node)
-	resetStyle = func(node *yaml.Node) {
-		node.Style = 0
-		for _, node := range node.Content {
-			resetStyle(node)
-		}
-	}
-
 	nodes := make([]*yaml.RNode, len(r))
 	for i := range r {
-		data, err := json.Marshal(r[i])
-		if err != nil {
-			return nil, err
-		}
 		nodes[i] = yaml.NewRNode(&yaml.Node{})
-		if err := yaml.NewDecoder(bytes.NewReader(data)).Decode(nodes[i].YNode()); err != nil {
+		var buf bytes.Buffer
+		if err := json.NewEncoder(&buf).Encode(r[i]); err != nil {
+			return nil, err
+		} else if err := yaml.NewDecoder(&buf).Decode(nodes[i].YNode()); err != nil {
 			return nil, err
 		}
-		resetStyle(nodes[i].YNode())
 	}
-	return nodes, nil
+	return filters.FilterAll(filters.ResetStyle()).Filter(nodes)
 }
 
 // Decode returns a writer over the YAML decoding (one per resource document).
@@ -137,6 +127,7 @@ func (w *decodingJSONWriter) Write(nodes []*yaml.RNode) error {
 		return fmt.Errorf("document count mismatch, expected %d, got %d", len(w.Values), len(nodes))
 	}
 	for i := range w.Values {
+		// WARNING: This only works with mapping and sequence nodes
 		data, err := nodes[i].MarshalJSON()
 		if err != nil {
 			return err
