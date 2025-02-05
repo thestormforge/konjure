@@ -25,6 +25,9 @@ type PatchFilter struct {
 	PatchType string
 	// The actual raw patch.
 	PatchData []byte
+	// Flag that enables strict JSON Patch processing. Default behavior is to allow
+	// missing remove paths and create missing add paths.
+	StrictJSONPatch bool
 }
 
 // Filter applies the configured patch.
@@ -59,12 +62,17 @@ func (f *PatchFilter) Filter(node *yaml.RNode) (*yaml.RNode, error) {
 			return nil, err
 		}
 
+		// Adjust strict interpretation of JSON Patch
+		jsonPatchOptions := jsonpatch.NewApplyOptions()
+		jsonPatchOptions.AllowMissingPathOnRemove = !f.StrictJSONPatch
+		jsonPatchOptions.EnsurePathExistsOnAdd = !f.StrictJSONPatch
+
 		// This is going to butcher the YAML ordering/comments/etc.
 		jsonData, err := node.MarshalJSON()
 		if err != nil {
 			return nil, err
 		}
-		jsonData, err = jsonPatch.Apply(jsonData)
+		jsonData, err = jsonPatch.ApplyWithOptions(jsonData, jsonPatchOptions)
 		if err != nil {
 			return nil, err
 		}
