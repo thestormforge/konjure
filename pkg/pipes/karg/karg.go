@@ -111,6 +111,18 @@ func ResourceKindName(apiVersion, kind, name string) Resource {
 	return Resource(kind + "." + version + "." + group + "/" + name)
 }
 
+// Subresource represents the subresource passed as an argument.
+type Subresource string
+
+func (o Subresource) getCmd(cmd *exec.Cmd)   { o.kubectlCmd(cmd) }
+func (o Subresource) applyCmd(cmd *exec.Cmd) { o.kubectlCmd(cmd) }
+func (o Subresource) patchCmd(cmd *exec.Cmd) { o.kubectlCmd(cmd) }
+func (o Subresource) kubectlCmd(cmd *exec.Cmd) {
+	if o != "" {
+		cmd.Args = append(cmd.Args, "--subresource", string(o))
+	}
+}
+
 // AllNamespaces represents the "--all-namespaces" option.
 type AllNamespaces bool
 
