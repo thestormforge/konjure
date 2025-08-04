@@ -241,6 +241,7 @@ const (
 )
 
 // PatchType represents the "--type=json|merge|strategic" option on the patch command.
+// NOTE: As a special case, an "apply" patch will produce a "--server-side" option instead.
 type PatchType string
 
 func (o PatchType) patchCmd(cmd *exec.Cmd) { o.kubectlCmd(cmd) }
@@ -254,6 +255,8 @@ func (o PatchType) kubectlCmd(cmd *exec.Cmd) {
 			cmd.Args = append(cmd.Args, "--type=merge")
 		case "application/strategic-merge-patch+json":
 			cmd.Args = append(cmd.Args, "--type=strategic")
+		case "application/apply-patch+yaml":
+			cmd.Args = append(cmd.Args, "--server-side")
 		default:
 			cmd.Args = append(cmd.Args, "--type="+string(o))
 		}
@@ -265,6 +268,16 @@ const (
 	PatchTypeMerge     PatchType = "merge"
 	PatchTypeStrategic PatchType = "strategic"
 )
+
+// ServerSide represents the "--server-side" option on the patch command.
+type ServerSide bool
+
+func (o ServerSide) patchCmd(cmd *exec.Cmd) { o.kubectlCmd(cmd) }
+func (o ServerSide) kubectlCmd(cmd *exec.Cmd) {
+	if o {
+		cmd.Args = append(cmd.Args, "--server-side")
+	}
+}
 
 // Patch represents the "--patch" option on the patch command.
 type Patch string
