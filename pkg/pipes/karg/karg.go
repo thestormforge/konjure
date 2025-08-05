@@ -246,9 +246,10 @@ func (o Wait) kubectlCmd(cmd *exec.Cmd) {
 	}
 }
 
-// FieldManager represents the "--field-manager" option on the patch command.
+// FieldManager represents the "--field-manager" option.
 type FieldManager string
 
+func (o FieldManager) applyCmd(cmd *exec.Cmd) { o.kubectlCmd(cmd) }
 func (o FieldManager) patchCmd(cmd *exec.Cmd) { o.kubectlCmd(cmd) }
 func (o FieldManager) kubectlCmd(cmd *exec.Cmd) {
 	if o != "" {
