@@ -235,6 +235,16 @@ func OutputGoTemplateFile(file string) Output    { return Output("go-template-fi
 func OutputJSONPath(path string) Output          { return Output("jsonpath=" + path) }
 func OutputJSONPathFile(file string) Output      { return Output("jsonpath-file=" + file) }
 
+// Filename represents the "--filename" option.
+type Filename string
+
+func (o Filename) applyCmd(cmd *exec.Cmd) { o.kubectlCmd(cmd) }
+func (o Filename) kubectlCmd(cmd *exec.Cmd) {
+	if o != "" {
+		cmd.Args = append(cmd.Args, "--filename", string(o))
+	}
+}
+
 // Wait represents the "--wait" option
 type Wait bool
 
