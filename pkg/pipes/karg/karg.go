@@ -177,6 +177,26 @@ const (
 
 func (o DryRun) IsDryRun() bool { return o != "" && o != "none" }
 
+// ServerSide represents the "--server-side" option.
+type ServerSide bool
+
+func (o ServerSide) applyCmd(cmd *exec.Cmd) { o.kubectlCmd(cmd) }
+func (o ServerSide) kubectlCmd(cmd *exec.Cmd) {
+	if o {
+		cmd.Args = append(cmd.Args, "--server-side")
+	}
+}
+
+// ForceConflicts represents the "--force-conflicts" option.
+type ForceConflicts bool
+
+func (o ForceConflicts) applyCmd(cmd *exec.Cmd) { o.kubectlCmd(cmd) }
+func (o ForceConflicts) kubectlCmd(cmd *exec.Cmd) {
+	if o {
+		cmd.Args = append(cmd.Args, "--force-conflicts")
+	}
+}
+
 // IgnoreNotFound represents the "--ignore-not-found" option.
 type IgnoreNotFound bool
 
@@ -255,8 +275,6 @@ func (o PatchType) kubectlCmd(cmd *exec.Cmd) {
 			cmd.Args = append(cmd.Args, "--type=merge")
 		case "application/strategic-merge-patch+json":
 			cmd.Args = append(cmd.Args, "--type=strategic")
-		case "application/apply-patch+yaml":
-			cmd.Args = append(cmd.Args, "--server-side")
 		default:
 			cmd.Args = append(cmd.Args, "--type="+string(o))
 		}
@@ -268,16 +286,6 @@ const (
 	PatchTypeMerge     PatchType = "merge"
 	PatchTypeStrategic PatchType = "strategic"
 )
-
-// ServerSide represents the "--server-side" option on the patch command.
-type ServerSide bool
-
-func (o ServerSide) patchCmd(cmd *exec.Cmd) { o.kubectlCmd(cmd) }
-func (o ServerSide) kubectlCmd(cmd *exec.Cmd) {
-	if o {
-		cmd.Args = append(cmd.Args, "--server-side")
-	}
-}
 
 // Patch represents the "--patch" option on the patch command.
 type Patch string
