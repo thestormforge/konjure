@@ -17,7 +17,9 @@ limitations under the License.
 package karg
 
 import (
+	"bytes"
 	"os/exec"
+	"slices"
 	"strings"
 )
 
@@ -61,6 +63,20 @@ func WithPatchOptions(cmd *exec.Cmd, opts ...PatchOption) {
 func WithWaitOptions(cmd *exec.Cmd, opts ...WaitOption) {
 	for _, opt := range opts {
 		opt.waitCmd(cmd)
+	}
+}
+
+// RawFile represents the "--filename=-" option along with the contents of stdin.
+// NOTE: This option has no effect when used with an `ExecWriter` (which also uses `--filename=-`).
+type RawFile []byte
+
+func (o RawFile) applyCmd(cmd *exec.Cmd) { o.kubectlCmd(cmd) }
+func (o RawFile) kubectlCmd(cmd *exec.Cmd) {
+	if len(o) > 0 {
+		if !slices.Contains(cmd.Args, "--filename=-") {
+			cmd.Args = append(cmd.Args, "--filename=-")
+			cmd.Stdin = bytes.NewReader(o)
+		}
 	}
 }
 
@@ -234,16 +250,6 @@ func OutputGoTemplate(tmpl string) Output        { return Output("go-template=" 
 func OutputGoTemplateFile(file string) Output    { return Output("go-template-file=" + file) }
 func OutputJSONPath(path string) Output          { return Output("jsonpath=" + path) }
 func OutputJSONPathFile(file string) Output      { return Output("jsonpath-file=" + file) }
-
-// Filename represents the "--filename" option.
-type Filename string
-
-func (o Filename) applyCmd(cmd *exec.Cmd) { o.kubectlCmd(cmd) }
-func (o Filename) kubectlCmd(cmd *exec.Cmd) {
-	if o != "" {
-		cmd.Args = append(cmd.Args, "--filename", string(o))
-	}
-}
 
 // Wait represents the "--wait" option
 type Wait bool
