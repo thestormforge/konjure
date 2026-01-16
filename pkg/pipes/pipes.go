@@ -45,6 +45,12 @@ func (r ReadOneFunc) Read() ([]*yaml.RNode, error) {
 	return nil, err
 }
 
+// ReadSelf allows an RNode to act as a reader of itself.
+type ReadSelf yaml.RNode
+
+// Read returns a single element slice containing the receiver.
+func (r *ReadSelf) Read() ([]*yaml.RNode, error) { return []*yaml.RNode{(*yaml.RNode)(r)}, nil }
+
 // ErrorReader is an adapter to allow the use of an error as a kio.Reader.
 type ErrorReader struct{ Err error }
 
