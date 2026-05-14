@@ -100,8 +100,7 @@ func (cmd *command) Output() ([]byte, error) {
 func (cmd *command) Read() ([]*yaml.RNode, error) {
 	out, err := cmd.Output()
 	if err != nil {
-		var eerr *exec.ExitError
-		if errors.As(err, &eerr) {
+		if eerr, ok := errors.AsType[*exec.ExitError](err); ok {
 			msg := strings.TrimSpace(string(eerr.Stderr))
 			msg = strings.TrimPrefix(msg, "Error: ")
 			return nil, fmt.Errorf("%s %w: %s", filepath.Base(cmd.Path), err, msg)
