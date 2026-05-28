@@ -2,6 +2,7 @@ package pipes
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -37,6 +38,21 @@ func FileWriterMkdirAll(perm os.FileMode) FileReadWriterOption {
 	}
 }
 
+// FileReaderIgnoreNotExists is an option that allows you to treat missing files like empty files.
+func FileReaderIgnoreNotExists() FileReadWriterOption {
+	return func(opts *fileReadWriterOptions) error {
+		if opts.Reader == nil {
+			return fmt.Errorf("ignoreNotExists requires a FileReader")
+		}
+		if err, ok := opts.Reader.Reader.(*fileReaderError); ok {
+			if errors.Is(err.Err, fs.ErrNotExist) {
+				err.Err = nil
+			}
+		}
+		return nil
+	}
+}
+
 // FileReader is a KIO reader that lazily loads a file.
 type FileReader struct {
 	// The file name to read.
@@ -49,6 +65,14 @@ type FileReader struct {
 
 // Read opens the configured file and reads the contents.
 func (r *FileReader) Read() ([]*yaml.RNode, error) {
+	opts := fileReadWriterOptions{
+		Reader: &kio.ByteReader{
+			SetAnnotations: map[string]string{
+				kioutil.PathAnnotation: r.Name,
+			},
+		},
+	}
+
 	// TODO Should this open the file so we don't need the whole thing in memory to start?
 	var data []byte
 	var err error
@@ -58,18 +82,11 @@ func (r *FileReader) Read() ([]*yaml.RNode, error) {
 		data, err = os.ReadFile(r.Name)
 	}
 	if err != nil {
-		return nil, err
+		opts.Reader.Reader = &fileReaderError{Err: err}
+	} else {
+		opts.Reader.Reader = bytes.NewReader(data)
 	}
 
-	// Wrap the reader in an options struct for configuration
-	opts := fileReadWriterOptions{
-		Reader: &kio.ByteReader{
-			Reader: bytes.NewReader(data),
-			SetAnnotations: map[string]string{
-				kioutil.PathAnnotation: r.Name,
-			},
-		},
-	}
 	for _, opt := range r.Options {
 		if err := opt(&opts); err != nil {
 			return nil, err
@@ -78,6 +95,11 @@ func (r *FileReader) Read() ([]*yaml.RNode, error) {
 
 	return opts.Reader.Read()
 }
+
+// fileReaderError wraps an error occurring during read so it can be deferred.
+type fileReaderError struct{ Err error }
+
+func (r *fileReaderError) Read([]byte) (n int, err error) { return 0, r.Err }
 
 // FileWriter is a KIO writer that writes nodes to a file.
 type FileWriter struct {
