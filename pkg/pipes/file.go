@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -46,7 +47,7 @@ func FileReaderIgnoreNotExists() FileReadWriterOption {
 		}
 		if err, ok := opts.Reader.Reader.(*fileReaderError); ok {
 			if errors.Is(err.Err, fs.ErrNotExist) {
-				err.Err = nil
+				err.Err = io.EOF
 			}
 		}
 		return nil
