@@ -25,6 +25,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -76,7 +77,7 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 	}
 
 	// Determine the effective format and template
-	f, t := strings.ToLower(w.Format), w.Template
+	f, t, opts := strings.ToLower(w.Format), w.Template, slices.Clone(w.Options)
 	if pos := strings.IndexRune(f, '=') + 1; pos > 0 {
 		f, t = f[0:pos-1], w.Format[pos:]
 	} else if strings.Contains(f, "{{") {
@@ -103,7 +104,7 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 			}
 		}
 
-	case "json":
+	case "json", "json-pretty":
 		ww = &JSONWriter{
 			Writer:                w.Writer,
 			KeepReaderAnnotations: w.KeepReaderAnnotations,
@@ -116,6 +117,11 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 		if len(nodes) == 1 && nonKube {
 			ww.(*JSONWriter).WrappingAPIVersion = ""
 			ww.(*JSONWriter).WrappingKind = ""
+		}
+
+		// Allow JSON to be pretty printed
+		if f == "json-pretty" {
+			opts = append(opts, IndentJSON("", "  "))
 		}
 
 	case "ndjson":
@@ -182,7 +188,7 @@ func (w *Writer) Write(nodes []*yaml.RNode) error {
 	if ww == nil {
 		return fmt.Errorf("unknown format: %s", w.Format)
 	}
-	for _, opt := range w.Options {
+	for _, opt := range opts {
 		opt(ww)
 	}
 	return ww.Write(nodes)
@@ -196,6 +202,19 @@ type JSONWriter struct {
 	WrappingKind          string
 	WrappingAPIVersion    string
 	Sort                  bool
+
+	encoderOpts []func(*json.Encoder)
+}
+
+// IndentJSON is a writer option that sets the supplied indentation parameters on the JSON encoder.
+func IndentJSON(prefix, indent string) WriterOption {
+	return func(writer kio.Writer) {
+		if jw, ok := writer.(*JSONWriter); ok {
+			jw.encoderOpts = append(jw.encoderOpts, func(enc *json.Encoder) {
+				enc.SetIndent(prefix, indent)
+			})
+		}
+	}
 }
 
 // Write encodes each node as a single line of JSON.
@@ -207,6 +226,10 @@ func (w *JSONWriter) Write(nodes []*yaml.RNode) error {
 	}
 
 	enc := json.NewEncoder(w.Writer)
+	for _, opt := range w.encoderOpts {
+		opt(enc)
+	}
+
 	for _, n := range nodes {
 		// This is to be consistent with ByteWriter
 		if !w.KeepReaderAnnotations {
