@@ -1,7 +1,6 @@
 # 🧙‍ Konjure
 
 ![](https://github.com/thestormforge/konjure/workflows/Main/badge.svg)
-[![Go Report Card](https://goreportcard.com/badge/github.com/thestormforge/konjure)](https://goreportcard.com/report/github.com/thestormforge/konjure)
 
 Konjure generates and transforms Kubernetes resource definitions. It can be used as a standalone utility or can be integrated into your GitOps workflows.
 
@@ -20,7 +19,7 @@ Each [release](https://github.com/thestormforge/konjure/releases/) includes bina
 Install via the StormForge Tap:
 
 ```shell
-brew install thestormforge/tap/konjure
+brew install --cask thestormforge/tap/konjure
 ```
 
 ## Usage
