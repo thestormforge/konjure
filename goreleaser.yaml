@@ -21,23 +21,24 @@ snapshot:
 release:
   draft: true
   prerelease: auto
-brews:
-- repository:
+homebrew_casks:
+- name: konjure
+  description: Manifest appear!
+  homepage: "https://github.com/thestormforge/konjure/"
+  skip_upload: auto
+  repository:
     owner: thestormforge
     name: homebrew-tap
   commit_author:
     name: Butch Masters
     email: butch@stormforge.io
-  directory: Formula
-  homepage: "https://github.com/thestormforge/konjure/"
-  description: Manifest appear!
-  install: |
-    bin.install "konjure"
-
-    # generate and install bash completion
-    output = Utils.safe_popen_read("#{bin}/konjure", "completion", "bash")
-    (bash_completion/"konjure").write output
-
-    # generate and install zsh completion
-    output = Utils.safe_popen_read("#{bin}/konjure", "completion", "zsh")
-    (zsh_completion/"_konjure").write output
+  generate_completions_from_executable:
+    shell_parameter_format: cobra
+    args:
+    - completion
+  hooks:
+    post:
+      install: |
+        if OS.mac?
+          system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/konjure"]
+        end
