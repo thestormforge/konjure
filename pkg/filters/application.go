@@ -18,6 +18,7 @@ package filters
 
 import (
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/thestormforge/konjure/internal/application"
@@ -109,10 +110,9 @@ func (f *ApplicationFilter) appFromLabels(n *yaml.RNode) (*yaml.RNode, error) {
 		nameLabelKeys = []string{application.LabelName, "k8s-app", "app"}
 	}
 	var nameLabelKey, nameLabel string
-	for i := len(nameLabelKeys) - 1; i >= 0; i-- {
-		if md.Labels[nameLabelKeys[i]] != "" {
-			nameLabelKey = nameLabelKeys[i]
-			nameLabel = md.Labels[nameLabelKey]
+	for _, k := range slices.Backward(nameLabelKeys) {
+		if md.Labels[k] != "" {
+			nameLabelKey, nameLabel = k, md.Labels[nameLabelKey]
 		}
 	}
 

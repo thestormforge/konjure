@@ -67,7 +67,7 @@ func (f *secretFlags) preRun(*cobra.Command, []string) {
 
 	for k, v := range f.passwords {
 		r := konjurev1beta2.PasswordRecipe{Key: k}
-		for _, s := range strings.Split(v, ",") {
+		for s := range strings.SplitSeq(v, ",") {
 			p := strings.SplitN(s, ":", 2)
 			if len(p) != 2 {
 				continue

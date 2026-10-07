@@ -18,6 +18,7 @@ package pipes
 
 import (
 	"io/fs"
+	"maps"
 	"os"
 
 	"github.com/thestormforge/konjure/pkg/pipes/internal/strvals"
@@ -142,9 +143,7 @@ func (r *HelmValues) Apply() yaml.Filter {
 // MergeMaps is used to combine results from multiple values.
 func (r *HelmValues) MergeMaps(a, b map[string]any) map[string]any {
 	out := make(map[string]any, len(a))
-	for k, v := range a {
-		out[k] = v
-	}
+	maps.Copy(out, a)
 	for k, v := range b {
 		if v, ok := v.(map[string]any); ok {
 			if bv, ok := out[k]; ok {
