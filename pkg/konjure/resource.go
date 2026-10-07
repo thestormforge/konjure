@@ -106,8 +106,8 @@ func (r *Resource) UnmarshalJSON(bytes []byte) error {
 		return fmt.Errorf("unknown resource type: %T", rr)
 	}
 
-	type rt *Resource
-	return json.Unmarshal(bytes, rt(r))
+	type rt Resource
+	return json.Unmarshal(bytes, (*rt)(r))
 }
 
 // MarshalJSON produces JSON for this Konjure resource. If it was initially read
