@@ -36,8 +36,6 @@ func init() {
 }
 
 func main() {
-	// TODO Wrap `http.DefaultTransport` so it includes the UA string
-
 	ctx := context.Background()
 	cmd := command.NewRootCommand(version, commit, date)
 	if err := cmd.ExecuteContext(ctx); err != nil {
