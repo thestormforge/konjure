@@ -1,5 +1,5 @@
 /*
-Copyright 2021 GramLabs, Inc.
+Copyright 2021 CloudBolt, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,8 +36,6 @@ func init() {
 }
 
 func main() {
-	// TODO Wrap `http.DefaultTransport` so it includes the UA string
-
 	ctx := context.Background()
 	cmd := command.NewRootCommand(version, commit, date)
 	if err := cmd.ExecuteContext(ctx); err != nil {

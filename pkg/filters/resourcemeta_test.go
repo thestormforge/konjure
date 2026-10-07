@@ -1,5 +1,5 @@
 /*
-Copyright 2021 GramLabs, Inc.
+Copyright 2021 CloudBolt, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -106,14 +106,11 @@ func TestResourceMetaFilter_Filter(t *testing.T) {
 // node returns an RNode representing the supplied resource metadata.
 func rmNode(name string, labels, annotations map[string]string) *yaml.RNode {
 	data, err := yaml.Marshal(&yaml.ResourceMeta{
-		TypeMeta: yaml.TypeMeta{APIVersion: "invalid.example.com/v1", Kind: "Test"},
-		ObjectMeta: yaml.ObjectMeta{
-			NameMeta: yaml.NameMeta{
-				Name: name,
-			},
-			Labels:      labels,
-			Annotations: annotations,
-		},
+		APIVersion:  "invalid.example.com/v1",
+		Kind:        "Test",
+		Name:        name,
+		Labels:      labels,
+		Annotations: annotations,
 	})
 	if err != nil {
 		panic(err)

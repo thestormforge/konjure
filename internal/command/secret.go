@@ -1,5 +1,5 @@
 /*
-Copyright 2021 GramLabs, Inc.
+Copyright 2021 CloudBolt, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -67,7 +67,7 @@ func (f *secretFlags) preRun(*cobra.Command, []string) {
 
 	for k, v := range f.passwords {
 		r := konjurev1beta2.PasswordRecipe{Key: k}
-		for _, s := range strings.Split(v, ",") {
+		for s := range strings.SplitSeq(v, ",") {
 			p := strings.SplitN(s, ":", 2)
 			if len(p) != 2 {
 				continue

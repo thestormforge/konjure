@@ -1,5 +1,5 @@
 /*
-Copyright 2021 GramLabs, Inc.
+Copyright 2021 CloudBolt, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path"
 	"path/filepath"
@@ -384,9 +385,7 @@ func (w *EnvWriter) Write(nodes []*yaml.RNode) error {
 
 			// Ignore the binaryData field unless we are looking for files
 			if w.FilePattern != "" {
-				for k, v := range n.GetBinaryDataMap() {
-					dataMap[k] = v
-				}
+				maps.Copy(dataMap, n.GetBinaryDataMap())
 			}
 
 		case md.Kind == "Secret":
@@ -748,7 +747,7 @@ func lastLine(n *yaml.Node) int {
 
 // splitColumns splits a column specification into fields, also returning the header names.
 func splitColumns(spec string) (headers []string, columns []string) {
-	for _, c := range strings.Split(spec, ",") {
+	for c := range strings.SplitSeq(spec, ",") {
 		c = strings.TrimSpace(c)
 		if pos := strings.IndexRune(c, ':'); pos > 0 {
 			headers = append(headers, c[0:pos])

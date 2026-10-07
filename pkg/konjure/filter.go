@@ -1,5 +1,5 @@
 /*
-Copyright 2021 GramLabs, Inc.
+Copyright 2021 CloudBolt, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -119,6 +119,7 @@ func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 		p.Filters = append(p.Filters, &kiofilters.FormatFilter{})
 	}
 
+	// TODO Should we also sort by name?
 	if f.Reverse {
 		p.Filters = append(p.Filters, filters.UninstallOrder())
 	} else if f.Sort {

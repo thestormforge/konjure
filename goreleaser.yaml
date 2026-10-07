@@ -1,6 +1,8 @@
 version: 2
 before:
-  hooks: ['go mod tidy', 'go generate ./...']
+  hooks:
+  - go mod tidy
+  - go generate ./...
 builds:
 - env:
   - CGO_ENABLED=0
@@ -15,7 +17,7 @@ archives:
   files:
   - none*
 checksum:
-  name_template: "checksums.txt"
+  name_template: checksums.txt
 snapshot:
   name_template: "{{ .Tag }}-next+commit.{{ .ShortCommit }}"
 release:
@@ -24,14 +26,14 @@ release:
 homebrew_casks:
 - name: konjure
   description: Manifest appear!
-  homepage: "https://github.com/thestormforge/konjure/"
+  homepage: https://github.com/thestormforge/konjure/
   skip_upload: auto
   repository:
     owner: thestormforge
     name: homebrew-tap
   commit_author:
-    name: Butch Masters
-    email: butch@stormforge.io
+    name: grambot
+    email: grambot@users.noreply.github.com
   generate_completions_from_executable:
     shell_parameter_format: cobra
     args:

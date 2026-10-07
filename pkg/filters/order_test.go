@@ -1,3 +1,19 @@
+/*
+Copyright 2022 CloudBolt, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package filters
 
 import (
@@ -19,45 +35,54 @@ func TestSortByKind(t *testing.T) {
 			desc: "install order",
 			sort: InstallOrder(),
 			resources: []yaml.ResourceMeta{
-				kindAndName("APIService", "!"),
-				kindAndName("Bunny", "!"),
-				kindAndName("ClusterRole", "l"),
-				kindAndName("ClusterRoleBinding", "s"),
-				kindAndName("ClusterRoleBindingList", "t"),
-				kindAndName("ClusterRoleList", "i"),
-				kindAndName("ConfigMap", "f"),
-				kindAndName("CronJob", "o"),
-				kindAndName("CustomResourceDefinition", "i"),
-				kindAndName("DaemonSet", "i"),
-				kindAndName("Deployment", "d"),
-				kindAndName("Fuzzy", "!"),
-				kindAndName("HorizontalPodAutoscaler", "o"),
-				kindAndName("Ingress", "s"),
-				kindAndName("IngressClass", "u"),
-				kindAndName("Job", "i"),
-				kindAndName("LimitRange", "e"),
-				kindAndName("Namespace", "s"),
-				kindAndName("NetworkPolicy", "u"),
-				kindAndName("PersistentVolume", "a"),
-				kindAndName("PersistentVolumeClaim", "g"),
-				kindAndName("Pod", "a"),
-				kindAndName("PodDisruptionBudget", "c"),
-				kindAndName("PodSecurityPolicy", "r"),
-				kindAndName("ReplicaSet", "i"),
-				kindAndName("ReplicationController", "l"),
-				kindAndName("ResourceQuota", "p"),
-				kindAndName("Role", "i"),
-				kindAndName("RoleBinding", "e"),
-				kindAndName("RoleBindingList", "x"),
-				kindAndName("RoleList", "c"),
-				kindAndName("Secret", "l"),
-				kindAndName("SecretList", "i"),
-				kindAndName("Service", "p"),
-				kindAndName("ServiceAccount", "a"),
-				kindAndName("StatefulSet", "c"),
-				kindAndName("StorageClass", "r"),
+				{Kind: "APIService", Name: "!"},
+				{Kind: "Bunny", Name: "!"},
+				{Kind: "ClusterRole", Name: "l"},
+				{Kind: "ClusterRoleBinding", Name: "s"},
+				{Kind: "ClusterRoleBindingList", Name: "t"},
+				{Kind: "ClusterRoleList", Name: "i"},
+				{Kind: "ConfigMap", Name: "f"},
+				{Kind: "CronJob", Name: "o"},
+				{Kind: "CustomResourceDefinition", Name: "i"},
+				{Kind: "DaemonSet", Name: "i"},
+				{Kind: "Deployment", Name: "d"},
+				{Kind: "Fuzzy", Name: "!"},
+				{Kind: "HorizontalPodAutoscaler", Name: "o"},
+				{Kind: "Ingress", Name: "s"},
+				{Kind: "IngressClass", Name: "u"},
+				{Kind: "Job", Name: "i"},
+				{Kind: "LimitRange", Name: "e"},
+				{Kind: "Namespace", Name: "s"},
+				{Kind: "NetworkPolicy", Name: "u"},
+				{Kind: "PersistentVolume", Name: "a"},
+				{Kind: "PersistentVolumeClaim", Name: "g"},
+				{Kind: "Pod", Name: "a"},
+				{Kind: "PodDisruptionBudget", Name: "c"},
+				{Kind: "PodSecurityPolicy", Name: "r"},
+				{Kind: "ReplicaSet", Name: "i"},
+				{Kind: "ReplicationController", Name: "l"},
+				{Kind: "ResourceQuota", Name: "p"},
+				{Kind: "Role", Name: "i"},
+				{Kind: "RoleBinding", Name: "e"},
+				{Kind: "RoleBindingList", Name: "x"},
+				{Kind: "RoleList", Name: "c"},
+				{Kind: "Secret", Name: "l"},
+				{Kind: "SecretList", Name: "i"},
+				{Kind: "Service", Name: "p"},
+				{Kind: "ServiceAccount", Name: "a"},
+				{Kind: "StatefulSet", Name: "c"},
+				{Kind: "StorageClass", Name: "r"},
 			},
 			expectedNames: "supercalifragilisticexpialidocious!!!",
+		},
+		{
+			desc: "tiebreaker",
+			sort: InstallOrder(),
+			resources: []yaml.ResourceMeta{
+				{Kind: "World", Name: "france-2"},
+				{Kind: "Cup22", Name: "argentina-4"},
+			},
+			expectedNames: "argentina-4france-2",
 		},
 	}
 	for _, tc := range cases {
@@ -80,11 +105,4 @@ func TestSortByKind(t *testing.T) {
 			}
 		})
 	}
-}
-
-func kindAndName(kind, name string) yaml.ResourceMeta {
-	md := yaml.ResourceMeta{}
-	md.Kind = kind
-	md.Name = name
-	return md
 }

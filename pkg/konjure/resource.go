@@ -1,5 +1,5 @@
 /*
-Copyright 2021 GramLabs, Inc.
+Copyright 2021 CloudBolt, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -67,9 +67,9 @@ func (r *Resource) Read() ([]*yaml.RNode, error) {
 	}
 
 	rv := reflect.Indirect(reflect.ValueOf(r))
-	for i := 0; i < rv.NumField(); i++ {
-		if f := rv.Field(i); f.Kind() != reflect.String && !f.IsNil() {
-			n, err := konjurev1beta2.GetRNode(rv.Field(i).Interface())
+	for _, f := range rv.Fields() {
+		if f := f; f.Kind() != reflect.String && !f.IsNil() {
+			n, err := konjurev1beta2.GetRNode(f.Interface())
 			if err != nil {
 				return nil, err
 			}
@@ -96,9 +96,9 @@ func (r *Resource) UnmarshalJSON(bytes []byte) error {
 
 		rv := reflect.Indirect(reflect.ValueOf(r))
 		rrv := reflect.ValueOf(rr)
-		for i := 0; i < rv.NumField(); i++ {
-			if rv.Field(i).Type() == rrv.Type() {
-				rv.Field(i).Set(rrv)
+		for _, field := range rv.Fields() {
+			if field.Type() == rrv.Type() {
+				field.Set(rrv)
 				return nil
 			}
 		}
@@ -106,8 +106,8 @@ func (r *Resource) UnmarshalJSON(bytes []byte) error {
 		return fmt.Errorf("unknown resource type: %T", rr)
 	}
 
-	type rt *Resource
-	return json.Unmarshal(bytes, rt(r))
+	type rt Resource
+	return json.Unmarshal(bytes, (*rt)(r))
 }
 
 // MarshalJSON produces JSON for this Konjure resource. If it was initially read
@@ -119,9 +119,9 @@ func (r *Resource) MarshalJSON() ([]byte, error) {
 	}
 
 	rv := reflect.Indirect(reflect.ValueOf(r))
-	for i := 0; i < rv.NumField(); i++ {
-		if !rv.Field(i).IsNil() {
-			str, err := (&spec.Formatter{}).Encode(rv.Field(i).Interface())
+	for _, field := range rv.Fields() {
+		if !field.IsNil() {
+			str, err := (&spec.Formatter{}).Encode(field.Interface())
 			if err != nil {
 				break
 			}
