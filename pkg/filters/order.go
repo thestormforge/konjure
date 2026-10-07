@@ -17,17 +17,19 @@ limitations under the License.
 package filters
 
 import (
-	"sort"
+	"cmp"
+	"slices"
 
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 // InstallOrder returns a filter that sorts nodes in the order in which they
-// should be created in a cluster. This uses the Helm ordering which is more
+// should be created in a cluster. This uses the Helm ordering, which is more
 // complete than the Kustomize ordering.
 func InstallOrder() kio.Filter {
 	return SortByKind([]string{
+		"PriorityClass",
 		"Namespace",
 		"NetworkPolicy",
 		"ResourceQuota",
@@ -63,6 +65,8 @@ func InstallOrder() kio.Filter {
 		"IngressClass",
 		"Ingress",
 		"APIService",
+		"MutatingWebhookConfiguration",
+		"ValidatingWebhookConfiguration",
 	})
 }
 
@@ -71,6 +75,8 @@ func InstallOrder() kio.Filter {
 // installation order.
 func UninstallOrder() kio.Filter {
 	return SortByKind([]string{
+		"ValidatingWebhookConfiguration",
+		"MutatingWebhookConfiguration",
 		"APIService",
 		"Ingress",
 		"IngressClass",
@@ -106,6 +112,7 @@ func UninstallOrder() kio.Filter {
 		"ResourceQuota",
 		"NetworkPolicy",
 		"Namespace",
+		"PriorityClass",
 	})
 }
 
@@ -113,18 +120,22 @@ func UninstallOrder() kio.Filter {
 func SortByKind(priority []string) kio.Filter {
 	order := make(map[string]int, len(priority))
 	for i, p := range priority {
-		order[p] = len(priority) - i
+		order[p] = i - len(priority)
 	}
 
+	return StableSortFilter(func(a, b *yaml.RNode) int {
+		ak, bk := a.GetKind(), b.GetKind()
+		return cmp.Or(
+			cmp.Compare(order[ak], order[bk]),
+			cmp.Compare(ak, bk),
+		)
+	})
+}
+
+// StableSortFilter returns a filter that applies a stable sort function to the nodes.
+func StableSortFilter(f func(a, b *yaml.RNode) int) kio.Filter {
 	return kio.FilterFunc(func(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
-		sort.SliceStable(nodes, func(i, j int) bool {
-			ki, kj := nodes[i].GetKind(), nodes[j].GetKind()
-			oi, oj := order[ki], order[kj]
-			if oi == oj {
-				return ki < kj
-			}
-			return oi >= oj
-		})
+		slices.SortStableFunc(nodes, f)
 		return nodes, nil
 	})
 }

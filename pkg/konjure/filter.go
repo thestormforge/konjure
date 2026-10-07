@@ -119,6 +119,7 @@ func (f *Filter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 		p.Filters = append(p.Filters, &kiofilters.FormatFilter{})
 	}
 
+	// TODO Should we also sort by name?
 	if f.Reverse {
 		p.Filters = append(p.Filters, filters.UninstallOrder())
 	} else if f.Sort {
