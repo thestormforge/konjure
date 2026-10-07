@@ -32,7 +32,7 @@ jobs:
           version: v2
           args: release ${{ env.GORELEASER_FLAGS }}
         env:
-          GITHUB_TOKEN: ${{ secrets.BMASTERS_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GRAMBOT_ACTIONS_PAT }}
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
